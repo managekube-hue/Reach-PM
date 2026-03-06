@@ -425,25 +425,6 @@ export default function App() {
     isVideoActive
   );
 
-  const participantMap = new Map<string, User>();
-  participants.forEach((participant) => {
-    if (participant?.id) {
-      participantMap.set(participant.id, participant);
-    }
-  });
-
-  if (userId) {
-    participantMap.set(userId, {
-      id: userId,
-      name: userName || 'You',
-      roomId: currentChannel?.id || '',
-      workspaceId,
-    });
-  }
-
-  const activeParticipants: User[] = Array.from(participantMap.values()) as User[];
-  const otherParticipants: User[] = activeParticipants.filter((participant) => participant.id !== userId);
-
   const applySessionIdentity = (session: any) => {
     const authUser = session?.user;
     if (!authUser?.id) {
@@ -468,6 +449,11 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!supabase) {
+      setAuthError('Supabase auth is not configured. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         applySessionIdentity(data.session);
@@ -506,16 +492,6 @@ export default function App() {
       })
       .catch(err => console.error("Error fetching workspace:", err));
   };
-
-  useEffect(() => {
-    if (!isJoined || !workspaceId || !userId || !userName) return;
-
-    fetch(`/api/workspaces/${workspaceId}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, userName, role: 'member' }),
-    }).catch((err) => console.error('Error syncing workspace member:', err));
-  }, [isJoined, workspaceId, userId, userName]);
 
   // Fetch message history when channel changes
   useEffect(() => {
@@ -678,6 +654,10 @@ export default function App() {
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
+    if (!supabase) {
+      setAuthError('Supabase auth is not configured.');
+      return;
+    }
 
     setAuthLoading(true);
     setAuthError(null);
@@ -709,6 +689,10 @@ export default function App() {
   };
 
   const handleGitHubAuth = async () => {
+    if (!supabase) {
+      setAuthError('Supabase auth is not configured.');
+      return;
+    }
     setAuthLoading(true);
     setAuthError(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -913,7 +897,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#16171d] border border-[#26272e] rounded-xl text-[#94a3b8] hover:text-white cursor-pointer transition-all">
               <Users size={16} />
-              <span className="text-xs font-bold">{activeParticipants.length}</span>
+              <span className="text-xs font-bold">{participants.length + 1}</span>
               <ChevronRight size={14} className="rotate-90" />
             </div>
 
@@ -1071,7 +1055,7 @@ export default function App() {
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Members</h4>
-                      <span className="text-[10px] font-bold text-indigo-400">{activeParticipants.length}</span>
+                      <span className="text-[10px] font-bold text-indigo-400">{participants.length + 1}</span>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
@@ -1080,7 +1064,7 @@ export default function App() {
                         </div>
                         <span className="text-sm text-white font-medium">{userName} (You)</span>
                       </div>
-                      {otherParticipants.map(p => (
+                      {participants.map(p => (
                         <div key={p.id} className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-[#26272e] rounded-lg flex items-center justify-center text-white font-bold text-xs">
                             {p.name[0]?.toUpperCase()}
