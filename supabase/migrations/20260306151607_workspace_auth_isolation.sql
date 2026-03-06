@@ -24,6 +24,39 @@ create table if not exists public.workspaces (
 	updated_at timestamptz not null default now()
 );
 
+alter table if exists public.workspaces add column if not exists slug text;
+alter table if exists public.workspaces add column if not exists name text;
+alter table if exists public.workspaces add column if not exists owner_user_id uuid references auth.users(id) on delete cascade;
+alter table if exists public.workspaces add column if not exists owner_id uuid;
+alter table if exists public.workspaces add column if not exists settings jsonb;
+alter table if exists public.workspaces add column if not exists created_at timestamptz;
+alter table if exists public.workspaces add column if not exists updated_at timestamptz;
+
+update public.workspaces
+set slug = coalesce(slug, 'ws-' || substr(id::text, 1, 12)),
+		name = coalesce(name, 'Workspace'),
+		owner_user_id = coalesce(
+			owner_user_id,
+			case
+				when owner_id is not null and exists (select 1 from auth.users u where u.id = owner_id)
+					then owner_id
+				else null
+			end
+		),
+	owner_id = coalesce(owner_id, owner_user_id),
+		settings = coalesce(settings, '{}'::jsonb),
+		created_at = coalesce(created_at, now()),
+		updated_at = coalesce(updated_at, now())
+where slug is null
+	 or name is null
+	or owner_user_id is null
+	or owner_id is null
+	or settings is null
+	 or created_at is null
+	 or updated_at is null;
+
+create unique index if not exists idx_workspaces_slug_unique on public.workspaces(slug);
+
 create table if not exists public.workspace_members (
 	workspace_id uuid not null references public.workspaces(id) on delete cascade,
 	user_id uuid not null references auth.users(id) on delete cascade,
@@ -31,6 +64,15 @@ create table if not exists public.workspace_members (
 	joined_at timestamptz not null default now(),
 	primary key (workspace_id, user_id)
 );
+
+alter table if exists public.workspace_members add column if not exists role public.workspace_role;
+alter table if exists public.workspace_members add column if not exists joined_at timestamptz;
+
+update public.workspace_members
+set role = coalesce(role, 'employee'),
+		joined_at = coalesce(joined_at, now())
+where role is null
+	 or joined_at is null;
 
 create index if not exists idx_workspace_members_user_id on public.workspace_members(user_id);
 
@@ -85,8 +127,8 @@ begin
 	display_name := coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1));
 	workspace_name := coalesce(display_name, 'Workspace') || '''s Workspace';
 
-	insert into public.workspaces (id, slug, name, owner_user_id)
-	values (workspace_uuid, workspace_slug, workspace_name, new.id)
+	insert into public.workspaces (id, slug, name, owner_user_id, owner_id)
+	values (workspace_uuid, workspace_slug, workspace_name, new.id, new.id)
 	on conflict (slug) do nothing;
 
 	insert into public.workspace_members (workspace_id, user_id, role)
@@ -127,8 +169,8 @@ begin
 
 		if not exists (select 1 from public.workspaces where slug = workspace_slug) then
 			workspace_uuid := gen_random_uuid();
-			insert into public.workspaces (id, slug, name, owner_user_id)
-			values (workspace_uuid, workspace_slug, coalesce(display_name, 'Workspace') || '''s Workspace', u.id)
+			insert into public.workspaces (id, slug, name, owner_user_id, owner_id)
+			values (workspace_uuid, workspace_slug, coalesce(display_name, 'Workspace') || '''s Workspace', u.id, u.id)
 			on conflict (slug) do nothing;
 		end if;
 
@@ -190,7 +232,7 @@ drop policy if exists workspaces_insert_owner on public.workspaces;
 create policy workspaces_insert_owner
 on public.workspaces
 for insert
-with check (owner_user_id = auth.uid());
+with check (coalesce(owner_user_id, owner_id) = auth.uid());
 
 drop policy if exists workspaces_update_admin on public.workspaces;
 create policy workspaces_update_admin
