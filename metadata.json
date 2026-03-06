@@ -1,0 +1,8 @@
+{
+  "name": "Reach",
+  "description": "A Slack-style chat and Zoom-style video meeting application built with WebRTC and WebSockets.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
