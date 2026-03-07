@@ -67,12 +67,11 @@ import {
   sendCommunicationMessage,
   setCommunicationPresence,
 } from './lib/reachCommunication';
-import { SprintTable } from './components/views/SprintTable';
-import { BacklogPlanning } from './components/views/BacklogPlanning';
-import { SprintBoard } from './components/views/SprintBoard';
+// Issue views moved to IssuePage
 import { IDEView } from './components/views/IDEView';
 import { DocsView } from './components/views/DocsView';
 import { DashboardView } from './components/views/DashboardView';
+import { IssuePage } from './pages/IssuePage';
 
 const OLD_GLOBAL_NAV = [
   { icon: Home, label: 'Home', id: 'home' },
@@ -523,15 +522,13 @@ export default function App() {
     switch (currentViewId) {
       case 'sprint-board':
       case 'kanban-board':
-        return <SprintBoard />;
       case 'product-backlog':
       case 'sprint-planning':
-        return <BacklogPlanning />;
       case 'defect-board':
       case 'issue-board':
       case 'assigned-to-me':
       case 'reported-by-me':
-        return <SprintTable />;
+        return <IssuePage activeSidebarItem={currentViewId} />;
       case 'code-prs':
       case 'my-prs':
       case 'pull-requests':
