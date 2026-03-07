@@ -1,0 +1,578 @@
+
+> react-example@0.0.0 dev
+> tsx server.ts
+
+Server running on http://0.0.0.0:5173
+[2m4:45:01 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:04:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:08:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:08:51 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:09:23 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:09:45 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:18:42 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:18:43 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:18:59 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:18:59 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:19:04 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:19:04 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:19:15 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:19:16 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:19:24 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:19:24 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:21:02 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:21:03 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\Documents\reach\src\App.tsx: Unexpected token (315:16)
+
+[0m [90m 313 |[31m                 { id[33m:[31m [32m'files'[31m[33m,[31m icon[33m:[31m [33mFileText[31m[33m,[31m label[33m:[31m [32m'Files'[31m }[33m,[31m
+ [90m 314 |[31m               ][33m.[31mmap(item [33m=>[31m (
+[31m[1m>[22m[31m[90m 315 |[31m                 [36mconst[31m shouldUseLocalSocket [33m=[31m [33m![31msupabase [33m&&[31m ([33m![31mcommConversationId [33m||[31m isHuddleActive)[33m;[31m
+ [90m     |[31m                 [31m[1m^[22m[31m
+ [90m 316 |[31m                   key[33m=[31m{item[33m.[31mid}
+ [90m 317 |[31m                   onClick[33m=[31m{() [33m=>[31m setActiveSidebarItem(item[33m.[31mid)}
+ [90m 318 |[31m                   className[33m=[31m{[32m`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/Documents/reach/src/App.tsx[39m:315:16
+[33m  313|                  { id: 'files', icon: FileText, label: 'Files' },
+  314|                ].map(item => (
+  315|                  const shouldUseLocalSocket = !supabase && (!commConversationId || isHuddleActive);
+     |                  ^
+  316|                    key={item.id}
+  317|                    onClick={() => setActiveSidebarItem(item.id)}[39m
+      at toParseError (D:\Documents\reach\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1504:19)
+      at TypeScriptParserMixin.unexpected (D:\Documents\reach\node_modules\@babel\parser\src\tokenizer\index.ts:1544:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1355:22)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1822:16)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1170:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at TypeScriptParserMixin.parseFunctionBody (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2604:14)
+      at TypeScriptParserMixin.parseArrowExpression (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2559:10)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1346:25)
+      at TypeScriptParserMixin.parseExprAtom (D:\Documents\reach\node_modules\@babel\parser\src\plugins\jsx\index.ts:583:22)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:742:23)
+      at TypeScriptParserMixin.parseUpdate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:721:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:683:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3893:20)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:417:14)
+      at TypeScriptParserMixin.parseExprOps (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:429:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:384:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:301:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\Documents\reach\node_modules\@babel\parser\src\plugins\typescript\index.ts:3764:22)
+      at callback (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:257:12)
+      at TypeScriptParserMixin.allowInAnd (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3194:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:256:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:3308:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:2790:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:1042:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (D:\Documents\reach\node_modules\@babel\parser\src\parser\expression.ts:922:29)
+[2m5:22:22 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:30:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:30:38 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:30:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:31:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:31:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:31:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:32:07 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:32:08 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:38:10 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:38:15 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:38:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m5:38:35 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m6:13:03 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/functions/comm-presence-snapshot/index.ts[22m
+[2m6:13:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/migrations/20260307001500_comm_presence_cross_workspace_sync.sql[22m
+[2m6:13:06 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/migrations/20260307001500_comm_presence_cross_workspace_sync.sql[22m
+[2m6:13:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m6:34:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m6:34:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m6:36:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m6:36:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m6:36:39 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+      at TransformPluginContext._formatLog (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42528:41)
+      at TransformPluginContext.error (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42525:16)
+      at normalizeUrl (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40504:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async <anonymous> (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40623:37)
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40550:7)
+      at async EnvironmentPluginContainer.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42323:18)
+      at async loadAndTransform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:35739:27)
+[2m6:36:39 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+[2m6:37:06 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m6:37:08 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+[2m6:38:14 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+      at TransformPluginContext._formatLog (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42528:41)
+      at TransformPluginContext.error (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42525:16)
+      at normalizeUrl (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40504:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async <anonymous> (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40623:37)
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40550:7)
+      at async EnvironmentPluginContainer.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42323:18)
+      at async loadAndTransform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:35739:27)
+      at async viteTransformMiddleware (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:37254:24)
+[2m6:39:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/App.tsx[22m
+[2m6:40:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m6:40:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m6:40:50 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+[2m6:40:50 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "@chatscope/chat-ui-kit-react" from "src/components/chat/OssChatPanel.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/Documents/reach/src/components/chat/OssChatPanel.tsx[39m:10:7
+[33m  10 |    Message,
+  11 |    Avatar
+  12 |  } from "@chatscope/chat-ui-kit-react";
+     |          ^
+  13 |  import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+  14 |  function userInitial(name) {[39m
+      at TransformPluginContext._formatLog (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42528:41)
+      at TransformPluginContext.error (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42525:16)
+      at normalizeUrl (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40504:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async <anonymous> (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40623:37)
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:40550:7)
+      at async EnvironmentPluginContainer.transform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:42323:18)
+      at async loadAndTransform (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:35739:27)
+      at async viteTransformMiddleware (D:\Documents\reach\node_modules\vite\dist\node\chunks\dep-D4NMHUTW.js:37254:24)
+[2m7:21:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:21:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:21:47 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m7:21:47 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m7:21:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m7:22:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/components/chat/OssChatPanel.tsx[22m
+[2m7:29:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:29:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:52:12 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:52:12 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:54:07 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:54:08 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:57:19 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m7:57:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m8:46:52 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/components/chat/OssChatPanel.tsx[22m
+[2m8:47:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m8:47:52 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/components/chat/OssChatPanel.tsx[22m
+[2m8:48:24 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/migrations/20260307001500_comm_presence_cross_workspace_sync.sql[22m
+[2m8:48:24 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/migrations/20260306234500_comm_channel_creation_rpc.sql[22m
+[2m8:48:24 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/migrations/20260307000500_comm_workspace_bootstrap.sql[22m
+[2m8:48:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m8:48:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/functions/comm-presence-snapshot/index.ts[22m
+[2m8:48:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m8:48:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/functions/comm-presence-snapshot/index.ts[22m
+[2m8:48:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m9:01:42 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:01:42 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:02:03 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:02:55 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:03:14 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:03:19 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:03:32 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:03:42 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:03:55 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:09:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/.temp/cli-latest[22m
+[2m9:09:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/.temp/cli-latest[22m
+[2m9:30:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/remote_public_schema.sql[22m
+[2m9:32:56 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/remote_public_schema.sql[22m
+[2m9:32:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/remote_public_schema.sql[22m
+[2m9:32:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msupabase/remote_public_schema.sql[22m
+[2m9:47:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:47:35 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:48:12 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:49:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:49:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:51:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:51:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m9:52:10 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m9:52:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m9:53:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m
+[2m9:53:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mpackage.json[22m

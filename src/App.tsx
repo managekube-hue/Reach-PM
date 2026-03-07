@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   Building2,
-  Database as DatabaseIcon,
   Info,
   AlertCircle,
   Smile,
@@ -53,8 +52,7 @@ import {
   ChevronDown,
   CalendarDays,
   ListTodo,
-  UserCheck,
-  CornerUpLeft
+  UserCheck
 } from 'lucide-react';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { useWebRTC } from './hooks/useWebRTC';
@@ -197,13 +195,10 @@ export default function App() {
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [showSchema, setShowSchema] = useState(false);
-  const [schemaData, setSchemaData] = useState<any>(null);
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
-  const [newChannelVisibility, setNewChannelVisibility] = useState<'public' | 'private'>('public');
-  const [selectedChannelMemberIds, setSelectedChannelMemberIds] = useState<string[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [workspacePresence, setWorkspacePresence] = useState<WorkspacePresence[]>([]);
@@ -216,16 +211,18 @@ export default function App() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userSearchResults, setUserSearchResults] = useState<Array<{ user_id: string; display_name: string; email: string | null; default_workspace_id: string | null }>>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [newCommChannelName, setNewCommChannelName] = useState('');
   const [isCreatingCommChannel, setIsCreatingCommChannel] = useState(false);
   const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
+  const [memberActionError, setMemberActionError] = useState<string | null>(null);
+  const [memberActionUserId, setMemberActionUserId] = useState<string | null>(null);
   const [commError, setCommError] = useState<string | null>(null);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   const [myStatus, setMyStatus] = useState<PresenceOptionValue>('available');
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const [isWorkspaceSidebarCollapsed, setIsWorkspaceSidebarCollapsed] = useState(false);
-  const [isLeftDetailsOpen, setIsLeftDetailsOpen] = useState(false);
-  const [dmSearchTerm, setDmSearchTerm] = useState('');
+  const [unreadByConversation, setUnreadByConversation] = useState<Record<string, number>>({});
   const [notifications, setNotifications] = useState<ReachNotification[]>([]);
   const [activityItems, setActivityItems] = useState<IssueActivityItem[]>([]);
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
@@ -241,8 +238,6 @@ export default function App() {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['issues']));
 
   const [showCallLauncher, setShowCallLauncher] = useState(false);
-  const [showNewDmModal, setShowNewDmModal] = useState(false);
-  const [newDmSearchTerm, setNewDmSearchTerm] = useState('');
   const [callMode, setCallMode] = useState<'member' | 'channel' | 'group' | 'team'>('member');
   const [selectedCallMemberIds, setSelectedCallMemberIds] = useState<string[]>([]);
   const [selectedTeamCallId, setSelectedTeamCallId] = useState<string>('');
@@ -291,61 +286,53 @@ export default function App() {
     if (activeGlobalNav === 'chat') {
       return (
         <div className="flex-1 flex overflow-hidden">
-          <aside className={`${isWorkspaceSidebarCollapsed ? 'w-12' : 'w-[240px]'} border-r border-[#1e2028] bg-[#0f1117] transition-all duration-200 flex-shrink-0 flex flex-col`}>
-            <div className="h-12 px-3 flex items-center justify-between border-b border-[#1e2028] flex-shrink-0">
-              {!isWorkspaceSidebarCollapsed && (
-                <span className="text-[13px] font-semibold text-white truncate">
-                  {workspaceChoices.find(w => w.id === supabaseWorkspaceId)?.name || workspaceId || 'Workspace'}
-                </span>
-              )}
+          <aside className={`${isWorkspaceSidebarCollapsed ? 'w-14' : 'w-[280px]'} border-r border-[#26272e] bg-[#111217] transition-all duration-200 flex-shrink-0`}>
+            <div className="h-11 px-3 border-b border-[#26272e] flex items-center justify-between">
+              {!isWorkspaceSidebarCollapsed && <p className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8]">Workspace</p>}
               <button
                 onClick={() => setIsWorkspaceSidebarCollapsed((prev) => !prev)}
-                className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1e2028] rounded-lg transition-all flex-shrink-0"
+                className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg"
+                title={isWorkspaceSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <Menu size={15} />
+                <Menu size={16} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar py-1">
-              {[
-                { id: 'activity', icon: Bell, label: 'Activity', badge: unreadNotifications.length },
-                { id: 'directory', icon: Users, label: 'Directory' },
-                { id: 'files', icon: FileText, label: 'Files' },
-              ].map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSidebarItem(item.id)}
-                  className={`w-full flex items-center gap-2.5 ${isWorkspaceSidebarCollapsed ? 'justify-center py-2' : 'px-2.5 py-1.5 justify-between'} rounded-lg text-[13px] font-medium transition-all ${
-                    activeSidebarItem === item.id ? 'bg-[#1e2028] text-white' : 'text-[#64748b] hover:text-white hover:bg-[#15171f]'
-                  }`}
-                  title={isWorkspaceSidebarCollapsed ? item.label : undefined}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <item.icon size={15} />
-                    {!isWorkspaceSidebarCollapsed && item.label}
-                  </span>
-                  {!isWorkspaceSidebarCollapsed && item.badge ? (
-                    <span className="text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full bg-indigo-600 text-white font-bold px-1">
-                      {(item.badge as number) > 9 ? '9+' : item.badge}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
+            <div className="p-2 space-y-2 overflow-y-auto h-[calc(100%-44px)] custom-scrollbar">
+              <button
+                onClick={() => setActiveSidebarItem('activity')}
+                className={`w-full flex items-center ${isWorkspaceSidebarCollapsed ? 'justify-center' : 'justify-between'} px-2.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  activeSidebarItem === 'activity' ? 'bg-indigo-600/20 text-white border border-indigo-500/30' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24] border border-transparent'
+                }`}
+                title="Issue activity"
+              >
+                <span className="flex items-center gap-2">
+                  <Bell size={14} />
+                  {!isWorkspaceSidebarCollapsed && 'Activity'}
+                </span>
+                {!isWorkspaceSidebarCollapsed && unreadNotifications.length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadNotifications.length}</span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveSidebarItem('directory')}
+                className={`w-full flex items-center ${isWorkspaceSidebarCollapsed ? 'justify-center' : 'justify-between'} px-2.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  activeSidebarItem === 'directory' ? 'bg-indigo-600/20 text-white border border-indigo-500/30' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24] border border-transparent'
+                }`}
+                title="Directory"
+              >
+                <span className="flex items-center gap-2">
+                  <Users size={14} />
+                  {!isWorkspaceSidebarCollapsed && 'Directory'}
+                </span>
+              </button>
 
               {!isWorkspaceSidebarCollapsed && (
                 <>
-                  <div className="pt-2 pb-1">
-                    <div className="flex items-center justify-between px-2 mb-0.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#374151]">Channels</span>
-                      <button
-                        onClick={() => { setSelectedChannelMemberIds([]); setShowCreateChannel(true); }}
-                        className="p-0.5 text-[#374151] hover:text-[#94a3b8] hover:bg-[#1e2028] rounded transition-all"
-                        title="Create channel"
-                      >
-                        <Plus size={13} />
-                      </button>
-                    </div>
-                    <div className="space-y-0.5">
+                  <div className="pt-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b] px-2">Channels</p>
+                    <div className="mt-1 space-y-0.5">
                       {channelConversations.map((conversation) => (
                         <button
                           key={conversation.id}
@@ -357,96 +344,46 @@ export default function App() {
                               workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
                               name: conversation.name,
                             });
-                            markConversationNotificationsRead(conversation.id);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
-                            commConversationId === conversation.id && activeSidebarItem === 'messages'
-                              ? 'bg-[#1e2028] text-white'
-                              : 'text-[#64748b] hover:text-[#cbd5e1] hover:bg-[#15171f]'
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all ${
+                            commConversationId === conversation.id ? 'bg-[#26272e] text-white' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24]'
                           }`}
                         >
-                          <span className="flex items-center gap-2 min-w-0">
-                            <Hash size={13} className="flex-shrink-0 opacity-60" />
-                            <span className="truncate">{conversation.name}</span>
-                          </span>
+                          <span className="truncate"># {conversation.name}</span>
                           {(unreadCountByConversation[conversation.id] || 0) > 0 && (
-                            <span className="text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full bg-indigo-600 text-white font-bold px-1">
-                              {unreadCountByConversation[conversation.id]}
-                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
                           )}
                         </button>
                       ))}
-                      {channelConversations.length === 0 && (
-                        <p className="text-[11px] text-[#374151] px-2 py-1">No channels yet.</p>
-                      )}
                     </div>
                   </div>
 
-                  <div className="pt-2 pb-1">
-                    <div className="flex items-center justify-between px-2 mb-0.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#374151]">Direct Messages</span>
-                      <button
-                        onClick={() => { setNewDmSearchTerm(''); setShowNewDmModal(true); }}
-                        className="p-0.5 text-[#374151] hover:text-[#94a3b8] hover:bg-[#1e2028] rounded transition-all"
-                        title="New direct message"
-                      >
-                        <Plus size={13} />
-                      </button>
+                  <div className="pt-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b] px-2">Direct Messages</p>
+                    <div className="mt-1 space-y-0.5">
+                      {directConversations.map((conversation) => (
+                        <button
+                          key={conversation.id}
+                          onClick={() => {
+                            setActiveSidebarItem('messages');
+                            setCommConversationId(conversation.id);
+                            setCurrentChannel({
+                              id: conversation.id,
+                              workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
+                              name: conversation.name,
+                            });
+                          }}
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all ${
+                            commConversationId === conversation.id ? 'bg-[#26272e] text-white' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24]'
+                          }`}
+                        >
+                          <span className="truncate">@ {conversation.name}</span>
+                          {(unreadCountByConversation[conversation.id] || 0) > 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
+                          )}
+                        </button>
+                      ))}
                     </div>
-                    <div className="space-y-0.5">
-                      {filteredDirectConversations.map((conversation) => {
-                        const memberInfo = panelMembers.find(m => m.user_name && conversation.name.includes(m.user_name) && m.user_id !== userId);
-                        const memberStatus = memberInfo ? presenceByUserId.get(memberInfo.user_id)?.status || 'offline' : 'offline';
-                        return (
-                          <button
-                            key={conversation.id}
-                            onClick={() => {
-                              setActiveSidebarItem('messages');
-                              setCommConversationId(conversation.id);
-                              setCurrentChannel({
-                                id: conversation.id,
-                                workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-                                name: conversation.name,
-                              });
-                              markConversationNotificationsRead(conversation.id);
-                            }}
-                            className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
-                              commConversationId === conversation.id && activeSidebarItem === 'messages'
-                                ? 'bg-[#1e2028] text-white'
-                                : 'text-[#64748b] hover:text-[#cbd5e1] hover:bg-[#15171f]'
-                            }`}
-                          >
-                            <span className="flex items-center gap-2 min-w-0">
-                              <div className="relative flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-[#26272e] flex items-center justify-center text-[9px] font-bold text-[#cbd5e1]">
-                                  {(conversation.name.replace(/^(DM: |@ )/, '') || '?')[0]?.toUpperCase()}
-                                </div>
-                                <span className={`absolute -bottom-px -right-px w-2 h-2 rounded-full border border-[#0f1117] ${getStatusDotClass(memberStatus)}`} />
-                              </div>
-                              <span className="truncate">{conversation.name.replace(/^(DM: |@ )/, '')}</span>
-                            </span>
-                            {(unreadCountByConversation[conversation.id] || 0) > 0 && (
-                              <span className="text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full bg-indigo-600 text-white font-bold px-1">
-                                {unreadCountByConversation[conversation.id]}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                      {filteredDirectConversations.length === 0 && (
-                        <p className="text-[11px] text-[#374151] px-2 py-1">No direct messages yet.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-[#1e2028] mt-2">
-                    <button
-                      onClick={() => { setActiveSidebarItem('huddle'); setIsVideoActive(true); }}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] font-medium text-[#4b5563] hover:text-white hover:bg-[#15171f] transition-all"
-                    >
-                      <Headphones size={15} />
-                      Start Huddle
-                    </button>
                   </div>
                 </>
               )}
@@ -455,22 +392,22 @@ export default function App() {
 
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-3">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
               {activeSidebarItem === 'messages' && (
-                <div className="space-y-0.5 max-w-3xl mx-auto pt-4">
+                <div className="space-y-8 max-w-5xl mx-auto">
                 {commError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300 mb-4">
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
                     {commError}
                   </div>
                 )}
 
                 {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center py-20 opacity-40">
-                    <div className="w-16 h-16 bg-[#1e2028] rounded-2xl flex items-center justify-center mb-5">
-                      <MessageSquare size={28} className="text-[#64748b]" />
+                  <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-40">
+                    <div className="w-24 h-24 bg-[#26272e] rounded-[2rem] flex items-center justify-center mb-8">
+                      <MessageSquare size={40} className="text-[#94a3b8]" />
                     </div>
-                    <h4 className="text-base font-semibold text-white mb-1">Welcome to #{currentChannel?.name}</h4>
-                    <p className="text-[#64748b] text-sm">This is the beginning of the conversation.</p>
+                    <h4 className="text-xl font-bold text-white mb-2">Welcome to #{currentChannel?.name}</h4>
+                    <p className="text-[#94a3b8] font-medium">This is the start of the conversation. Say hello!</p>
                   </div>
                 ) : (
                   messages.map((msg, idx) => {
@@ -478,69 +415,51 @@ export default function App() {
                     const isSameUser = prevMsg && prevMsg.userId === msg.userId && (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() < 300000);
                     
                     return (
-                      <div key={msg.id} className={`group relative flex gap-3 hover:bg-[#16171d]/50 px-3 py-0.5 rounded-lg transition-colors cursor-default ${isSameUser ? '' : 'mt-3'}`}>
-                        {/* Hover action bar */}
-                        <div className="absolute -top-3.5 right-3 opacity-0 group-hover:opacity-100 transition-all duration-100 flex items-center gap-0.5 bg-[#1a1d24] border border-[#26272e] rounded-lg shadow-xl px-1 py-0.5 z-10">
-                          <button
-                            className="p-1.5 text-[#64748b] hover:text-yellow-400 hover:bg-[#26272e] rounded transition-all"
-                            title="Add reaction"
-                          >
-                            <Smile size={13} />
-                          </button>
-                          <button
-                            className="p-1.5 text-[#64748b] hover:text-indigo-400 hover:bg-[#26272e] rounded transition-all"
-                            title="Reply in thread"
-                          >
-                            <CornerUpLeft size={13} />
-                          </button>
-                          <button
-                            onClick={() => togglePinMessage(msg.id)}
-                            className={`p-1.5 hover:bg-[#26272e] rounded transition-all ${pinnedMessageIds.includes(msg.id) ? 'text-indigo-400' : 'text-[#64748b] hover:text-white'}`}
-                            title={pinnedMessageIds.includes(msg.id) ? 'Unpin' : 'Pin message'}
-                          >
-                            <Pin size={13} />
-                          </button>
-                          <button
-                            className="p-1.5 text-[#64748b] hover:text-white hover:bg-[#26272e] rounded transition-all"
-                            title="More actions"
-                          >
-                            <MoreHorizontal size={13} />
-                          </button>
-                        </div>
-
+                      <div key={msg.id} className={`group flex gap-4 ${isSameUser ? '-mt-6' : ''}`}>
                         {!isSameUser ? (
-                          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-semibold text-[13px] mt-0.5">
-                            {(msg.userName || '?')[0]?.toUpperCase() || '?'}
+                          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/10">
+                            {msg.userName[0]?.toUpperCase() || '?'}
                           </div>
                         ) : (
-                          <div className="w-8 flex-shrink-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-[10px] text-[#3d4555]">
+                          <div className="w-10 flex-shrink-0 flex justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-[10px] text-[#475569] font-bold mt-1">
                               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         )}
-                        <div className="flex-1 min-w-0 pb-0.5">
+                        <div className="flex-1 min-w-0">
                           {!isSameUser && (
-                            <div className="flex items-baseline gap-2 mb-0.5">
-                              <span className="font-semibold text-white text-[14px]">{msg.userName}</span>
-                              <span className="text-[11px] text-[#3d4555]">
+                            <div className="flex items-baseline gap-3 mb-1">
+                              <span className="font-bold text-white text-[15px] hover:underline cursor-pointer">{msg.userName}</span>
+                              <span className="text-[11px] text-[#94a3b8] font-bold uppercase tracking-widest">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
+                              <button
+                                onClick={() => togglePinMessage(msg.id)}
+                                className={`p-1 rounded transition-all ${
+                                  pinnedMessageIds.includes(msg.id)
+                                    ? 'text-indigo-400 bg-indigo-500/10'
+                                    : 'text-[#475569] hover:text-white hover:bg-[#26272e]'
+                                }`}
+                                title={pinnedMessageIds.includes(msg.id) ? 'Unpin message' : 'Pin message'}
+                              >
+                                <Pin size={12} />
+                              </button>
                             </div>
                           )}
-                          <p className="text-[14px] text-[#b9c3d4] leading-relaxed break-words">{msg.text}</p>
+                          <p className="text-[15px] text-[#cbd5e1] leading-relaxed break-words">{msg.text}</p>
                           
                           {msg.file_url && (
-                            <div className="mt-2 flex items-center gap-3 p-3 bg-[#16171d] border border-[#1e2028] rounded-xl max-w-sm hover:border-indigo-500/40 transition-all group/file">
-                              <div className="w-9 h-9 bg-indigo-600/15 rounded-lg flex items-center justify-center text-indigo-400 flex-shrink-0">
-                                {msg.file_type?.startsWith('image/') ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            <div className="mt-3 p-4 bg-[#1e1f26] border border-[#26272e] rounded-2xl flex items-center gap-4 max-w-md group/file hover:border-indigo-500/50 transition-all cursor-pointer shadow-lg">
+                              <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400">
+                                {msg.file_type?.startsWith('image/') ? <ImageIcon size={24} /> : <FileText size={24} />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-semibold text-white truncate">{msg.file_name}</p>
-                                <p className="text-[10px] text-[#4b5563] uppercase tracking-wide">{msg.file_type?.split('/')[1] || 'FILE'}</p>
+                                <p className="text-sm font-bold text-white truncate">{msg.file_name}</p>
+                                <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">{msg.file_type?.split('/')[1] || 'FILE'}</p>
                               </div>
-                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="p-1.5 text-[#4b5563] hover:text-white transition-colors flex-shrink-0">
-                                <ExternalLink size={15} />
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-[#94a3b8] hover:text-white transition-colors">
+                                <ExternalLink size={18} />
                               </a>
                             </div>
                           )}
@@ -724,10 +643,11 @@ export default function App() {
 
             {/* Input Area */}
             {activeSidebarItem === 'messages' && (
-              <div className="px-3 py-3 bg-[#0d0e12] border-t border-[#1e2028]">
-                <div className="max-w-3xl mx-auto">
+              <div className="p-6 bg-[#0d0e12] border-t border-[#26272e]">
+                <div className="max-w-5xl mx-auto">
                   <ChatInput
                     onSend={handleSendMessage}
+                    onUploadFile={uploadCommunicationAsset}
                     onVideoClick={handleComposerVideoClick}
                     onTerminateVideo={terminateHuddle}
                     isVideoActive={isVideoActive}
@@ -735,7 +655,6 @@ export default function App() {
                     onOpenIssue={() => goToCoreView('issues', 'assigned-to-me')}
                     onOpenDocs={() => goToCoreView('chat', 'files')}
                     onOpenIDE={() => goToCoreView('code-prs', 'pull-requests')}
-                    onUploadFile={handleUploadFile}
                   />
                 </div>
               </div>
@@ -784,7 +703,7 @@ export default function App() {
                   <select
                     value={myStatus}
                     onChange={(e) => handleSetStatus(e.target.value as PresenceOptionValue)}
-                    className="bg-[#0d0e12] border border-[#1e2028] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     {PRESENCE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -847,7 +766,7 @@ export default function App() {
                   <h2 className="text-2xl font-bold text-white tracking-tight">Admin Portal</h2>
                   <p className="text-[#94a3b8] text-sm mt-1">Manage profiles, workspace roles, and access views by username.</p>
                 </div>
-                <div className="px-3 py-1.5 bg-[#0d0e12] border border-[#1e2028] rounded-lg text-xs font-semibold text-[#cbd5e1] uppercase tracking-wide">
+                <div className="px-3 py-1.5 bg-[#0d0e12] border border-[#303236] rounded-lg text-xs font-semibold text-[#cbd5e1] uppercase tracking-wide">
                   Role: {currentRole}
                 </div>
               </div>
@@ -857,6 +776,70 @@ export default function App() {
                   {roleUpdateError}
                 </div>
               )}
+
+              {memberActionError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
+                  {memberActionError}
+                </div>
+              )}
+
+              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={userSearchTerm}
+                    onChange={(e) => searchUsersByName(e.target.value)}
+                    placeholder="Find user by name or email"
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs w-full max-w-sm"
+                  />
+                  <span className="text-[11px] text-[#94a3b8]">
+                    Add teammates to this workspace so they appear in this admin panel.
+                  </span>
+                </div>
+
+                {userSearchTerm.trim() && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                    {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
+                    {!isSearchingUsers && userSearchResults.map((result) => {
+                      const inWorkspace = panelMembers.some((member) => member.user_id === result.user_id);
+                      const isWorking = memberActionUserId === result.user_id;
+
+                      return (
+                        <div
+                          key={result.user_id}
+                          className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#0d0e12] rounded border border-[#303236]"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</p>
+                            <p className="text-[10px] text-[#64748b] truncate">{result.email || result.user_id}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => startPrivateCall({
+                                id: result.user_id,
+                                name: result.display_name || result.email || 'User',
+                                roomId: currentChannel?.id || 'general',
+                                workspaceId: result.default_workspace_id || workspaceId,
+                              })}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                            >
+                              Open DM
+                            </button>
+                            {isAdminPortal && (
+                              <button
+                                onClick={() => addUserToWorkspace(result.user_id)}
+                                disabled={inWorkspace || isWorking}
+                                className="bg-[#26272e] hover:bg-[#303236] disabled:opacity-50 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                              >
+                                {inWorkspace ? 'In Workspace' : isWorking ? 'Adding...' : 'Add Member'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden">
                 <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-[#26272e] text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
@@ -870,6 +853,8 @@ export default function App() {
                     const presence = presenceByUserId.get(member.user_id);
                     const status = presence?.status || 'offline';
                     const canEditRole = isAdminPortal && member.user_id !== userId;
+                    const canRemoveMember = isAdminPortal && member.user_id !== userId && (currentRole === 'owner' || member.role !== 'owner');
+                    const isWorking = memberActionUserId === member.user_id;
 
                     return (
                       <div key={member.user_id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
@@ -893,15 +878,26 @@ export default function App() {
                         </div>
                         <div className="col-span-3">
                           {canEditRole ? (
-                            <select
-                              value={member.role}
-                              onChange={(e) => updateMemberRole(member.user_id, e.target.value as 'owner' | 'admin' | 'employee')}
-                              className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-lg px-2 py-1.5 text-xs"
-                            >
-                              <option value="employee">Employee</option>
-                              <option value="admin">Admin</option>
-                              <option value="owner">Owner</option>
-                            </select>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={member.role}
+                                onChange={(e) => updateMemberRole(member.user_id, e.target.value as 'owner' | 'admin' | 'employee')}
+                                className="flex-1 bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-2 py-1.5 text-xs"
+                              >
+                                <option value="employee">Employee</option>
+                                <option value="admin">Admin</option>
+                                <option value="owner">Owner</option>
+                              </select>
+                              {canRemoveMember && (
+                                <button
+                                  onClick={() => removeWorkspaceMember(member.user_id)}
+                                  disabled={isWorking}
+                                  className="bg-red-600/20 border border-red-500/40 text-red-200 rounded px-2 py-1 text-[10px] font-semibold disabled:opacity-50"
+                                >
+                                  {isWorking ? 'Removing...' : 'Remove'}
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-xs uppercase tracking-wide text-[#94a3b8]">{member.role}</span>
                           )}
@@ -947,7 +943,7 @@ export default function App() {
               {/* Professional Dashboard / List View */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div className="lg:col-span-2 bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden shadow-xl">
-                  <div className="p-4 border-b border-[#26272e] flex items-center justify-between bg-[#0d0e12]/50">
+                  <div className="p-4 border-b border-[#26272e] flex items-center justify-between bg-[#1a1d21]/50">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Active Items</h3>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -1157,43 +1153,43 @@ export default function App() {
     setCommConversations(rows);
   };
 
-  const createCommChannelWithName = async (channelName: string, isPrivate = false) => {
-    if (!supabase || !supabaseWorkspaceId || !userId) {
-      setCommError('Select a workspace and sign in before creating a channel.');
-      return null;
+  const createCommChannel = async () => {
+    if (!supabase || !supabaseWorkspaceId || !userId || !newCommChannelName.trim()) {
+      setCommError('Select a workspace and enter a channel name before creating a channel.');
+      return;
     }
 
-    const cleanedName = channelName.trim();
-    if (!cleanedName) {
-      setCommError('Channel name is required.');
-      return null;
+    setIsCreatingCommChannel(true);
+    setCommError(null);
+    try {
+      const { data, error } = await supabase.rpc('comm_create_channel', {
+        p_workspace_id: supabaseWorkspaceId,
+        p_name: newCommChannelName.trim(),
+        p_topic: '',
+        p_is_private: false,
+        p_slug: null,
+      });
+
+      const conversation = Array.isArray(data) ? data[0] : data;
+
+      if (error || !conversation) {
+        console.error('Error creating channel:', error);
+        setCommError(error?.message || 'Unable to create channel.');
+        return;
+      }
+
+      setNewCommChannelName('');
+      setCommConversationId(conversation.id);
+      setCurrentChannel({
+        id: conversation.id,
+        workspace_id: supabaseWorkspaceId,
+        name: conversation.name,
+      });
+      await loadCommConversations(supabaseWorkspaceId);
+      await loadCommMessages(conversation.id);
+    } finally {
+      setIsCreatingCommChannel(false);
     }
-
-    const requestedSlug = cleanedName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    const { data, error } = await supabase.rpc('comm_create_channel', {
-      p_workspace_id: supabaseWorkspaceId,
-      p_name: cleanedName,
-      p_topic: '',
-      p_is_private: isPrivate,
-      p_slug: requestedSlug || null,
-    });
-
-    const conversation = Array.isArray(data) ? data[0] : null;
-    if (error || !conversation) {
-      console.error('Error creating channel:', error);
-      setCommError(error?.message || 'Unable to create channel.');
-      return null;
-    }
-
-    return {
-      id: conversation.id,
-      name: conversation.name,
-      workspace_id: conversation.workspace_id,
-    } as { id: string; name: string; workspace_id: string | null };
   };
 
   const updateMemberRole = async (targetUserId: string, nextRole: 'owner' | 'admin' | 'employee') => {
@@ -1212,6 +1208,59 @@ export default function App() {
     }
 
     await loadCommMembers(supabaseWorkspaceId);
+  };
+
+  const addUserToWorkspace = async (targetUserId: string) => {
+    if (!supabase || !supabaseWorkspaceId) return;
+    setMemberActionError(null);
+    setMemberActionUserId(targetUserId);
+
+    try {
+      const { error } = await supabase
+        .from('workspace_members')
+        .upsert(
+          {
+            workspace_id: supabaseWorkspaceId,
+            user_id: targetUserId,
+            role: 'employee',
+          },
+          { onConflict: 'workspace_id,user_id' }
+        );
+
+      if (error) {
+        setMemberActionError(error.message);
+        return;
+      }
+
+      await loadCommMembers(supabaseWorkspaceId);
+      await loadCommPresence(supabaseWorkspaceId);
+    } finally {
+      setMemberActionUserId(null);
+    }
+  };
+
+  const removeWorkspaceMember = async (targetUserId: string) => {
+    if (!supabase || !supabaseWorkspaceId || targetUserId === userId) return;
+    setMemberActionError(null);
+    setMemberActionUserId(targetUserId);
+
+    try {
+      const { error } = await supabase
+        .from('workspace_members')
+        .delete()
+        .eq('workspace_id', supabaseWorkspaceId)
+        .eq('user_id', targetUserId);
+
+      if (error) {
+        setMemberActionError(error.message);
+        return;
+      }
+
+      await loadCommMembers(supabaseWorkspaceId);
+      await loadCommPresence(supabaseWorkspaceId);
+    } finally {
+      setMemberActionUserId(null);
+    }
   };
 
   const searchUsersByName = async (query: string) => {
@@ -1283,44 +1332,6 @@ export default function App() {
     await loadNotifications(supabaseWorkspaceId);
   };
 
-  const addMembersToConversation = async (conversationId: string, memberIds: string[]) => {
-    if (!supabase || !supabaseWorkspaceId || !conversationId || memberIds.length === 0) return;
-
-    const uniqueMembers = Array.from(new Set(memberIds.filter((id) => id && id !== userId)));
-    for (const targetUserId of uniqueMembers) {
-      const member = panelMembers.find((item) => item.user_id === targetUserId);
-      const targetWorkspaceId = (member as any)?.home_workspace_id || member?.workspace_id || supabaseWorkspaceId;
-
-      const { error } = await supabase
-        .from('comm_conversation_members')
-        .upsert(
-          {
-            conversation_id: conversationId,
-            user_id: targetUserId,
-            workspace_id: targetWorkspaceId,
-            role: 'member',
-          },
-          { onConflict: 'conversation_id,user_id' }
-        );
-
-      if (error) {
-        console.error('Error adding selected member:', error);
-        continue;
-      }
-
-      await supabase.rpc('comm_notify_user', {
-        p_workspace_id: targetWorkspaceId,
-        p_user_id: targetUserId,
-        p_kind: 'added_to_channel',
-        p_payload: {
-          conversation_id: conversationId,
-          conversation_name: currentChannel?.name || 'channel',
-          added_at: new Date().toISOString(),
-        },
-      });
-    }
-  };
-
   const loadCommMessages = async (conversationId: string) => {
     if (!supabase) return;
 
@@ -1361,6 +1372,25 @@ export default function App() {
     });
 
     setMessages(mapped);
+
+    if (supabaseWorkspaceId && userId) {
+      const { data: unreadRows } = await supabase
+        .from('comm_notifications')
+        .select('id')
+        .eq('workspace_id', supabaseWorkspaceId)
+        .eq('user_id', userId)
+        .is('read_at', null)
+        .contains('payload', { conversation_id: conversationId })
+        .limit(200);
+
+      if (unreadRows?.length) {
+        const now = new Date().toISOString();
+        await supabase
+          .from('comm_notifications')
+          .update({ read_at: now })
+          .in('id', unreadRows.map((row) => row.id));
+      }
+    }
   };
 
   const loadCommPresence = async (workspaceUuid: string) => {
@@ -1480,129 +1510,126 @@ export default function App() {
   };
 
   const ensureCommConversation = async (workspaceUuid: string) => {
-    if (!supabase || !userId) return null;
+    if (!supabase || !userId) return;
 
-    const { data, error } = await supabase.rpc('comm_ensure_default_channel', {
-      p_workspace_id: workspaceUuid,
-      p_slug: 'general',
-      p_name: 'general',
-    });
+    const { data: existing, error: existingErr } = await supabase
+      .from('comm_conversations')
+      .select('id,name')
+      .eq('workspace_id', workspaceUuid)
+      .eq('kind', 'channel')
+      .eq('slug', 'general')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
-    const conversation = Array.isArray(data) ? data[0] : null;
-    if (error || !conversation) {
-      console.error('Error ensuring default conversation:', error);
-      return null;
+    if (existingErr) {
+      console.error('Error checking conversation:', existingErr);
+      return;
     }
 
-    setCommConversationId(conversation.id);
-    setCurrentChannel({
-      id: conversation.id,
-      workspace_id: conversation.workspace_id || workspaceUuid,
-      name: conversation.name || 'general',
-    });
+    let conversationId = existing?.id as string | null;
+    if (!conversationId) {
+      const { data: created, error: createErr } = await supabase
+        .from('comm_conversations')
+        .insert({
+          workspace_id: workspaceUuid,
+          kind: 'channel',
+          name: 'general',
+          slug: 'general',
+          topic: 'Workspace default channel',
+          created_by: userId,
+        })
+        .select('id,name')
+        .single();
 
-    return conversation.id as string;
+      if (createErr || !created) {
+        console.error('Error creating conversation:', createErr);
+        return;
+      }
+      conversationId = created.id;
+    }
+
+    const { error: memberErr } = await supabase
+      .from('comm_conversation_members')
+      .upsert({
+        conversation_id: conversationId,
+        user_id: userId,
+        workspace_id: workspaceUuid,
+        role: 'owner',
+      }, { onConflict: 'conversation_id,user_id' });
+
+    if (memberErr) {
+      console.error('Error syncing conversation member:', memberErr);
+    }
+
+    setCommConversationId(conversationId);
+    setCurrentChannel({
+      id: conversationId,
+      workspace_id: workspaceUuid,
+      name: existing?.name || 'general',
+    });
   };
 
   const loadSupabaseCommunicationContext = async () => {
-    if (!supabase || !userId) return null;
+    if (!supabase || !userId) return;
 
-    const { data: bootstrapRows, error: bootstrapErr } = await supabase.rpc('comm_bootstrap_workspace_context', {
-      p_preferred_slug: workspaceId,
+    const preferredSlug = workspaceId?.trim() || null;
+    const { data: bootRows, error: bootstrapErr } = await supabase.rpc('comm_bootstrap_workspace_context', {
+      p_preferred_slug: preferredSlug,
     });
 
     if (bootstrapErr) {
       console.error('Error bootstrapping workspace context:', bootstrapErr);
-      setCommError('Unable to initialize communication workspace context.');
-      return null;
     }
 
-    const rows = (bootstrapRows || []) as Array<{ id: string; name: string; slug: string; is_default: boolean }>;
-    if (!rows.length) {
-      setCommError('No workspace memberships found for this account.');
-      return null;
+    const normalizedBootRows = (bootRows || []) as Array<{ id: string; name: string; slug: string; is_default: boolean }>;
+    if (normalizedBootRows.length > 0) {
+      const choices = normalizedBootRows.map((row) => ({ id: row.id, name: row.name, slug: row.slug }));
+      setWorkspaceChoices(choices);
+      const chosen = normalizedBootRows.find((row) => row.is_default) || normalizedBootRows[0];
+      setSupabaseWorkspaceId(chosen.id);
+      if (chosen.slug) setWorkspaceId(chosen.slug);
+      return;
     }
 
-    const mappedChoices = rows.map((row) => ({ id: row.id, name: row.name, slug: row.slug }));
-    setWorkspaceChoices(mappedChoices);
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('default_workspace_id')
+      .eq('id', userId)
+      .maybeSingle();
 
-    const preferred = rows.find((row) => row.slug === workspaceId);
-    const chosen = preferred || rows.find((row) => row.is_default) || rows[0];
+    const { data: memberships, error: membershipErr } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', userId);
 
-    setCommError(null);
-    setSupabaseWorkspaceId(chosen.id);
-    if (chosen.slug) {
-      setWorkspaceId(chosen.slug);
+    if (membershipErr || !memberships?.length) {
+      if (membershipErr) console.error('Error fetching workspace memberships:', membershipErr);
+      return;
     }
 
-    return chosen.id;
+    const workspaceIds = memberships.map((m) => m.workspace_id);
+    const { data: workspaces } = await supabase
+      .from('workspaces')
+      .select('id,name,slug')
+      .in('id', workspaceIds);
+
+    if (workspaces?.length) {
+      setWorkspaceChoices(workspaces);
+    }
+
+    const chosenWorkspace =
+      profileRow?.default_workspace_id && workspaceIds.includes(profileRow.default_workspace_id)
+        ? profileRow.default_workspace_id
+        : workspaceIds[0];
+
+    setSupabaseWorkspaceId(chosenWorkspace);
+    const chosenRecord = (workspaces || []).find((w) => w.id === chosenWorkspace);
+    if (chosenRecord?.slug) {
+      setWorkspaceId(chosenRecord.slug);
+    }
   };
 
-  // Mark all unread notifications for a conversation as read (updates local state + DB)
-  const markConversationNotificationsRead = (conversationId: string) => {
-    if (!supabase || !userId || !supabaseWorkspaceId) return;
-    supabase
-      .from('comm_notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('workspace_id', supabaseWorkspaceId)
-      .is('read_at', null)
-      .filter('payload->>conversation_id', 'eq', conversationId)
-      .then(({ error }) => {
-        if (!error) {
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.payload?.conversation_id === conversationId && !n.read_at
-                ? { ...n, read_at: new Date().toISOString() }
-                : n
-            )
-          );
-        }
-      });
-  };
-
-  // Upload a file to the comm-uploads Supabase Storage bucket.
-  // Falls back to /api/upload when supabase is not configured.
-  const handleUploadFile = async (file: File): Promise<{ url: string; name: string; type: string } | null> => {
-    if (!supabase) {
-      // Local Express fallback for non-Supabase dev setups
-      const formData = new FormData();
-      formData.append('file', file);
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error('Local upload failed:', err);
-      }
-      return null;
-    }
-
-    const workspaceScope = supabaseWorkspaceId || 'general';
-    const convScope = commConversationId || 'shared';
-    const safeName = file.name.replace(/[^a-z0-9._-]/gi, '_').toLowerCase();
-    const path = `${workspaceScope}/${convScope}/${Date.now()}-${safeName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('comm-uploads')
-      .upload(path, file, { contentType: file.type, upsert: false });
-
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      setCommError(`File upload failed: ${uploadError.message}`);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage.from('comm-uploads').getPublicUrl(path);
-    return { url: publicUrl, name: file.name, type: file.type };
-  };
-
-
-  // Fetch workspace and channels
-  useEffect(() => {
-    if (isJoined) {
-      fetchWorkspace();
-    }
-  }, [isJoined, workspaceId]);
 
   useEffect(() => {
     if (!isJoined || !userId) return;
@@ -1695,32 +1722,6 @@ export default function App() {
     };
   }, [supabaseWorkspaceId, supabase, commMembers]);
 
-  // Real-time notification bell: instant unread badge updates without polling
-  useEffect(() => {
-    if (!supabase || !userId) return;
-
-    const notifChannel = supabase
-      .channel(`comm-notifications-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'comm_notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const incoming = payload.new as ReachNotification;
-          setNotifications((prev) => [incoming, ...prev].slice(0, 50));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(notifChannel);
-    };
-  }, [userId, supabase]);
-
   useEffect(() => {
     const key = commConversationId || currentChannel?.id;
     if (!key) return;
@@ -1745,61 +1746,8 @@ export default function App() {
     });
   };
 
-  const fetchWorkspace = () => {
-    fetch(`/api/workspaces/${workspaceId}`)
-      .then(res => res.json())
-      .then(data => {
-        setWorkspace(data);
-        if (!currentChannel && data.channels.length > 0) {
-          setCurrentChannel(data.channels[0]);
-        }
-      })
-      .catch(err => console.error("Error fetching workspace:", err));
-  };
-
   useEffect(() => {
-    if (!isJoined || !workspaceId || !userId || !userName) return;
-
-    fetch(`/api/workspaces/${workspaceId}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, userName, role: 'member' }),
-    }).catch((err) => console.error('Error syncing workspace member:', err));
-  }, [isJoined, workspaceId, userId, userName]);
-
-  useEffect(() => {
-    if (supabaseWorkspaceId) return;
-    if (!isJoined || !workspaceId) return;
-
-    const fetchPresence = async () => {
-      try {
-        const res = await fetch(`/api/workspaces/${workspaceId}/presence`);
-        const data = await res.json();
-        if (res.ok && Array.isArray(data.presence)) {
-          setWorkspacePresence(data.presence);
-        }
-      } catch (err) {
-        console.error('Error fetching workspace presence:', err);
-      }
-    };
-
-    fetchPresence();
-    const timer = setInterval(fetchPresence, 10000);
-    return () => clearInterval(timer);
-  }, [isJoined, workspaceId]);
-
-  // Fetch message history when channel changes
-  useEffect(() => {
-    if (!commConversationId && currentChannel) {
-      fetch(`/api/channels/${currentChannel.id}/messages`)
-        .then(res => res.json())
-        .then(data => setMessages(data))
-        .catch(err => console.error("Error fetching messages:", err));
-    }
-  }, [currentChannel, commConversationId]);
-
-  useEffect(() => {
-    const shouldUseLocalSocket = !supabase && (!commConversationId || isVideoActive);
+    const shouldUseLocalSocket = isVideoActive;
     if (isJoined && currentChannel && shouldUseLocalSocket) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}`);
@@ -1811,17 +1759,42 @@ export default function App() {
         }));
       };
 
-      ws.onmessage = (event) => {
-        const { type, payload } = JSON.parse(event.data);
-        if (type === 'chat' && !commConversationId) {
-          setMessages((prev) => [...prev, payload]);
-        }
-      };
-
       setSocket(ws);
       return () => ws.close();
     }
-  }, [isJoined, currentChannel, userId, userName, workspaceId, commConversationId, isVideoActive]);
+  }, [isJoined, currentChannel, userId, userName, workspaceId, isVideoActive]);
+
+  const uploadCommunicationAsset = async (file: File) => {
+    if (!supabase || !supabaseWorkspaceId) {
+      throw new Error('Workspace context is required before uploading files.');
+    }
+
+    const targetConversationId = commConversationId || currentChannel?.id;
+    if (!targetConversationId) {
+      throw new Error('Open a conversation before uploading files.');
+    }
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const objectPath = `${supabaseWorkspaceId}/${targetConversationId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('comm-uploads')
+      .upload(objectPath, file, {
+        upsert: false,
+        contentType: file.type || undefined,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: urlData } = supabase.storage.from('comm-uploads').getPublicUrl(objectPath);
+    return {
+      url: urlData.publicUrl,
+      name: file.name,
+      type: file.type,
+    };
+  };
 
   const emitPresence = (status: PresenceOptionValue) => {
     if (supabaseWorkspaceId) {
@@ -1898,7 +1871,7 @@ export default function App() {
     ? commMembers
     : workspace?.members?.length
     ? workspace.members
-    : [{ workspace_id: workspaceId, user_id: userId, user_name: userName || 'You', role: 'member' }];
+    : [{ workspace_id: workspaceId, user_id: userId, user_name: userName || 'You', role: 'employee' }];
   const onlineMembers = panelMembers.filter((member) => {
     const status = presenceByUserId.get(member.user_id)?.status || 'offline';
     return status === 'online' || status === 'available' || status === 'out_of_office';
@@ -1907,16 +1880,6 @@ export default function App() {
   const isAdminUser = currentMemberRole === 'owner' || currentMemberRole === 'admin';
   const channelConversations = commConversations.filter((conversation) => conversation.kind === 'channel');
   const directConversations = commConversations.filter((conversation) => conversation.kind !== 'channel');
-  const filteredDirectConversations = directConversations.filter((conversation) => {
-    if (!dmSearchTerm.trim()) return true;
-    return conversation.name.toLowerCase().includes(dmSearchTerm.trim().toLowerCase());
-  });
-  const filteredNewDmCandidates = panelMembers
-    .filter((member) => member.user_id !== userId)
-    .filter((member) => {
-      if (!newDmSearchTerm.trim()) return true;
-      return member.user_name.toLowerCase().includes(newDmSearchTerm.trim().toLowerCase());
-    });
   const unreadNotifications = notifications.filter((item) => !item.read_at);
 
   const unreadCountByConversation = unreadNotifications.reduce<Record<string, number>>((acc, item) => {
@@ -1927,158 +1890,87 @@ export default function App() {
     return acc;
   }, {});
 
-  const handleSendMessage = async (text?: string, fileData?: any) => {
-    if (text?.trim() || fileData) {
-      if (supabase) {
-        let resolvedWorkspaceId = supabaseWorkspaceId;
-        if (!resolvedWorkspaceId) {
-          resolvedWorkspaceId = await loadSupabaseCommunicationContext();
-        }
-
-        if (!resolvedWorkspaceId) {
-          setCommError('Communication workspace is not initialized. Please re-open this workspace context.');
-          return;
-        }
-
-        setCommError(null);
-        let targetConversationId = commConversationId;
-        if (!targetConversationId) {
-          targetConversationId = await ensureCommConversation(resolvedWorkspaceId);
-        }
-
-        if (!targetConversationId) {
-          setCommError('Unable to resolve an active conversation.');
-          return;
-        }
-
-        const attachments = fileData ? [{
-          url: fileData.url,
-          name: fileData.name,
-          type: fileData.type,
-        }] : [];
-
-        const input = text?.trim() || '';
-        const body = input || (fileData?.name ? `Shared file: ${fileData.name}` : 'Shared attachment');
-
-        const sender = input.startsWith('/')
-          ? routeCommunicationCommand({
-              workspaceId: resolvedWorkspaceId,
-              conversationId: targetConversationId,
-              input,
-            })
-          : sendCommunicationMessage({
-              conversationId: targetConversationId,
-              body,
-              attachments,
-            });
-
-        sender
-          .then(() => loadCommMessages(targetConversationId))
-          .catch((err) => {
-            console.error('Error sending communication message:', err);
-            setCommError(err?.message || 'Failed to send communication message.');
-          });
-        return;
-      }
+  const handleSendMessage = (text?: string, fileData?: any) => {
+    if (!commConversationId || !(text?.trim() || fileData)) {
+      setCommError('Open a channel or DM before sending a message.');
+      return;
     }
 
-    if (!supabase && socket && (text?.trim() || fileData)) {
-      socket.send(JSON.stringify({
-        type: 'chat',
-        payload: { 
-          text,
-          file_url: fileData?.url,
-          file_name: fileData?.name,
-          file_type: fileData?.type
-        }
-      }));
+    if (!supabaseWorkspaceId) {
+      setCommError('Communication workspace is not initialized.');
+      return;
     }
+
+    setCommError(null);
+    const attachments = fileData ? [{
+      url: fileData.url,
+      name: fileData.name,
+      type: fileData.type,
+    }] : [];
+
+    const input = text?.trim() || '';
+    const body = input || (fileData?.name ? `Shared file: ${fileData.name}` : 'Shared attachment');
+
+    const sender = input.startsWith('/')
+      ? routeCommunicationCommand({
+          workspaceId: supabaseWorkspaceId,
+          conversationId: commConversationId,
+          input,
+        })
+      : sendCommunicationMessage({
+          conversationId: commConversationId,
+          body,
+          attachments,
+        });
+
+    sender
+      .then(() => loadCommMessages(commConversationId))
+      .catch((err) => {
+        console.error('Error sending communication message:', err);
+        setCommError(err?.message || 'Failed to send communication message.');
+      });
   };
 
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChannelName.trim()) return;
-
-    if (supabase && supabaseWorkspaceId && userId) {
-      setIsCreatingCommChannel(true);
-      setCommError(null);
-      try {
-        const conversation = await createCommChannelWithName(newChannelName, newChannelVisibility === 'private');
-        if (!conversation) return;
-
-        if (selectedChannelMemberIds.length > 0) {
-          await addMembersToConversation(conversation.id, selectedChannelMemberIds);
-        }
-
-        setShowCreateChannel(false);
-        setNewChannelName('');
-        setNewChannelVisibility('public');
-        setSelectedChannelMemberIds([]);
-        setSelectedTeamId(null);
-        setCommConversationId(conversation.id);
-        setCurrentChannel({
-          id: conversation.id,
-          workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-          name: conversation.name,
-        });
-        await loadCommConversations(supabaseWorkspaceId);
-        await loadCommMessages(conversation.id);
-      } finally {
-        setIsCreatingCommChannel(false);
-      }
-      return;
-    }
+    if (!supabase || !supabaseWorkspaceId || !newChannelName.trim()) return;
 
     try {
-      const res = await fetch('/api/channels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, name: newChannelName, teamId: selectedTeamId })
+      const { data, error } = await supabase.rpc('comm_create_channel', {
+        p_workspace_id: supabaseWorkspaceId,
+        p_name: newChannelName.trim(),
+        p_topic: '',
+        p_is_private: false,
+        p_slug: null,
       });
-      const data = await res.json();
-      if (res.ok) {
-        setNewChannelName('');
-        setNewChannelVisibility('public');
-        setSelectedChannelMemberIds([]);
-        setShowCreateChannel(false);
-        setSelectedTeamId(null);
-        fetchWorkspace();
-        setCurrentChannel(data);
+
+      if (error) {
+        throw error;
       }
+
+      const channel = Array.isArray(data) ? data[0] : data;
+      if (!channel?.id) {
+        throw new Error('Channel was not returned by comm_create_channel');
+      }
+
+      setNewChannelName('');
+      setShowCreateChannel(false);
+      setSelectedTeamId(null);
+      setCurrentChannel(channel);
+      setCommConversationId(channel.id);
+      await loadCommConversations(supabaseWorkspaceId);
+      await loadCommMessages(channel.id);
     } catch (err) {
       console.error("Error creating channel:", err);
+      setCommError(err instanceof Error ? err.message : 'Unable to create channel.');
     }
   };
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTeamName.trim()) return;
-
-    try {
-      const res = await fetch('/api/teams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, name: newTeamName })
-      });
-      if (res.ok) {
-        setNewTeamName('');
-        setShowCreateTeam(false);
-        fetchWorkspace();
-      }
-    } catch (err) {
-      console.error("Error creating team:", err);
-    }
-  };
-
-  const fetchSchema = async () => {
-    try {
-      const res = await fetch('/api/debug/schema');
-      const data = await res.json();
-      setSchemaData(data);
-      setShowSchema(true);
-    } catch (err) {
-      console.error("Error fetching schema:", err);
-    }
+    setShowCreateTeam(false);
+    setNewTeamName('');
+    setCommError('Team creation is not wired to Supabase yet. Channel, DM, and member workflows are active.');
   };
 
   const toggleVideo = () => {
@@ -2201,18 +2093,11 @@ export default function App() {
   const uploadHuddleAsset = async (file: File) => {
     setIsHuddleUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        handleSendMessage(`Shared during huddle: ${file.name}`, data);
-      }
+      const data = await uploadCommunicationAsset(file);
+      handleSendMessage(`Shared during huddle: ${file.name}`, data);
     } catch (error) {
       console.error('Failed to upload huddle asset:', error);
+      setCommError(error instanceof Error ? error.message : 'Failed to upload huddle asset.');
     } finally {
       setIsHuddleUploading(false);
     }
@@ -2339,13 +2224,36 @@ export default function App() {
     }
   };
 
+  const handleLogout = async () => {
+    if (!supabase) {
+      setIsJoined(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    setSupabaseWorkspaceId(null);
+    setWorkspaceChoices([]);
+    setCommConversationId(null);
+    setCommConversations([]);
+    setCommMembers([]);
+    setWorkspacePresence([]);
+    setMessages([]);
+    setCurrentChannel(null);
+    setIsJoined(false);
+  };
+
   if (!isJoined) {
     return (
-      <div className="min-h-screen bg-[#0d0e12] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#1a1d21] flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#111318] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#1e2028]"
+          className="bg-[#222529] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#303236]"
         >
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -2366,7 +2274,7 @@ export default function App() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
               </div>
@@ -2377,7 +2285,7 @@ export default function App() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   autoFocus
                 />
               </div>
@@ -2398,7 +2306,7 @@ export default function App() {
                 type="button"
                 onClick={handleGitHubAuth}
                 disabled={authLoading}
-                className="w-full bg-[#0d0e12] border border-[#1e2028] hover:border-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
+                className="w-full bg-[#1a1d21] border border-[#303236] hover:border-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
               >
                 Continue with GitHub
               </button>
@@ -2412,63 +2320,10 @@ export default function App() {
               </button>
             </div>
           </form>
-          <div className="mt-6 pt-6 border-t border-[#1e2028] flex justify-center">
-            <button 
-              onClick={fetchSchema}
-              className="text-xs text-gray-500 hover:text-indigo-400 flex items-center gap-1 transition-colors"
-            >
-              <DatabaseIcon size={12} />
-              View Database Schema
-            </button>
+          <div className="mt-6 pt-6 border-t border-[#303236] text-center text-xs text-[#64748b]">
+            Supabase-backed workspace messaging is active.
           </div>
         </motion.div>
-
-        {/* Schema Modal */}
-        <AnimatePresence>
-          {showSchema && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-[#111318] border border-[#1e2028] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
-              >
-                <div className="p-4 border-b border-[#1e2028] flex items-center justify-between bg-[#0d0e12]">
-                  <h2 className="text-white font-bold flex items-center gap-2">
-                    <DatabaseIcon size={18} className="text-indigo-400" />
-                    SQLite Database Schema
-                  </h2>
-                  <button onClick={() => setShowSchema(false)} className="text-gray-400 hover:text-white">
-                    <X size={20} />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  {schemaData && Object.entries(schemaData).map(([tableName, columns]: [string, any]) => (
-                    <div key={tableName} className="space-y-3">
-                      <h3 className="text-indigo-400 font-mono font-bold text-lg border-b border-indigo-500/20 pb-1">
-                        TABLE {tableName}
-                      </h3>
-                      <div className="grid grid-cols-3 gap-2 text-xs font-mono text-gray-500 uppercase tracking-wider px-2">
-                        <span>Column</span>
-                        <span>Type</span>
-                        <span>PK</span>
-                      </div>
-                      <div className="space-y-1">
-                        {columns.map((col: any) => (
-                          <div key={col.name} className="grid grid-cols-3 gap-2 text-sm font-mono bg-[#0d0e12] p-2 rounded border border-[#1e2028]">
-                            <span className="text-white">{col.name}</span>
-                            <span className="text-gray-400">{col.type}</span>
-                            <span className="text-indigo-500">{col.pk ? 'YES' : ''}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
@@ -2476,21 +2331,20 @@ export default function App() {
   return (
     <div className="h-screen bg-[#0d0e12] flex overflow-hidden font-sans text-[#e2e8f0]">
       {/* Global Navigation Sidebar (Far Left) */}
-      <nav className="w-[60px] bg-[#0a0b0f] border-r border-[#1e2028] flex flex-col items-center py-3 flex-shrink-0 z-30">
+      <nav className="w-[72px] bg-[#16171d] border-r border-[#26272e] flex flex-col items-center py-4 flex-shrink-0 z-30">
         <button
           onClick={() => {
             setActiveGlobalNav('issues');
             setActiveSidebarItem('assigned-to-me');
           }}
-          className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center mb-5 text-white hover:bg-indigo-500 transition-all"
+          className="w-10 h-10 bg-[#1f2130] rounded-xl flex items-center justify-center mb-6 border border-[#2c2f3b] text-[#cbd5e1] hover:text-white hover:bg-[#26272e] transition-all"
           aria-label="Go to Home"
-          title="Home"
         >
-          <span className="text-[11px] font-black tracking-tighter">R</span>
+          <Home className="w-5 h-5" />
         </button>
-        <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar w-full items-center">
+        <div className="flex-1 flex flex-col gap-5 overflow-y-auto custom-scrollbar w-full items-center">
           {NEW_GLOBAL_NAV.map((item) => (
-            <div key={item.id} className="relative group/nav w-full flex justify-center">
+            <div key={item.id} className="group relative">
               <button 
                 onClick={() => {
                   setActiveGlobalNav(item.id);
@@ -2499,21 +2353,34 @@ export default function App() {
                     setActiveSidebarItem(firstChild.id);
                   }
                 }}
-                className={`p-2 rounded-xl transition-all w-9 h-9 flex items-center justify-center ${
+                className={`p-2.5 rounded-xl transition-all relative ${
                   activeGlobalNav === item.id 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'text-[#4b5563] hover:text-white hover:bg-[#1a1c24]'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                    : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'
                 }`}
-                title={item.label}
               >
-                <item.icon size={18} />
+                <item.icon size={22} />
               </button>
             </div>
           ))}
         </div>
-        <div className="mt-auto flex flex-col gap-1 items-center">
-          <button className="p-2 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-xl transition-all w-9 h-9 flex items-center justify-center" title="Create new">
-            <Plus size={18} />
+        <div className="mt-auto flex flex-col gap-4 items-center">
+          <button
+            onClick={() => goToCoreView('members', 'all-members')}
+            className="p-2.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-xl transition-all"
+            title="Admin portal"
+          >
+            <Settings size={22} />
+          </button>
+          <button className="p-2.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-xl transition-all">
+            <Plus size={22} />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="p-2.5 text-[#94a3b8] hover:text-red-200 hover:bg-red-500/10 rounded-xl transition-all"
+            title="Log out"
+          >
+            <LogOut size={20} />
           </button>
         </div>
       </nav>
@@ -2521,36 +2388,35 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative bg-[#0d0e12]">
         {/* Top Header Bar */}
-        <header className="h-[52px] border-b border-[#1e2028] flex items-center justify-between px-5 bg-[#0a0b0f] z-10 flex-shrink-0">
+        <header className="h-[64px] border-b border-[#26272e] flex items-center justify-between px-6 bg-[#0d0e12] z-10">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-white text-[13px] tracking-wide">
-                {NEW_GLOBAL_NAV.find(n => n.id === activeGlobalNav)?.label || activeGlobalNav}
-              </span>
-              {workspaceChoices.length > 0 && (
-                <select
-                  value={supabaseWorkspaceId || ''}
-                  onChange={(e) => setSupabaseWorkspaceId(e.target.value || null)}
-                  className="bg-[#0f1117] border border-[#1e2028] text-[#94a3b8] rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  title="Switch workspace"
-                >
-                  {workspaceChoices.map((choice) => (
-                    <option key={choice.id} value={choice.id}>{choice.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+            <h3 className="font-bold text-white text-sm tracking-[0.08em] uppercase">
+              {NEW_GLOBAL_NAV.find(n => n.id === activeGlobalNav)?.label || activeGlobalNav}
+            </h3>
+            {workspaceChoices.length > 0 && (
+              <select
+                value={supabaseWorkspaceId || ''}
+                onChange={(e) => setSupabaseWorkspaceId(e.target.value || null)}
+                className="bg-[#16171d] border border-[#26272e] text-[#cbd5e1] rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                title="Communication workspace"
+              >
+                {workspaceChoices.map((choice) => (
+                  <option key={choice.id} value={choice.id}>{choice.name} ({choice.slug})</option>
+                ))}
+              </select>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
             <div ref={statusMenuRef} className="relative">
               <button
                 onClick={() => setShowStatusMenu((prev) => !prev)}
-                className="flex items-center gap-2 px-2.5 py-1.5 bg-[#0f1117] border border-[#1e2028] rounded-lg text-[#64748b] hover:text-white transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#16171d] border border-[#26272e] rounded-xl text-[#94a3b8] hover:text-white transition-all"
               >
+                <Users size={16} />
+                <span className="text-xs font-bold">{onlineCount}</span>
                 <span className={`w-2 h-2 rounded-full ${getStatusDotClass(myStatus)}`} />
-                <span className="text-[12px] font-medium">{onlineCount} online</span>
-                <ChevronDown size={12} className={`transition-transform ${showStatusMenu ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`transition-transform ${showStatusMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {showStatusMenu && (
@@ -2579,165 +2445,188 @@ export default function App() {
               )}
             </div>
 
-            <div className="flex items-center gap-0.5 bg-[#0f1117] border border-[#1e2028] rounded-lg px-1 py-0.5">
-              <button onClick={() => goToCoreView('issues', 'following')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Favorites">
-                <Star size={15} />
+            <div className="flex items-center gap-0.5 bg-[#16171d] border border-[#26272e] rounded-xl px-1.5 py-1">
+              <button onClick={() => goToCoreView('issues', 'following')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Favorite view">
+                <Star size={16} />
               </button>
-              <button onClick={() => goToCoreView('code-prs', 'pull-requests')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Code & PRs">
-                <Code2 size={15} />
+              <button onClick={() => goToCoreView('code-prs', 'pull-requests')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="IDE page">
+                <Code2 size={16} />
               </button>
-              <button onClick={() => goToCoreView('time-tracker', 'active-timer')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Time tracker">
-                <Clock size={15} />
+              <button onClick={() => goToCoreView('time-tracker', 'active-timer')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Time clock management">
+                <Clock size={16} />
               </button>
-              <button onClick={() => goToCoreView('chat', 'files')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Docs">
-                <FileText size={15} />
+              <button onClick={() => goToCoreView('chat', 'files')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Docs page">
+                <FileText size={16} />
               </button>
-              <button onClick={() => goToCoreView('chat', 'messages')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Chat">
-                <MessageSquare size={15} />
+              <button onClick={() => goToCoreView('chat', 'messages')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Chat page">
+                <MessageSquare size={16} />
               </button>
-              <button onClick={() => goToCoreView('members', 'all-members')} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all" title="Settings">
-                <Settings size={15} />
+              <button onClick={() => goToCoreView('members', 'all-members')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="User profile settings">
+                <Settings size={16} />
               </button>
             </div>
 
             <div className="flex items-center gap-1">
               <button 
                 onClick={toggleStandup}
-                className={`p-2 rounded-lg transition-all ${isVideoActive ? 'bg-indigo-600 text-white' : 'text-[#4b5563] hover:text-white hover:bg-[#1a1c24]'}`}
-                title="Huddle"
+                className={`p-2 rounded-xl transition-all ${isVideoActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'}`}
               >
-                <Headphones size={17} />
+                <Headphones size={20} />
               </button>
               <button
                 onClick={handleHeaderVideoClick}
-                className={`p-2 rounded-lg transition-all ${isVideoActive && videoEnabled ? 'bg-indigo-600 text-white' : 'text-[#4b5563] hover:text-white hover:bg-[#1a1c24]'}`}
-                title="Video"
+                className={`p-2 rounded-xl transition-all ${isVideoActive && videoEnabled ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'}`}
               >
-                <Video size={17} />
+                <Video size={20} />
               </button>
               {isVideoActive && (
                 <button
                   onClick={terminateHuddle}
-                  className="px-2.5 py-1.5 bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 rounded-lg text-[11px] font-semibold transition-all"
-                  title="End huddle"
+                  className="px-3 py-2 bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
+                  title="Terminate huddle and release camera/microphone"
                 >
-                  End
+                  End Huddle
                 </button>
               )}
             </div>
-            <div className="h-5 w-px bg-[#1e2028]" />
-            <div className="flex items-center bg-[#0f1117] border border-[#1e2028] rounded-lg px-2.5 py-1.5 gap-2">
-              <Search size={13} className="text-[#4b5563]" />
-              <input type="text" placeholder="Search…" className="bg-transparent border-none text-[12px] text-white focus:outline-none w-36 placeholder-[#3d4555]" />
+            <div className="h-6 w-px bg-[#26272e]" />
+            <div className="flex items-center bg-[#16171d] border border-[#26272e] rounded-xl px-3 py-1.5 gap-2">
+              <Search size={16} className="text-[#94a3b8]" />
+              <input type="text" placeholder="Search..." className="bg-transparent border-none text-xs text-white focus:outline-none w-48" />
             </div>
           </div>
         </header>
 
         {/* Page-Level Navigation Row */}
         {activeGlobalNav === 'chat' ? (
-          <div className="border-b border-[#1e2028] h-11 px-4 flex items-center justify-between bg-[#0d0e12] flex-shrink-0 relative">
-            <div className="flex items-center gap-2.5">
-              {currentChannel?.name ? (
-                <div className="flex items-center gap-1.5">
-                  {directConversations.some(c => c.id === commConversationId) ? (
-                    <AtSign size={14} className="text-[#4b5563]" />
-                  ) : (
-                    <Hash size={14} className="text-[#4b5563]" />
-                  )}
-                  <span className="text-[14px] font-semibold text-white">
-                    {currentChannel.name.replace(/^(DM: |@ )/, '')}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-[13px] text-[#4b5563]">Select a channel or DM</span>
-              )}
-            </div>
-            <div className="flex items-center gap-0.5">
-              <button
-                onClick={() => setActiveSidebarItem('activity')}
-                className={`p-1.5 rounded-lg transition-all relative ${activeSidebarItem === 'activity' ? 'text-white bg-[#1e2028]' : 'text-[#4b5563] hover:text-white hover:bg-[#1a1c24]'}`}
-                title="Activity"
+          <div className="border-b border-[#26272e] px-6 py-2.5 bg-[#0d0e12] space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                {topBarTabs.map((tab: any) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSidebarItem(tab.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
+                      activeSidebarItem === tab.id
+                        ? 'bg-[#26272e] text-white'
+                        : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]/50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={commConversationId || ''}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const conversation = commConversations.find((item) => item.id === id);
+                  if (!conversation) return;
+                  setCommConversationId(conversation.id);
+                  setCurrentChannel({
+                    id: conversation.id,
+                    workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
+                    name: conversation.name,
+                  });
+                }}
+                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs"
               >
-                <Bell size={15} />
-                {unreadNotifications.length > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                )}
+                <option value="">Select channel/DM</option>
+                {commConversations.map((conversation) => (
+                  <option key={conversation.id} value={conversation.id}>
+                    {conversation.kind === 'channel' ? `# ${conversation.name}` : conversation.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                value={newCommChannelName}
+                onChange={(e) => setNewCommChannelName(e.target.value)}
+                placeholder="New channel name"
+                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs"
+              />
+              <button
+                onClick={createCommChannel}
+                disabled={!newCommChannelName.trim() || isCreatingCommChannel}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
+              >
+                {isCreatingCommChannel ? 'Creating...' : 'Create Channel'}
               </button>
+
               <button
-                onClick={() => setActiveSidebarItem('pins')}
-                className={`p-1.5 rounded-lg transition-all ${activeSidebarItem === 'pins' ? 'text-white bg-[#1e2028]' : 'text-[#4b5563] hover:text-white hover:bg-[#1a1c24]'}`}
-                title="Pinned messages"
+                onClick={() => setShowCreateTeam(true)}
+                className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
               >
-                <Pin size={15} />
-              </button>
-              <div className="w-px h-4 bg-[#1e2028] mx-1" />
-              <button
-                onClick={() => { setSelectedChannelMemberIds([]); setShowCreateChannel(true); }}
-                className="flex items-center gap-1 px-2 py-1.5 text-[12px] font-semibold text-[#4b5563] hover:text-indigo-400 hover:bg-[#1a1c24] rounded-lg transition-all"
-                title="Create channel"
-              >
-                <Hash size={13} />
-                <Plus size={11} />
+                Create Team
               </button>
               <button
                 onClick={() => setShowCallLauncher(true)}
-                className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all"
-                title="Start call / huddle"
+                className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
+                title="Start call"
               >
-                <Video size={15} />
+                + Call
               </button>
-              <div className="w-px h-4 bg-[#1e2028] mx-1" />
-              <div className="relative">
-                <input
-                  value={userSearchTerm}
-                  onChange={(e) => searchUsersByName(e.target.value)}
-                  placeholder="Find teammate…"
-                  className="bg-[#16171d] border border-[#1e2028] text-white rounded-lg pl-7 pr-2 py-1.5 text-[12px] w-36 focus:outline-none focus:border-indigo-500 transition-all"
-                />
-                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#4b5563] pointer-events-none" />
-                {userSearchTerm.trim() && (
-                  <div className="absolute top-full right-0 mt-1 w-72 bg-[#16171d] border border-[#26272e] rounded-xl shadow-2xl z-50 p-1.5 space-y-0.5">
-                    {isSearchingUsers && <p className="text-[11px] text-[#64748b] px-2 py-1.5">Searching…</p>}
-                    {!isSearchingUsers && userSearchResults.slice(0, 6).map((result) => (
-                      <div key={result.user_id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-[#1a1c24]">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-6 h-6 rounded-full bg-indigo-600/30 flex items-center justify-center text-[10px] font-bold text-indigo-300 flex-shrink-0">
-                            {(result.display_name || result.email || '?')[0]?.toUpperCase()}
-                          </div>
-                          <span className="text-[13px] text-white truncate">{result.display_name || result.email || result.user_id}</span>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => { startPrivateCall({ id: result.user_id, name: result.display_name || 'User', roomId: currentChannel?.id || 'general', workspaceId: result.default_workspace_id || workspaceId }); setUserSearchTerm(''); setUserSearchResults([]); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-2 py-0.5 text-[11px] font-semibold">DM</button>
-                          {commConversationId && <button onClick={() => { addUserToCurrentConversation(result.user_id, result.default_workspace_id); setUserSearchTerm(''); setUserSearchResults([]); }} className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-2 py-0.5 text-[11px] font-semibold">Add</button>}
-                        </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <input
+                value={userSearchTerm}
+                onChange={(e) => searchUsersByName(e.target.value)}
+                placeholder="Find teammate by name or email"
+                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs w-full max-w-sm"
+              />
+              {userSearchTerm.trim() && (
+                <div className="space-y-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
+                  {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
+                  {!isSearchingUsers && userSearchResults.map((result) => (
+                    <div key={result.user_id} className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#16171d] rounded border border-[#303236] max-w-2xl">
+                      <span className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startPrivateCall({
+                            id: result.user_id,
+                            name: result.display_name || result.email || 'User',
+                            roomId: currentChannel?.id || 'general',
+                            workspaceId: result.default_workspace_id || workspaceId,
+                          })}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                        >
+                          Open DM
+                        </button>
+                        {commConversationId && (
+                          <button
+                            onClick={() => addUserToCurrentConversation(result.user_id, result.default_workspace_id)}
+                            className="bg-[#26272e] hover:bg-[#303236] text-white rounded px-2 py-1 text-[10px] font-semibold"
+                          >
+                            Add to Channel
+                          </button>
+                        )}
                       </div>
-                    ))}
-                    {!isSearchingUsers && userSearchResults.length === 0 && userSearchTerm.trim() && (
-                      <p className="text-[11px] text-[#64748b] px-2 py-1.5">No users found.</p>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className="h-[40px] border-b border-[#1e2028] flex items-center px-5 bg-[#0a0b0f] flex-shrink-0">
-            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar w-full">
+          <div className="h-[44px] border-b border-[#26272e] flex items-center px-6 bg-[#0d0e12]">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
               {topBarTabs.map((tab: any) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveSidebarItem(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-medium tracking-wide transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
                     activeSidebarItem === tab.id
-                      ? 'bg-[#1e2028] text-white'
-                      : 'text-[#64748b] hover:text-white hover:bg-[#1a1c24]'
+                      ? 'bg-[#26272e] text-white'
+                      : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]/50'
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
-              <button className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#1a1c24] rounded-lg transition-all flex-shrink-0 ml-1">
-                <Plus size={14} />
+              <button className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all flex-shrink-0">
+                <Plus size={16} />
               </button>
             </div>
           </div>
@@ -2746,67 +2635,92 @@ export default function App() {
         {/* Dynamic Content Surface */}
         <div className="flex-1 flex overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Floating Huddle Widget */}
+            {/* Video Overlay / Grid */}
             <AnimatePresence>
               {isVideoActive && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  className="fixed bottom-6 right-6 w-[340px] bg-[#111318] border border-[#26272e] rounded-2xl shadow-2xl z-40 overflow-hidden"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: '300px', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="bg-[#0d0e12] border-b border-[#26272e] p-4 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e2028]">
-                    <span className="text-[12px] font-semibold text-white flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      Huddle
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <label className="p-1.5 rounded-lg border border-[#1e2028] text-[#64748b] hover:text-white hover:bg-[#1a1c24] cursor-pointer transition-all" title="Share file">
-                        <Paperclip size={13} />
-                        <input type="file" className="hidden" onChange={handleHuddleFileInput} />
-                      </label>
-                      <button
-                        onClick={() => setIsVideoSettingsOpen((prev) => !prev)}
-                        className="p-1.5 rounded-lg border border-[#1e2028] text-[#64748b] hover:text-white hover:bg-[#1a1c24] transition-all"
-                        title="Settings"
-                      >
-                        <Settings size={13} />
-                      </button>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowCallLauncher(true)}
-                        className="p-1.5 rounded-lg border border-[#1e2028] text-[#64748b] hover:text-white hover:bg-[#1a1c24] transition-all"
-                        title="Add participant"
+                        className="px-3 py-1.5 rounded-lg border border-[#303236] bg-[#16171d] text-xs text-white hover:bg-[#26272e]"
                       >
-                        <UserPlus size={13} />
+                        + Add to Call
                       </button>
+                      <label className="px-3 py-1.5 rounded-lg border border-[#303236] bg-[#16171d] text-xs text-white hover:bg-[#26272e] cursor-pointer">
+                        + Share File
+                        <input type="file" className="hidden" onChange={handleHuddleFileInput} />
+                      </label>
                     </div>
+                    <button
+                      onClick={() => setIsVideoSettingsOpen((prev) => !prev)}
+                      className="p-2 rounded-lg border border-[#303236] bg-[#16171d] text-[#cbd5e1] hover:bg-[#26272e]"
+                      title="Video settings"
+                    >
+                      <Settings size={16} />
+                    </button>
                   </div>
 
                   {isVideoSettingsOpen && (
-                    <div className="px-3 py-2 border-b border-[#1e2028] bg-[#0d0e12] flex flex-wrap items-center gap-3">
-                      <label className="flex items-center gap-1.5 text-[11px] text-[#94a3b8]">
-                        <input type="checkbox" checked={isBackgroundBlurEnabled} onChange={(e) => setIsBackgroundBlurEnabled(e.target.checked)} />
+                    <div className="mb-3 bg-[#16171d] border border-[#26272e] rounded-xl p-3 flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs text-[#cbd5e1]">
+                        <input
+                          type="checkbox"
+                          checked={isBackgroundBlurEnabled}
+                          onChange={(e) => setIsBackgroundBlurEnabled(e.target.checked)}
+                        />
                         Blur background
                       </label>
-                      <label className="text-[11px] text-[#94a3b8] px-2 py-0.5 rounded border border-[#26272e] cursor-pointer hover:bg-[#1a1c24]">
+                      <label className="text-xs text-[#cbd5e1] px-2 py-1 rounded border border-[#303236] cursor-pointer hover:bg-[#26272e]">
                         Upload background
                         <input type="file" accept="image/*" className="hidden" onChange={handleVideoBackgroundUpload} />
                       </label>
+                      {customVideoBackgroundUrl && (
+                        <button
+                          onClick={() => setCustomVideoBackgroundUrl(null)}
+                          className="text-xs text-red-200 px-2 py-1 rounded border border-red-500/40 bg-red-500/10"
+                        >
+                          Remove background
+                        </button>
+                      )}
                     </div>
                   )}
 
                   <div
-                    onDragOver={(e) => { e.preventDefault(); setIsHuddleDragging(true); }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsHuddleDragging(true);
+                    }}
                     onDragLeave={() => setIsHuddleDragging(false)}
-                    onDrop={async (e) => { e.preventDefault(); setIsHuddleDragging(false); const file = e.dataTransfer.files?.[0]; if (file) await uploadHuddleAsset(file); }}
-                    className={`flex gap-2 p-2 overflow-x-auto custom-scrollbar ${isHuddleDragging ? 'bg-indigo-500/5 border-indigo-400/30' : ''}`}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      setIsHuddleDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        await uploadHuddleAsset(file);
+                      }
+                    }}
+                    className={`mb-3 px-3 py-2 rounded-lg border text-xs ${
+                      isHuddleDragging
+                        ? 'border-indigo-400 bg-indigo-500/10 text-indigo-200'
+                        : 'border-[#303236] bg-[#16171d] text-[#94a3b8]'
+                    }`}
                   >
+                    {isHuddleUploading ? 'Uploading shared asset...' : 'Drag and drop documents or visuals into this huddle'}
+                  </div>
+
+                  <div className="flex gap-4 h-full overflow-x-auto custom-scrollbar pb-2">
                     {screenShareStream && (
-                      <div className="w-36 flex-shrink-0">
+                      <div className="w-64 flex-shrink-0">
                         <VideoCard stream={screenShareStream} name="Shared Screen" />
                       </div>
                     )}
-                    <div className="w-36 flex-shrink-0">
+                    <div className="w-64 flex-shrink-0">
                       <VideoCard
                         stream={localStream}
                         name={`${userName} (You)`}
@@ -2819,41 +2733,42 @@ export default function App() {
                     {Array.from(remoteStreams.entries()).map(([id, stream]) => {
                       const participant = participants.find(p => p.id === id);
                       return (
-                        <div key={id} className="w-36 flex-shrink-0">
+                        <div key={id} className="w-64 flex-shrink-0">
                           <VideoCard stream={stream} name={participant?.name || 'User'} />
                         </div>
                       );
                     })}
                   </div>
-
-                  <div className="flex items-center justify-center gap-2 px-3 py-2 border-t border-[#1e2028]">
-                    <button
-                      onClick={toggleAudio}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${audioEnabled ? 'bg-[#1e2028] text-[#cbd5e1] hover:bg-[#26272e]' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}
-                      title={audioEnabled ? 'Mute' : 'Unmute'}
-                    >
-                      {audioEnabled ? <Mic size={16} /> : <MicOff size={16} />}
-                    </button>
-                    <button
-                      onClick={toggleVideo}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${videoEnabled ? 'bg-[#1e2028] text-[#cbd5e1] hover:bg-[#26272e]' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}
-                      title={videoEnabled ? 'Stop video' : 'Start video'}
-                    >
-                      {videoEnabled ? <Video size={16} /> : <VideoOff size={16} />}
-                    </button>
-                    <button
+                  <div className="flex justify-center mt-4 gap-3">
+                    <ControlButton 
+                      onClick={toggleAudio} 
+                      active={audioEnabled} 
+                      icon={audioEnabled ? Mic : MicOff} 
+                      label={audioEnabled ? 'Mute' : 'Unmute'}
+                    />
+                    <ControlButton 
+                      onClick={toggleVideo} 
+                      active={videoEnabled} 
+                      icon={videoEnabled ? Video : VideoOff} 
+                      label={videoEnabled ? 'Stop Video' : 'Start Video'}
+                    />
+                    <ControlButton
                       onClick={toggleScreenShare}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${!screenShareStream ? 'bg-[#1e2028] text-[#cbd5e1] hover:bg-[#26272e]' : 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/20'}`}
-                      title={screenShareStream ? 'Stop sharing' : 'Share screen'}
-                    >
-                      <Monitor size={16} />
-                    </button>
+                      active={!screenShareStream}
+                      icon={Monitor}
+                      label={screenShareStream ? 'Stop Share' : 'Share'}
+                    />
+                    <ControlButton
+                      onClick={() => setShowCallLauncher(true)}
+                      icon={UserPlus}
+                      label="Add"
+                    />
                     <button 
                       onClick={terminateHuddle}
-                      className="ml-auto px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30 rounded-xl text-[11px] font-semibold transition-all flex items-center gap-1.5"
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-500/20 text-xs"
                     >
-                      <LogOut size={13} />
-                      Leave
+                      <LogOut size={16} />
+                      End Call
                     </button>
                   </div>
                 </motion.div>
@@ -2865,6 +2780,108 @@ export default function App() {
               {renderContent()}
             </div>
           </div>
+
+          {/* Right Panel (Details & Threads) */}
+          <AnimatePresence>
+            {isChatOpen && activeGlobalNav === 'chat' && (
+              <motion.section
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 360, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                className="bg-[#16171d] border-l border-[#26272e] flex flex-col flex-shrink-0 z-10"
+              >
+                <div className="h-[64px] border-b border-[#26272e] flex items-center justify-between px-6">
+                  <h3 className="font-bold text-white text-lg tracking-tight">Details</h3>
+                  <button onClick={() => setIsChatOpen(false)} className="text-[#94a3b8] hover:text-white p-1.5 hover:bg-[#26272e] rounded-lg transition-all">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="px-6 py-4 border-b border-[#26272e] bg-[#0d0e12] flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Thread Focus</p>
+                    <p className="text-xs text-[#94a3b8] mt-1">Use this panel for context, not channel-wide composing.</p>
+                  </div>
+                  <select
+                    value={myStatus}
+                    onChange={(e) => handleSetStatus(e.target.value as PresenceOptionValue)}
+                    className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {PRESENCE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                  <div>
+                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">About Channel</h4>
+                    <div className="bg-[#0d0e12] rounded-xl p-4 border border-[#26272e]">
+                      <p className="text-sm text-white font-bold mb-1">#{currentChannel?.name || 'general'}</p>
+                      <p className="text-xs text-[#94a3b8] leading-relaxed">Thread replies belong to a specific message. The center column remains the main stream.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Members</h4>
+                      <span className="text-[10px] font-bold text-indigo-400">{onlineCount}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {onlineMembers.map((member) => {
+                        const presence = presenceByUserId.get(member.user_id);
+                        const status = presence?.status || 'offline';
+                        const isYou = member.user_id === userId;
+
+                        return (
+                          <button
+                            key={member.user_id}
+                            onClick={() => {
+                              if (isYou) return;
+                              startPrivateCall({
+                                id: member.user_id,
+                                name: member.user_name,
+                                roomId: currentChannel?.id || 'general',
+                                workspaceId: (member as any).home_workspace_id || member.workspace_id || workspaceId,
+                              });
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-all ${
+                              isYou
+                                ? 'bg-[#0d0e12] border-[#303236] cursor-default'
+                                : 'bg-[#0d0e12] border-[#303236] hover:border-indigo-500/50 hover:bg-[#1a1d21]'
+                            }`}
+                          >
+                            <span className="text-xs text-white font-semibold truncate text-left">
+                              {member.user_name}{isYou ? ' (You)' : ''}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#94a3b8]">
+                              <span className={`w-2 h-2 rounded-full ${getStatusDotClass(status)}`} />
+                              {getStatusLabel(status)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">Pinned</h4>
+                    <div className="space-y-2">
+                      {messages.filter((message) => pinnedMessageIds.includes(message.id)).slice(0, 4).map((msg) => (
+                        <div key={msg.id} className="bg-[#0d0e12] border border-[#303236] rounded-lg px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-[#64748b]">{msg.userName}</p>
+                          <p className="text-xs text-[#cbd5e1] mt-1 line-clamp-2">{msg.text}</p>
+                        </div>
+                      ))}
+                      {messages.filter((message) => pinnedMessageIds.includes(message.id)).length === 0 && (
+                        <p className="text-xs text-[#64748b]">No pinned messages yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
         </div>
 
@@ -2879,7 +2896,7 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#111318] border border-[#1e2028] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">Start Call</h2>
@@ -2912,7 +2929,7 @@ export default function App() {
               </div>
 
               {callMode !== 'channel' && callMode !== 'team' && (
-                <div className="border border-[#1e2028] bg-[#0d0e12] rounded-lg p-3 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
+                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
                   {panelMembers
                     .filter((member) => member.user_id !== userId)
                     .map((member) => {
@@ -2942,18 +2959,18 @@ export default function App() {
               )}
 
               {callMode === 'channel' && (
-                <div className="border border-[#1e2028] bg-[#0d0e12] rounded-lg p-3 text-sm text-[#cbd5e1]">
+                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 text-sm text-[#cbd5e1]">
                   Channel call starts in current context: #{currentChannel?.name || 'general'}
                 </div>
               )}
 
               {callMode === 'team' && (
-                <div className="border border-[#1e2028] bg-[#0d0e12] rounded-lg p-3 space-y-2">
+                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 space-y-2">
                   <p className="text-xs text-[#94a3b8]">Select team to call</p>
                   <select
                     value={selectedTeamCallId}
                     onChange={(e) => setSelectedTeamCallId(e.target.value)}
-                    className="w-full bg-[#16171d] border border-[#1e2028] text-white rounded-lg px-2.5 py-2 text-xs"
+                    className="w-full bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-2 text-xs"
                   >
                     <option value="">Choose team</option>
                     {(workspace?.teams || []).map((team) => (
@@ -2977,70 +2994,13 @@ export default function App() {
           </div>
         )}
 
-        {showNewDmModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#111318] border border-[#1e2028] p-6 rounded-2xl w-full max-w-md shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">New Direct Message</h2>
-                <button
-                  onClick={() => {
-                    setShowNewDmModal(false);
-                    setNewDmSearchTerm('');
-                  }}
-                  className="text-[#94a3b8] hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <input
-                value={newDmSearchTerm}
-                onChange={(e) => setNewDmSearchTerm(e.target.value)}
-                placeholder="Select a user to message"
-                className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-lg px-3 py-2 text-sm mb-3"
-              />
-
-              <div className="max-h-72 overflow-y-auto custom-scrollbar border border-[#1e2028] bg-[#0d0e12] rounded-lg p-2 space-y-1">
-                {filteredNewDmCandidates.map((member) => (
-                  <button
-                    key={member.user_id}
-                    onClick={() => {
-                      startPrivateCall({
-                        id: member.user_id,
-                        name: member.user_name,
-                        roomId: currentChannel?.id || 'general',
-                        workspaceId: (member as any).home_workspace_id || member.workspace_id || workspaceId,
-                      });
-                      setShowNewDmModal(false);
-                      setNewDmSearchTerm('');
-                      setActiveSidebarItem('messages');
-                    }}
-                    className="w-full flex items-center justify-between px-2.5 py-2 rounded border border-[#26272e] bg-[#16171d] hover:bg-[#26272e] text-left"
-                  >
-                    <span className="text-sm text-white truncate">{member.user_name}</span>
-                    <span className="text-[11px] text-[#94a3b8] uppercase">{member.role}</span>
-                  </button>
-                ))}
-                {filteredNewDmCandidates.length === 0 && (
-                  <p className="text-xs text-[#64748b] px-2 py-1">No users found.</p>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-
         {isMeetingModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#111318] border border-[#1e2028] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">Schedule Video Meeting</h2>
@@ -3062,7 +3022,7 @@ export default function App() {
                     value={meetingTitle}
                     onChange={(e) => setMeetingTitle(e.target.value)}
                     placeholder="Issue sync with backend"
-                    className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-lg px-3 py-2 text-sm"
+                    className="w-full bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
@@ -3071,12 +3031,12 @@ export default function App() {
                     type="datetime-local"
                     value={meetingWhen}
                     onChange={(e) => setMeetingWhen(e.target.value)}
-                    className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-lg px-3 py-2 text-sm"
+                    className="w-full bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-[#94a3b8] uppercase tracking-wide mb-1.5">Invite Members</label>
-                  <div className="max-h-36 overflow-y-auto custom-scrollbar border border-[#1e2028] rounded-lg p-2 bg-[#0d0e12] space-y-1">
+                  <div className="max-h-36 overflow-y-auto custom-scrollbar border border-[#303236] rounded-lg p-2 bg-[#0d0e12] space-y-1">
                     {panelMembers.map((member) => (
                       <label key={member.user_id} className="flex items-center gap-2 text-xs text-[#cbd5e1]">
                         <input
@@ -3112,7 +3072,7 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#111318] border border-[#1e2028] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-sm shadow-2xl"
             >
               <h2 className="text-xl font-bold text-white mb-4">Create a Channel</h2>
               <form onSubmit={handleCreateChannel} className="space-y-4">
@@ -3125,32 +3085,9 @@ export default function App() {
                       value={newChannelName}
                       onChange={(e) => setNewChannelName(e.target.value)}
                       placeholder="e.g. project-x"
-                      className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       autoFocus
                     />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Visibility</label>
-                  <div className="space-y-2 rounded-xl border border-[#1e2028] p-3 bg-[#0d0e12]">
-                    <label className="flex items-center gap-2 text-sm text-white">
-                      <input
-                        type="radio"
-                        name="channel-visibility"
-                        checked={newChannelVisibility === 'public'}
-                        onChange={() => setNewChannelVisibility('public')}
-                      />
-                      Public - anyone in this workspace can discover and join.
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-white">
-                      <input
-                        type="radio"
-                        name="channel-visibility"
-                        checked={newChannelVisibility === 'private'}
-                        onChange={() => setNewChannelVisibility('private')}
-                      />
-                      Private - invite-only channel.
-                    </label>
                   </div>
                 </div>
                 <div>
@@ -3158,7 +3095,7 @@ export default function App() {
                   <select 
                     value={selectedTeamId || ''} 
                     onChange={(e) => setSelectedTeamId(e.target.value || null)}
-                    className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   >
                     <option value="">No Team</option>
                     {workspace?.teams.map(t => (
@@ -3166,49 +3103,20 @@ export default function App() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Add Members</label>
-                  <div className="max-h-40 overflow-y-auto custom-scrollbar border border-[#1e2028] rounded-lg p-2 bg-[#0d0e12] space-y-1">
-                    {panelMembers
-                      .filter((member) => member.user_id !== userId)
-                      .map((member) => {
-                        const checked = selectedChannelMemberIds.includes(member.user_id);
-                        return (
-                          <label key={member.user_id} className="flex items-center justify-between gap-2 text-xs text-[#cbd5e1] px-1.5 py-1 rounded hover:bg-[#0d0e12]">
-                            <span className="truncate">{member.user_name}</span>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                setSelectedChannelMemberIds((prev) =>
-                                  e.target.checked
-                                    ? [...prev, member.user_id]
-                                    : prev.filter((id) => id !== member.user_id)
-                                );
-                              }}
-                            />
-                          </label>
-                        );
-                      })}
-                  </div>
-                </div>
                 <div className="flex gap-3 pt-2">
                   <button 
                     type="button"
-                    onClick={() => {
-                      setShowCreateChannel(false);
-                      setSelectedChannelMemberIds([]);
-                    }}
+                    onClick={() => setShowCreateChannel(false)}
                     className="flex-1 bg-[#303236] hover:bg-[#404246] text-white font-semibold py-2 rounded-xl transition-all"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    disabled={!newChannelName.trim() || isCreatingCommChannel}
+                    disabled={!newChannelName.trim()}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
                   >
-                    {isCreatingCommChannel ? 'Creating...' : 'Create'}
+                    Create
                   </button>
                 </div>
               </form>
@@ -3225,7 +3133,7 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#111318] border border-[#1e2028] p-6 rounded-2xl w-full max-w-sm shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-sm shadow-2xl"
             >
               <h2 className="text-xl font-bold text-white mb-4">Create a Team</h2>
               <form onSubmit={handleCreateTeam} className="space-y-4">
@@ -3238,7 +3146,7 @@ export default function App() {
                       value={newTeamName}
                       onChange={(e) => setNewTeamName(e.target.value)}
                       placeholder="e.g. Engineering"
-                      className="w-full bg-[#0d0e12] border border-[#1e2028] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       autoFocus
                     />
                   </div>
@@ -3305,7 +3213,7 @@ function VideoCard({ stream, name, isLocal, muted, blurBackground, backgroundIma
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-[#0d0e12]">
           <div className="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-indigo-500/20">
-            {(name || '?')[0]?.toUpperCase() || '?'}
+            {name[0]?.toUpperCase() || '?'}
           </div>
         </div>
       )}
@@ -3343,6 +3251,7 @@ function ControlButton({ onClick, active = true, icon: Icon, label, className = 
 
 function ChatInput({
   onSend,
+  onUploadFile,
   onVideoClick,
   onTerminateVideo,
   isVideoActive,
@@ -3350,9 +3259,9 @@ function ChatInput({
   onOpenIssue,
   onOpenDocs,
   onOpenIDE,
-  onUploadFile,
 }: {
   onSend: (text?: string, fileData?: any) => void;
+  onUploadFile: (file: File) => Promise<{ url: string; name: string; type: string }>;
   onVideoClick: () => void;
   onTerminateVideo: () => void;
   isVideoActive: boolean;
@@ -3360,7 +3269,6 @@ function ChatInput({
   onOpenIssue: () => void;
   onOpenDocs: () => void;
   onOpenIDE: () => void;
-  onUploadFile?: (file: File) => Promise<{ url: string; name: string; type: string } | null>;
 }) {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -3368,27 +3276,7 @@ function ChatInput({
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const commandPresets: Array<{ command: string; description: string }> = [
-    { command: '/issue ', description: 'Link or create an issue thread' },
-    { command: '/meet ', description: 'Schedule a meeting in this conversation' },
-    { command: '/doc ', description: 'Attach or reference a document' },
-    { command: '/task ', description: 'Create a task item from chat' },
-    { command: '/status available', description: 'Set your presence quickly' },
-  ];
-
-  const isSlashInput = text.trim().startsWith('/');
-  const slashFilter = text.trim().slice(1).toLowerCase();
-  const filteredCommandPresets = commandPresets.filter((preset) =>
-    preset.command.slice(1).toLowerCase().startsWith(slashFilter)
-  );
-
-  useEffect(() => {
-    if (isSlashInput) {
-      setShowSlashMenu(true);
-      return;
-    }
-    setShowSlashMenu(false);
-  }, [isSlashInput]);
+  const commandPresets = ['/issue ', '/meet ', '/doc ', '/task ', '/status available'];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3409,20 +3297,10 @@ function ChatInput({
 
     setIsUploading(true);
     try {
-      if (onUploadFile) {
-        // Use Supabase Storage (or parent-provided upload handler)
-        const data = await onUploadFile(file);
-        if (data) onSend(undefined, data);
-      } else {
-        // Legacy Express fallback
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (res.ok) onSend(undefined, data);
-      }
+      const uploaded = await onUploadFile(file);
+      onSend(undefined, uploaded);
     } catch (err) {
-      console.error('Upload failed:', err);
+      console.error("Upload failed:", err);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -3440,23 +3318,19 @@ function ChatInput({
             className="absolute bottom-full right-0 mb-3 w-64 bg-[#16171d] border border-[#26272e] rounded-xl shadow-2xl z-50 p-2"
           >
             <p className="text-[10px] uppercase tracking-wide font-bold text-[#64748b] px-2 py-1">Command Bar</p>
-            {filteredCommandPresets.map((preset) => (
+            {commandPresets.map((preset) => (
               <button
-                key={preset.command}
+                key={preset}
                 type="button"
                 onClick={() => {
-                  setText(preset.command);
+                  setText(preset);
                   setShowSlashMenu(false);
                 }}
                 className="w-full text-left px-2 py-1.5 rounded text-xs text-[#cbd5e1] hover:bg-[#26272e]"
               >
-                <span className="font-semibold text-white">{preset.command}</span>
-                <span className="block text-[10px] text-[#94a3b8] mt-0.5">{preset.description}</span>
+                {preset}
               </button>
             ))}
-            {filteredCommandPresets.length === 0 && (
-              <p className="px-2 py-1.5 text-[11px] text-[#64748b]">No matching command.</p>
-            )}
           </motion.div>
         )}
         {showEmoji && (
@@ -3483,7 +3357,34 @@ function ChatInput({
           onChange={handleFileUpload} 
           className="hidden" 
         />
-        <div className="bg-[#16171d] border border-[#1e2028] rounded-xl overflow-hidden focus-within:border-indigo-500/60 transition-all">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <button type="button" onClick={onOpenIssue} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Create/Open Issue</button>
+          <button type="button" onClick={onOpenDocs} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Docs</button>
+          <button type="button" onClick={onOpenIDE} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">IDE</button>
+          <button type="button" onClick={onScheduleMeeting} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Schedule Meeting</button>
+          {isVideoActive && (
+            <button type="button" onClick={onTerminateVideo} className="px-2 py-1 text-[11px] rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30">Terminate Huddle</button>
+          )}
+        </div>
+        <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden focus-within:border-indigo-500 transition-all shadow-2xl">
+          <div className="flex items-center gap-1 px-4 py-2 bg-[#0d0e12]/30 border-b border-[#26272e]">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
+              title="Attach file"
+            >
+              <Plus size={18} />
+            </button>
+            <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Smile size={18} /></button>
+            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><AtSign size={18} /></button>
+            <button type="button" onClick={() => setShowSlashMenu((prev) => !prev)} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Slash commands">
+              <ListTodo size={18} />
+            </button>
+            <button type="button" onClick={onVideoClick} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Video size={18} /></button>
+            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Mic size={18} /></button>
+            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><FileCode size={18} /></button>
+          </div>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -3496,53 +3397,16 @@ function ChatInput({
                 handleSubmit(e);
               }
             }}
-            placeholder="Message… (Enter to send, Shift+Enter for new line)"
-            className="w-full bg-transparent text-[14px] text-[#c5ccdb] px-4 pt-3 pb-2 min-h-[44px] max-h-[200px] focus:outline-none resize-none placeholder-[#3d4555]"
+            placeholder="Message @issue or type / for commands"
+            className="w-full bg-transparent text-[15px] text-white p-4 min-h-[120px] focus:outline-none resize-none placeholder-[#475569]"
           />
-          {isSlashInput && (
-            <p className="px-4 pb-1.5 text-[11px] text-[#4b5563]">Press Enter to run command · Esc to dismiss</p>
-          )}
-          <div className="flex items-center justify-between px-3 py-1.5 border-t border-[#1e2028]">
-            <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-                title="Attach file"
-              >
-                <Plus size={16} />
-              </button>
-              <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="p-1.5 text-[#4b5563] hover:text-yellow-400 hover:bg-[#26272e] rounded-lg transition-all" title="Emoji">
-                <Smile size={16} />
-              </button>
-              <button type="button" className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Mention">
-                <AtSign size={16} />
-              </button>
-              <button type="button" onClick={() => setShowSlashMenu((prev) => !prev)} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Slash commands (/)">
-                <ListTodo size={16} />
-              </button>
-              <button type="button" onClick={onVideoClick} className="p-1.5 text-[#4b5563] hover:text-indigo-400 hover:bg-[#26272e] rounded-lg transition-all" title="Start video / huddle">
-                <Video size={16} />
-              </button>
-              <button type="button" className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Voice message">
-                <Mic size={16} />
-              </button>
-              <button type="button" onClick={onScheduleMeeting} className="p-1.5 text-[#4b5563] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Schedule meeting">
-                <CalendarDays size={16} />
-              </button>
-              {isVideoActive && (
-                <button type="button" onClick={onTerminateVideo} className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all" title="End huddle">
-                  <LogOut size={16} />
-                </button>
-              )}
-            </div>
+          <div className="flex items-center justify-end px-4 py-2 bg-[#0d0e12]/30">
             <button 
               type="submit"
               disabled={!text.trim() || isUploading}
-              className="p-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all"
-              title="Send (Enter)"
+              className="text-[#94a3b8] hover:text-indigo-400 disabled:opacity-30 p-2 transition-all"
             >
-              <Send size={14} />
+              <Send size={20} />
             </button>
           </div>
         </div>
@@ -3550,5 +3414,3 @@ function ChatInput({
     </div>
   );
 }
-
-
