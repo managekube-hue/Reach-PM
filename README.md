@@ -1,4 +1,4 @@
-# EACH - Unified Developer Platform
+# REACH - Unified Developer Platform
 
 A full-stack project management + IDE + chat + docs platform built with React, TypeScript, Supabase, and Monaco Editor.
 
