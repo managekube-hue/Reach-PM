@@ -24,7 +24,6 @@ on conflict (id) do update
   set public             = excluded.public,
       file_size_limit    = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
-
 -- Only authenticated users can upload
 drop policy if exists comm_uploads_insert on storage.objects;
 create policy comm_uploads_insert
@@ -34,14 +33,12 @@ create policy comm_uploads_insert
     bucket_id = 'comm-uploads'
     and auth.uid() is not null
   );
-
 -- Public read (bucket is public; explicit policy documents intent)
 drop policy if exists comm_uploads_select on storage.objects;
 create policy comm_uploads_select
   on storage.objects
   for select
   using (bucket_id = 'comm-uploads');
-
 -- Uploaders can delete their own files
 drop policy if exists comm_uploads_delete on storage.objects;
 create policy comm_uploads_delete

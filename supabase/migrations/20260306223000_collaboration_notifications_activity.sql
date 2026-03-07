@@ -9,10 +9,8 @@ create table if not exists public.comm_notifications (
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_comm_notifications_user_unread
   on public.comm_notifications(user_id, read_at, created_at desc);
-
 create table if not exists public.issue_activity (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -24,13 +22,10 @@ create table if not exists public.issue_activity (
   source_id uuid,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_issue_activity_workspace_issue_created
   on public.issue_activity(workspace_id, issue_key, created_at desc);
-
 create index if not exists idx_issue_activity_workspace_created
   on public.issue_activity(workspace_id, created_at desc);
-
 create or replace function public.comm_notify_user(
   p_workspace_id uuid,
   p_user_id uuid,
@@ -66,9 +61,7 @@ begin
   return v_notification_id;
 end
 $$;
-
 grant execute on function public.comm_notify_user(uuid, uuid, text, jsonb) to authenticated;
-
 create or replace function public.comm_mark_notification_read(p_notification_id uuid)
 returns boolean
 language plpgsql
@@ -90,9 +83,7 @@ begin
   return found;
 end
 $$;
-
 grant execute on function public.comm_mark_notification_read(uuid) to authenticated;
-
 create or replace function public.capture_issue_status_activity()
 returns trigger
 language plpgsql
@@ -121,41 +112,34 @@ begin
   return new;
 end
 $$;
-
 drop trigger if exists trg_reach_issues_status_activity on public.reach_issues;
 create trigger trg_reach_issues_status_activity
 after update on public.reach_issues
 for each row
 execute function public.capture_issue_status_activity();
-
 alter table public.comm_notifications enable row level security;
 alter table public.issue_activity enable row level security;
-
 drop policy if exists comm_notifications_select_owner on public.comm_notifications;
 create policy comm_notifications_select_owner
 on public.comm_notifications
 for select
 using (user_id = auth.uid());
-
 drop policy if exists comm_notifications_insert_member on public.comm_notifications;
 create policy comm_notifications_insert_member
 on public.comm_notifications
 for insert
 with check (public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists comm_notifications_update_owner on public.comm_notifications;
 create policy comm_notifications_update_owner
 on public.comm_notifications
 for update
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
-
 drop policy if exists issue_activity_select_workspace_member on public.issue_activity;
 create policy issue_activity_select_workspace_member
 on public.issue_activity
 for select
 using (public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists issue_activity_insert_workspace_member on public.issue_activity;
 create policy issue_activity_insert_workspace_member
 on public.issue_activity

@@ -1,5 +1,4 @@
 create extension if not exists pgcrypto;
-
 do $$
 begin
 	if not exists (
@@ -13,7 +12,6 @@ begin
 	end if;
 end
 $$;
-
 create table if not exists public.workspaces (
 	id uuid primary key default gen_random_uuid(),
 	slug text not null unique,
@@ -23,7 +21,6 @@ create table if not exists public.workspaces (
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()
 );
-
 alter table if exists public.workspaces add column if not exists slug text;
 alter table if exists public.workspaces add column if not exists name text;
 alter table if exists public.workspaces add column if not exists owner_user_id uuid references auth.users(id) on delete cascade;
@@ -31,7 +28,6 @@ alter table if exists public.workspaces add column if not exists owner_id uuid;
 alter table if exists public.workspaces add column if not exists settings jsonb;
 alter table if exists public.workspaces add column if not exists created_at timestamptz;
 alter table if exists public.workspaces add column if not exists updated_at timestamptz;
-
 update public.workspaces
 set slug = coalesce(slug, 'ws-' || substr(id::text, 1, 12)),
 		name = coalesce(name, 'Workspace'),
@@ -54,9 +50,7 @@ where slug is null
 	or settings is null
 	 or created_at is null
 	 or updated_at is null;
-
 create unique index if not exists idx_workspaces_slug_unique on public.workspaces(slug);
-
 create table if not exists public.workspace_members (
 	workspace_id uuid not null references public.workspaces(id) on delete cascade,
 	user_id uuid not null references auth.users(id) on delete cascade,
@@ -64,18 +58,14 @@ create table if not exists public.workspace_members (
 	joined_at timestamptz not null default now(),
 	primary key (workspace_id, user_id)
 );
-
 alter table if exists public.workspace_members add column if not exists role public.workspace_role;
 alter table if exists public.workspace_members add column if not exists joined_at timestamptz;
-
 update public.workspace_members
 set role = coalesce(role, 'employee'),
 		joined_at = coalesce(joined_at, now())
 where role is null
 	 or joined_at is null;
-
 create index if not exists idx_workspace_members_user_id on public.workspace_members(user_id);
-
 create table if not exists public.profiles (
 	id uuid primary key references auth.users(id) on delete cascade,
 	email text,
@@ -85,9 +75,7 @@ create table if not exists public.profiles (
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()
 );
-
 create unique index if not exists idx_profiles_email_unique on public.profiles(email) where email is not null;
-
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -97,19 +85,16 @@ begin
 	return new;
 end
 $$;
-
 drop trigger if exists trg_profiles_set_updated_at on public.profiles;
 create trigger trg_profiles_set_updated_at
 before update on public.profiles
 for each row
 execute function public.set_updated_at();
-
 drop trigger if exists trg_workspaces_set_updated_at on public.workspaces;
 create trigger trg_workspaces_set_updated_at
 before update on public.workspaces
 for each row
 execute function public.set_updated_at();
-
 create or replace function public.create_default_workspace_for_user()
 returns trigger
 language plpgsql
@@ -149,13 +134,11 @@ begin
 	return new;
 end
 $$;
-
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row
 execute function public.create_default_workspace_for_user();
-
 do $$
 declare
 	u record;
@@ -191,30 +174,25 @@ begin
 	end loop;
 end
 $$;
-
 alter table public.profiles enable row level security;
 alter table public.workspaces enable row level security;
 alter table public.workspace_members enable row level security;
-
 drop policy if exists profiles_select_own on public.profiles;
 create policy profiles_select_own
 on public.profiles
 for select
 using (id = auth.uid());
-
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own
 on public.profiles
 for update
 using (id = auth.uid())
 with check (id = auth.uid());
-
 drop policy if exists profiles_insert_own on public.profiles;
 create policy profiles_insert_own
 on public.profiles
 for insert
 with check (id = auth.uid());
-
 drop policy if exists workspaces_select_member on public.workspaces;
 create policy workspaces_select_member
 on public.workspaces
@@ -227,13 +205,11 @@ using (
 			and wm.user_id = auth.uid()
 	)
 );
-
 drop policy if exists workspaces_insert_owner on public.workspaces;
 create policy workspaces_insert_owner
 on public.workspaces
 for insert
 with check (coalesce(owner_user_id, owner_id) = auth.uid());
-
 drop policy if exists workspaces_update_admin on public.workspaces;
 create policy workspaces_update_admin
 on public.workspaces
@@ -256,7 +232,6 @@ with check (
 			and wm.role in ('owner', 'admin')
 	)
 );
-
 drop policy if exists workspace_members_select_member on public.workspace_members;
 create policy workspace_members_select_member
 on public.workspace_members
@@ -269,7 +244,6 @@ using (
 			and self.user_id = auth.uid()
 	)
 );
-
 drop policy if exists workspace_members_insert_admin on public.workspace_members;
 create policy workspace_members_insert_admin
 on public.workspace_members
@@ -283,7 +257,6 @@ with check (
 			and self.role in ('owner', 'admin')
 	)
 );
-
 drop policy if exists workspace_members_update_admin on public.workspace_members;
 create policy workspace_members_update_admin
 on public.workspace_members
@@ -306,7 +279,6 @@ with check (
 			and self.role in ('owner', 'admin')
 	)
 );
-
 drop policy if exists workspace_members_delete_admin on public.workspace_members;
 create policy workspace_members_delete_admin
 on public.workspace_members

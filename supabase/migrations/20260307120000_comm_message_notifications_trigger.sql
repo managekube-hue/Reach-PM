@@ -64,7 +64,6 @@ begin
   return new;
 end
 $$;
-
 drop trigger if exists trg_comm_messages_fan_out_notif on public.comm_messages;
 create trigger trg_comm_messages_fan_out_notif
   after insert on public.comm_messages

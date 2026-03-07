@@ -41,9 +41,7 @@ begin
   order by coalesce(p.display_name, p.email, wm.user_id::text);
 end
 $$;
-
 grant execute on function public.comm_workspace_directory(uuid) to authenticated;
-
 create or replace function public.comm_set_member_role(
   p_workspace_id uuid,
   p_user_id uuid,
@@ -93,9 +91,7 @@ begin
   return v_row;
 end
 $$;
-
 grant execute on function public.comm_set_member_role(uuid, uuid, public.workspace_role) to authenticated;
-
 create or replace function public.comm_find_user_by_name(p_name text)
 returns table (
   user_id uuid,
@@ -121,9 +117,7 @@ begin
   limit 20;
 end
 $$;
-
 grant execute on function public.comm_find_user_by_name(text) to authenticated;
-
 -- Bootstrap: if a user profile is named managekube, ensure admin role where applicable.
 do $$
 begin

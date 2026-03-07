@@ -14,27 +14,21 @@ create table if not exists public.comm_pinned_messages (
   created_at      timestamptz not null default now(),
   unique (conversation_id, message_id)
 );
-
 alter table public.comm_pinned_messages enable row level security;
-
 drop policy if exists comm_pinned_select on public.comm_pinned_messages;
 create policy comm_pinned_select on public.comm_pinned_messages for select
   using (public.comm_can_access_conversation(conversation_id, auth.uid()));
-
 drop policy if exists comm_pinned_insert on public.comm_pinned_messages;
 create policy comm_pinned_insert on public.comm_pinned_messages for insert
   with check (
     public.comm_can_access_conversation(conversation_id, auth.uid())
     and pinned_by = auth.uid()
   );
-
 drop policy if exists comm_pinned_delete on public.comm_pinned_messages;
 create policy comm_pinned_delete on public.comm_pinned_messages for delete
   using (public.comm_can_access_conversation(conversation_id, auth.uid()));
-
 create index if not exists idx_comm_pinned_conversation
   on public.comm_pinned_messages (conversation_id);
-
 -- RPC: pin a message (idempotent)
 create or replace function public.comm_pin_message(
   p_conversation_id uuid,
@@ -65,9 +59,7 @@ begin
   return true;
 end
 $$;
-
 grant execute on function public.comm_pin_message(uuid, uuid) to authenticated;
-
 -- RPC: unpin a message
 create or replace function public.comm_unpin_message(
   p_conversation_id uuid,
@@ -91,9 +83,7 @@ begin
   return found;
 end
 $$;
-
 grant execute on function public.comm_unpin_message(uuid, uuid) to authenticated;
-
 -- RPC: list pinned message IDs for a conversation (used by the frontend)
 create or replace function public.comm_get_pinned_messages(p_conversation_id uuid)
 returns table (message_id uuid)
@@ -113,15 +103,12 @@ begin
    order by pm.created_at;
 end
 $$;
-
 grant execute on function public.comm_get_pinned_messages(uuid) to authenticated;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. Archive table for old messages (Supabase free-tier buffer)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create table if not exists public.comm_messages_archive (like public.comm_messages including all);
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Cleanup functions (call manually or schedule with pg_cron on Pro plan)
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -144,9 +131,7 @@ begin
   return deleted_count;
 end
 $$;
-
 grant execute on function public.comm_cleanup_old_notifications() to service_role;
-
 -- Archive messages older than p_days_old days and remove them from the live table.
 create or replace function public.comm_archive_old_messages(p_days_old integer default 90)
 returns integer
@@ -176,9 +161,7 @@ begin
   return archived_count;
 end
 $$;
-
 grant execute on function public.comm_archive_old_messages(integer) to service_role;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. pg_cron schedules (Pro plan only – uncomment after upgrading)
 --
@@ -197,4 +180,4 @@ grant execute on function public.comm_archive_old_messages(integer) to service_r
 -- For the FREE tier, invoke these via a scheduled GitHub Actions workflow:
 --   curl -X POST <SUPABASE_URL>/functions/v1/comm-maintenance \
 --     -H "Authorization: Bearer <SERVICE_ROLE_KEY>"
--- ─────────────────────────────────────────────────────────────────────────────
+-- ─────────────────────────────────────────────────────────────────────────────;

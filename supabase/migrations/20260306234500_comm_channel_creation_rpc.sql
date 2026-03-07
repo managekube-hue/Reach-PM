@@ -1,5 +1,4 @@
--- Make channel creation workflow server-side: create channel, add creator,
--- seed welcome system message, and fan-out notifications.
+-- Fix channel creation under RLS by providing atomic, security-definer RPCs.
 
 create or replace function public.comm_create_channel(
   p_workspace_id uuid,
@@ -27,9 +26,6 @@ declare
   v_slug text;
   v_suffix integer := 1;
   v_id uuid;
-  v_welcome_id uuid;
-  v_payload jsonb;
-  v_member record;
 begin
   if v_actor is null then
     raise exception 'Authentication required';
@@ -87,43 +83,6 @@ begin
   set role = excluded.role,
       workspace_id = excluded.workspace_id;
 
-  insert into public.comm_messages (
-    conversation_id,
-    workspace_id,
-    sender_user_id,
-    kind,
-    body
-  ) values (
-    v_id,
-    p_workspace_id,
-    v_actor,
-    'system',
-    format('Welcome to #%s. This channel is now live.', v_name)
-  )
-  returning id into v_welcome_id;
-
-  v_payload := jsonb_build_object(
-    'conversation_id', v_id,
-    'conversation_name', v_name,
-    'message_id', v_welcome_id,
-    'message_preview', format('Welcome to #%s. This channel is now live.', v_name),
-    'pinned', true,
-    'created_at', now()
-  );
-
-  for v_member in
-    select wm.user_id
-    from public.workspace_members wm
-    where wm.workspace_id = p_workspace_id
-  loop
-    perform public.comm_notify_user(
-      p_workspace_id,
-      v_member.user_id,
-      'channel_message',
-      v_payload
-    );
-  end loop;
-
   return query
   select c.id, c.name, c.kind, c.workspace_id, c.slug
   from public.comm_conversations c
@@ -131,3 +90,75 @@ begin
 end
 $$;
 grant execute on function public.comm_create_channel(uuid, text, text, boolean, text) to authenticated;
+create or replace function public.comm_ensure_default_channel(
+  p_workspace_id uuid,
+  p_slug text default 'general',
+  p_name text default 'general'
+)
+returns table (
+  id uuid,
+  name text,
+  kind public.comm_conversation_kind,
+  workspace_id uuid,
+  slug text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_slug text := lower(coalesce(nullif(btrim(p_slug), ''), 'general'));
+  v_name text := coalesce(nullif(btrim(p_name), ''), 'general');
+  v_id uuid;
+begin
+  if v_actor is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if not public.comm_is_workspace_member(p_workspace_id, v_actor) then
+    raise exception 'Not a member of workspace';
+  end if;
+
+  select c.id
+  into v_id
+  from public.comm_conversations c
+  where c.workspace_id = p_workspace_id
+    and c.kind = 'channel'
+    and c.slug = v_slug
+  order by c.created_at asc
+  limit 1;
+
+  if v_id is null then
+    insert into public.comm_conversations (
+      workspace_id,
+      kind,
+      name,
+      slug,
+      topic,
+      is_private,
+      created_by
+    ) values (
+      p_workspace_id,
+      'channel',
+      v_name,
+      v_slug,
+      'Workspace default channel',
+      false,
+      v_actor
+    ) returning comm_conversations.id into v_id;
+  end if;
+
+  insert into public.comm_conversation_members (conversation_id, user_id, workspace_id, role)
+  values (v_id, v_actor, p_workspace_id, 'owner')
+  on conflict (conversation_id, user_id) do update
+  set role = excluded.role,
+      workspace_id = excluded.workspace_id;
+
+  return query
+  select c.id, c.name, c.kind, c.workspace_id, c.slug
+  from public.comm_conversations c
+  where c.id = v_id;
+end
+$$;
+grant execute on function public.comm_ensure_default_channel(uuid, text, text) to authenticated;

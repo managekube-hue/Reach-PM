@@ -139,5 +139,4 @@ exception when others then
   raise exception 'comm_bootstrap_workspace_context failed: % (SQLSTATE: %)', sqlerrm, sqlstate;
 end
 $$;
-
 grant execute on function public.comm_bootstrap_workspace_context(text) to authenticated;

@@ -1,5 +1,4 @@
 create extension if not exists pgcrypto;
-
 -- Communication primitives aligned to issue-centric orchestration.
 do $$
 begin
@@ -36,7 +35,6 @@ begin
   end if;
 end
 $$;
-
 create table if not exists public.reach_issues (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -51,7 +49,6 @@ create table if not exists public.reach_issues (
   updated_at timestamptz not null default now(),
   unique (workspace_id, issue_key)
 );
-
 create table if not exists public.comm_conversations (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid references public.workspaces(id) on delete cascade,
@@ -67,7 +64,6 @@ create table if not exists public.comm_conversations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table if not exists public.comm_conversation_members (
   conversation_id uuid not null references public.comm_conversations(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -78,7 +74,6 @@ create table if not exists public.comm_conversation_members (
   last_read_message_id uuid,
   primary key (conversation_id, user_id)
 );
-
 create table if not exists public.comm_messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.comm_conversations(id) on delete cascade,
@@ -96,7 +91,6 @@ create table if not exists public.comm_messages (
   edited_at timestamptz,
   deleted_at timestamptz
 );
-
 create table if not exists public.comm_issue_threads (
   issue_key text not null,
   message_id uuid not null references public.comm_messages(id) on delete cascade,
@@ -104,7 +98,6 @@ create table if not exists public.comm_issue_threads (
   created_at timestamptz not null default now(),
   primary key (issue_key, message_id)
 );
-
 create table if not exists public.user_saved_views (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -115,7 +108,6 @@ create table if not exists public.user_saved_views (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table if not exists public.issue_attachments (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid references public.workspaces(id) on delete cascade,
@@ -128,7 +120,6 @@ create table if not exists public.issue_attachments (
   uploaded_by uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now()
 );
-
 create table if not exists public.comm_presence (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -142,7 +133,6 @@ create table if not exists public.comm_presence (
   updated_at timestamptz not null default now(),
   primary key (workspace_id, user_id)
 );
-
 create table if not exists public.comm_meetings (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -158,7 +148,6 @@ create table if not exists public.comm_meetings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table if not exists public.comm_meeting_participants (
   meeting_id uuid not null references public.comm_meetings(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -168,13 +157,11 @@ create table if not exists public.comm_meeting_participants (
   left_at timestamptz,
   primary key (meeting_id, user_id)
 );
-
 create index if not exists idx_comm_conversations_workspace on public.comm_conversations(workspace_id, kind, created_at desc);
 create index if not exists idx_comm_messages_conversation on public.comm_messages(conversation_id, created_at);
 create index if not exists idx_comm_messages_issue_key on public.comm_messages(issue_key, created_at);
 create index if not exists idx_comm_presence_workspace_status on public.comm_presence(workspace_id, status, updated_at desc);
 create index if not exists idx_comm_meetings_workspace on public.comm_meetings(workspace_id, scheduled_for desc);
-
 create or replace function public.extract_issue_key(p_body text)
 returns text
 language plpgsql
@@ -195,7 +182,6 @@ begin
   return m[1];
 end
 $$;
-
 create or replace function public.comm_is_workspace_member(p_workspace_id uuid, p_user_id uuid)
 returns boolean
 language sql
@@ -208,7 +194,6 @@ as $$
       and wm.user_id = p_user_id
   );
 $$;
-
 create or replace function public.comm_can_access_conversation(p_conversation_id uuid, p_user_id uuid)
 returns boolean
 language sql
@@ -221,7 +206,6 @@ as $$
       and cm.user_id = p_user_id
   );
 $$;
-
 create or replace function public.comm_sync_issue_thread()
 returns trigger
 language plpgsql
@@ -235,13 +219,11 @@ begin
   return new;
 end
 $$;
-
 drop trigger if exists trg_comm_messages_sync_issue_thread on public.comm_messages;
 create trigger trg_comm_messages_sync_issue_thread
 after insert on public.comm_messages
 for each row
 execute function public.comm_sync_issue_thread();
-
 create or replace function public.comm_open_direct_conversation(
   p_workspace_id uuid,
   p_target_user_id uuid,
@@ -324,9 +306,7 @@ begin
   return v_conversation_id;
 end
 $$;
-
 grant execute on function public.comm_open_direct_conversation(uuid, uuid, text, uuid) to authenticated;
-
 create or replace function public.comm_send_message(
   p_conversation_id uuid,
   p_body text,
@@ -387,9 +367,7 @@ begin
   return v_row;
 end
 $$;
-
 grant execute on function public.comm_send_message(uuid, text, uuid, public.comm_message_kind, text, jsonb, jsonb) to authenticated;
-
 create or replace function public.comm_schedule_meeting(
   p_workspace_id uuid,
   p_title text,
@@ -464,9 +442,7 @@ begin
   return v_meeting_id;
 end
 $$;
-
 grant execute on function public.comm_schedule_meeting(uuid, text, timestamptz, integer, uuid[], uuid, text, jsonb) to authenticated;
-
 alter table public.reach_issues enable row level security;
 alter table public.comm_conversations enable row level security;
 alter table public.comm_conversation_members enable row level security;
@@ -477,32 +453,27 @@ alter table public.issue_attachments enable row level security;
 alter table public.comm_presence enable row level security;
 alter table public.comm_meetings enable row level security;
 alter table public.comm_meeting_participants enable row level security;
-
 drop policy if exists reach_issues_select_member on public.reach_issues;
 create policy reach_issues_select_member
 on public.reach_issues
 for select
 using (public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists reach_issues_insert_member on public.reach_issues;
 create policy reach_issues_insert_member
 on public.reach_issues
 for insert
 with check (public.comm_is_workspace_member(workspace_id, auth.uid()) and created_by = auth.uid());
-
 drop policy if exists reach_issues_update_member on public.reach_issues;
 create policy reach_issues_update_member
 on public.reach_issues
 for update
 using (public.comm_is_workspace_member(workspace_id, auth.uid()))
 with check (public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists comm_conversations_select_member on public.comm_conversations;
 create policy comm_conversations_select_member
 on public.comm_conversations
 for select
 using (public.comm_can_access_conversation(id, auth.uid()));
-
 drop policy if exists comm_conversations_insert_member on public.comm_conversations;
 create policy comm_conversations_insert_member
 on public.comm_conversations
@@ -511,7 +482,6 @@ with check (
   created_by = auth.uid()
   and (workspace_id is null or public.comm_is_workspace_member(workspace_id, auth.uid()))
 );
-
 drop policy if exists comm_conversations_update_owner on public.comm_conversations;
 create policy comm_conversations_update_owner
 on public.comm_conversations
@@ -534,13 +504,11 @@ with check (
       and cm.role in ('owner', 'admin')
   )
 );
-
 drop policy if exists comm_conversation_members_select_member on public.comm_conversation_members;
 create policy comm_conversation_members_select_member
 on public.comm_conversation_members
 for select
 using (public.comm_can_access_conversation(conversation_id, auth.uid()));
-
 drop policy if exists comm_conversation_members_insert_owner on public.comm_conversation_members;
 create policy comm_conversation_members_insert_owner
 on public.comm_conversation_members
@@ -555,13 +523,11 @@ with check (
       and cm.role in ('owner', 'admin')
   )
 );
-
 drop policy if exists comm_messages_select_member on public.comm_messages;
 create policy comm_messages_select_member
 on public.comm_messages
 for select
 using (public.comm_can_access_conversation(conversation_id, auth.uid()));
-
 drop policy if exists comm_messages_insert_sender on public.comm_messages;
 create policy comm_messages_insert_sender
 on public.comm_messages
@@ -570,14 +536,12 @@ with check (
   sender_user_id = auth.uid()
   and public.comm_can_access_conversation(conversation_id, auth.uid())
 );
-
 drop policy if exists comm_messages_update_sender on public.comm_messages;
 create policy comm_messages_update_sender
 on public.comm_messages
 for update
 using (sender_user_id = auth.uid())
 with check (sender_user_id = auth.uid());
-
 drop policy if exists comm_issue_threads_select_member on public.comm_issue_threads;
 create policy comm_issue_threads_select_member
 on public.comm_issue_threads
@@ -586,26 +550,22 @@ using (
   workspace_id is null
   or public.comm_is_workspace_member(workspace_id, auth.uid())
 );
-
 drop policy if exists user_saved_views_select_owner on public.user_saved_views;
 create policy user_saved_views_select_owner
 on public.user_saved_views
 for select
 using (user_id = auth.uid());
-
 drop policy if exists user_saved_views_insert_owner on public.user_saved_views;
 create policy user_saved_views_insert_owner
 on public.user_saved_views
 for insert
 with check (user_id = auth.uid());
-
 drop policy if exists user_saved_views_update_owner on public.user_saved_views;
 create policy user_saved_views_update_owner
 on public.user_saved_views
 for update
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
-
 drop policy if exists issue_attachments_select_member on public.issue_attachments;
 create policy issue_attachments_select_member
 on public.issue_attachments
@@ -614,32 +574,27 @@ using (
   workspace_id is null
   or public.comm_is_workspace_member(workspace_id, auth.uid())
 );
-
 drop policy if exists issue_attachments_insert_uploader on public.issue_attachments;
 create policy issue_attachments_insert_uploader
 on public.issue_attachments
 for insert
 with check (uploaded_by = auth.uid());
-
 drop policy if exists comm_presence_select_member on public.comm_presence;
 create policy comm_presence_select_member
 on public.comm_presence
 for select
 using (public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists comm_presence_upsert_own on public.comm_presence;
 create policy comm_presence_upsert_own
 on public.comm_presence
 for insert
 with check (user_id = auth.uid() and public.comm_is_workspace_member(workspace_id, auth.uid()));
-
 drop policy if exists comm_presence_update_own on public.comm_presence;
 create policy comm_presence_update_own
 on public.comm_presence
 for update
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
-
 drop policy if exists comm_meetings_select_participant on public.comm_meetings;
 create policy comm_meetings_select_participant
 on public.comm_meetings
@@ -653,7 +608,6 @@ using (
   )
   or public.comm_is_workspace_member(workspace_id, auth.uid())
 );
-
 drop policy if exists comm_meetings_insert_member on public.comm_meetings;
 create policy comm_meetings_insert_member
 on public.comm_meetings
@@ -662,7 +616,6 @@ with check (
   created_by = auth.uid()
   and public.comm_is_workspace_member(workspace_id, auth.uid())
 );
-
 drop policy if exists comm_meeting_participants_select_participant on public.comm_meeting_participants;
 create policy comm_meeting_participants_select_participant
 on public.comm_meeting_participants
@@ -676,7 +629,6 @@ using (
       and m.created_by = auth.uid()
   )
 );
-
 drop policy if exists comm_meeting_participants_insert_creator on public.comm_meeting_participants;
 create policy comm_meeting_participants_insert_creator
 on public.comm_meeting_participants
@@ -689,7 +641,6 @@ with check (
       and m.created_by = auth.uid()
   )
 );
-
 do $$
 begin
   begin

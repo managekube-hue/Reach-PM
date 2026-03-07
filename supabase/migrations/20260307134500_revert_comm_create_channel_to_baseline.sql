@@ -90,5 +90,4 @@ begin
   where c.id = v_id;
 end
 $$;
-
 grant execute on function public.comm_create_channel(uuid, text, text, boolean, text) to authenticated;
