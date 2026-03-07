@@ -16,6 +16,9 @@ export default defineConfig(({mode}) => {
       },
     },
     server: {
+      host: '127.0.0.1',
+      port: 5177,
+      strictPort: true,
       // Disable HMR when requested by environment.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
