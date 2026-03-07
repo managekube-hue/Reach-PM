@@ -45,12 +45,10 @@ import {
   ShieldCheck,
   Headphones,
   Pin,
-  FileCode,
   ExternalLink,
   Circle,
   ChevronDown,
   CalendarDays,
-  ListTodo,
   UserCheck
 } from 'lucide-react';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
@@ -216,7 +214,7 @@ export default function App() {
   const [supabaseWorkspaceId, setSupabaseWorkspaceId] = useState<string | null>(null);
   const [workspaceChoices, setWorkspaceChoices] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [commConversationId, setCommConversationId] = useState<string | null>(null);
-  const [commConversations, setCommConversations] = useState<Array<{ id: string; name: string; kind: string; workspace_id: string | null }>>([]);
+  const [commConversations, setCommConversations] = useState<Array<{ id: string; name: string; kind: string; workspace_id: string | null; is_private?: boolean | null }>>([]);
   const [commMembers, setCommMembers] = useState<CommMember[]>([]);
   const [selectedDmUserId, setSelectedDmUserId] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -224,6 +222,7 @@ export default function App() {
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [newCommChannelName, setNewCommChannelName] = useState('');
   const [isCreatingCommChannel, setIsCreatingCommChannel] = useState(false);
+  const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
   const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
   const [memberActionError, setMemberActionError] = useState<string | null>(null);
   const [memberActionUserId, setMemberActionUserId] = useState<string | null>(null);
@@ -317,35 +316,6 @@ export default function App() {
             </div>
 
             <div className="p-2 space-y-2 overflow-y-auto h-[calc(100%-44px)] custom-scrollbar">
-              <button
-                onClick={() => setActiveSidebarItem('activity')}
-                className={`w-full flex items-center ${isWorkspaceSidebarCollapsed ? 'justify-center' : 'justify-between'} px-2.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  activeSidebarItem === 'activity' ? 'bg-indigo-600/20 text-white border border-indigo-500/30' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24] border border-transparent'
-                }`}
-                title="Issue activity"
-              >
-                <span className="flex items-center gap-2">
-                  <Bell size={14} />
-                  {!isWorkspaceSidebarCollapsed && 'Activity'}
-                </span>
-                {!isWorkspaceSidebarCollapsed && unreadNotifications.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadNotifications.length}</span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setActiveSidebarItem('directory')}
-                className={`w-full flex items-center ${isWorkspaceSidebarCollapsed ? 'justify-center' : 'justify-between'} px-2.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  activeSidebarItem === 'directory' ? 'bg-indigo-600/20 text-white border border-indigo-500/30' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24] border border-transparent'
-                }`}
-                title="Directory"
-              >
-                <span className="flex items-center gap-2">
-                  <Users size={14} />
-                  {!isWorkspaceSidebarCollapsed && 'Directory'}
-                </span>
-              </button>
-
               {!isWorkspaceSidebarCollapsed && (
                 <>
                   <div className="pt-2">
@@ -362,26 +332,44 @@ export default function App() {
                     </div>
                     <div className="mt-1 space-y-0.5">
                       {channelConversations.map((conversation) => (
-                        <button
+                        <div
                           key={conversation.id}
-                          onClick={() => {
-                            setActiveSidebarItem('messages');
-                            setCommConversationId(conversation.id);
-                            setCurrentChannel({
-                              id: conversation.id,
-                              workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-                              name: conversation.name,
-                            });
-                          }}
                           className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all ${
                             commConversationId === conversation.id ? 'bg-[#26272e] text-white' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24]'
                           }`}
                         >
-                          <span className="truncate"># {conversation.name}</span>
-                          {(unreadCountByConversation[conversation.id] || 0) > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
-                          )}
-                        </button>
+                          <button
+                            onClick={() => {
+                              setActiveSidebarItem('messages');
+                              setCommConversationId(conversation.id);
+                              setCurrentChannel({
+                                id: conversation.id,
+                                workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
+                                name: conversation.name,
+                              });
+                            }}
+                            className="flex-1 text-left truncate"
+                            title={`Open #${conversation.name}`}
+                          >
+                            # {conversation.name}
+                          </button>
+                          <div className="flex items-center gap-1 ml-2">
+                            {(unreadCountByConversation[conversation.id] || 0) > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
+                            )}
+                            {isAdminUser && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteChannel(conversation.id, conversation.name)}
+                                disabled={deletingChannelId === conversation.id}
+                                className="p-1 rounded text-[#94a3b8] hover:text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                                title={deletingChannelId === conversation.id ? 'Deleting channel...' : 'Delete channel'}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -420,261 +408,93 @@ export default function App() {
 
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              {activeSidebarItem === 'messages' && (
-                <div className="space-y-8 max-w-5xl mx-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
+              <div className="max-w-5xl mx-auto h-full flex flex-col">
+                <div className="flex items-center justify-between gap-3 px-1 pb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      {activeConversation?.kind === 'channel' ? '#' : '@'} {activeConversation?.name || currentChannel?.name || 'Select a conversation'}
+                    </p>
+                    <p className="text-[11px] text-[#94a3b8] mt-0.5">
+                      {activeConversation?.kind === 'channel'
+                        ? (activeConversation?.is_private ? 'Private channel' : 'Public channel')
+                        : 'Direct message'}
+                    </p>
+                  </div>
+                  {activeConversation?.kind === 'channel' && activeConversation?.is_private && (
+                    <span className="text-[10px] uppercase tracking-wide border border-amber-500/30 text-amber-200 rounded px-2 py-1">
+                      Private
+                    </span>
+                  )}
+                </div>
+
                 {commError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
+                  <div className="mb-3 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-red-300">
                     {commError}
                   </div>
                 )}
 
-                {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-40">
-                    <div className="w-24 h-24 bg-[#26272e] rounded-[2rem] flex items-center justify-center mb-8">
-                      <MessageSquare size={40} className="text-[#94a3b8]" />
-                    </div>
-                    <h4 className="text-xl font-bold text-white mb-2">Welcome to #{currentChannel?.name}</h4>
-                    <p className="text-[#94a3b8] font-medium">This is the start of the conversation. Say hello!</p>
-                  </div>
-                ) : (
-                  messages.map((msg, idx) => {
-                    const prevMsg = messages[idx - 1];
-                    const isSameUser = prevMsg && prevMsg.userId === msg.userId && (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() < 300000);
-
-                    return (
-                      <div key={msg.id} className={`group flex gap-4 ${isSameUser ? '-mt-6' : ''}`}>
-                        {!isSameUser ? (
-                          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/10">
-                            {msg.userName[0]?.toUpperCase() || '?'}
-                          </div>
-                        ) : (
-                          <div className="w-10 flex-shrink-0 flex justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-[10px] text-[#475569] font-bold mt-1">
-                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          {!isSameUser && (
-                            <div className="flex items-baseline gap-3 mb-1">
-                              <span className="font-bold text-white text-[15px] hover:underline cursor-pointer">{msg.userName}</span>
-                              <span className="text-[11px] text-[#94a3b8] font-bold uppercase tracking-widest">
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              <button
-                                onClick={() => togglePinMessage(msg.id)}
-                                className={`p-1 rounded transition-all ${
-                                  pinnedMessageIds.includes(msg.id)
-                                    ? 'text-indigo-400 bg-indigo-500/10'
-                                    : 'text-[#475569] hover:text-white hover:bg-[#26272e]'
-                                }`}
-                                title={pinnedMessageIds.includes(msg.id) ? 'Unpin message' : 'Pin message'}
-                              >
-                                <Pin size={12} />
-                              </button>
-                            </div>
-                          )}
-                          <p className="text-[15px] text-[#cbd5e1] leading-relaxed break-words">{msg.text}</p>
-
-                          {msg.file_url && (
-                            <div className="mt-3 p-4 bg-[#1e1f26] border border-[#26272e] rounded-2xl flex items-center gap-4 max-w-md group/file hover:border-indigo-500/50 transition-all cursor-pointer shadow-lg">
-                              <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400">
-                                {msg.file_type?.startsWith('image/') ? <ImageIcon size={24} /> : <FileText size={24} />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-white truncate">{msg.file_name}</p>
-                                <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">{msg.file_type?.split('/')[1] || 'FILE'}</p>
-                              </div>
-                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-[#94a3b8] hover:text-white transition-colors">
-                                <ExternalLink size={18} />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                </div>
-              )}
-
-              {activeSidebarItem === 'activity' && (
-                <div className="max-w-5xl mx-auto py-8 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-2xl font-bold text-white">Issue Activity Feed</h4>
-                    <span className="text-xs text-[#94a3b8]">Work-first activity stream</span>
-                  </div>
-                  {activityItems.length === 0 ? (
-                    <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-6 text-sm text-[#94a3b8]">
-                      No issue activity yet in this workspace.
+                <div className="flex-1 min-h-0 space-y-2 pr-1 overflow-y-auto custom-scrollbar">
+                  {messages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+                      <MessageSquare size={28} className="text-[#64748b] mb-3" />
+                      <h4 className="text-base font-semibold text-white">No messages yet</h4>
+                      <p className="text-sm text-[#94a3b8] mt-1">Start the conversation.</p>
                     </div>
                   ) : (
-                    activityItems.map((item) => (
-                      <div key={item.id} className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-white">@issue {item.issue_key}</p>
-                          <span className="text-[10px] uppercase tracking-wide text-[#64748b]">{item.action}</span>
+                    messages.map((msg, idx) => {
+                      const prevMsg = messages[idx - 1];
+                      const isSameUser = prevMsg && prevMsg.userId === msg.userId && (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() < 300000);
+
+                      return (
+                        <div key={msg.id} className={`group flex gap-3 px-2 py-1 rounded-md hover:bg-[#14151b] ${isSameUser ? '' : 'mt-1'}`}>
+                          <div className="w-8 flex-shrink-0">
+                            {!isSameUser && (
+                              <div className="w-8 h-8 bg-[#26272e] rounded-md flex items-center justify-center text-white text-xs font-bold">
+                                {msg.userName[0]?.toUpperCase() || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {!isSameUser && (
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="font-semibold text-white text-sm">{msg.userName}</span>
+                                <span className="text-[10px] text-[#64748b]">
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <button
+                                  onClick={() => togglePinMessage(msg.id)}
+                                  className={`p-1 rounded transition-all ${
+                                    pinnedMessageIds.includes(msg.id)
+                                      ? 'text-indigo-300 bg-indigo-500/10'
+                                      : 'text-[#475569] hover:text-white hover:bg-[#26272e]'
+                                  }`}
+                                  title={pinnedMessageIds.includes(msg.id) ? 'Unpin message' : 'Pin message'}
+                                >
+                                  <Pin size={12} />
+                                </button>
+                              </div>
+                            )}
+                            <p className="text-sm text-[#d1d5db] leading-6 break-words">{msg.text}</p>
+                            {msg.file_url && (
+                              <a
+                                href={msg.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 inline-flex items-center gap-2 rounded-md border border-[#303236] bg-[#16171d] px-2.5 py-1.5 text-xs text-[#cbd5e1] hover:text-white"
+                              >
+                                {msg.file_type?.startsWith('image/') ? <ImageIcon size={14} /> : <FileText size={14} />}
+                                <span className="truncate max-w-[260px]">{msg.file_name || 'Attachment'}</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-[#cbd5e1] mt-1">{item.summary}</p>
-                        <p className="text-[11px] text-[#64748b] mt-2">{new Date(item.created_at).toLocaleString()}</p>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
-              )}
-
-              {activeSidebarItem === 'directory' && (
-                <div className="max-w-5xl mx-auto py-8 space-y-4">
-                  <h4 className="text-2xl font-bold text-white">Directory</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-[#64748b] mb-3">People</p>
-                      <div className="space-y-2">
-                        {panelMembers.map((member) => (
-                          <div key={member.user_id} className="flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className="w-7 h-7 rounded-full bg-[#26272e] border border-[#303236] text-white font-bold text-[10px] flex items-center justify-center"
-                                title={`${member.user_name || member.user_id} (${member.user_id})`}
-                              >
-                                {getInitials(member.user_name || member.user_id)}
-                              </div>
-                              <span className="text-white truncate">{member.user_name}</span>
-                            </div>
-                            <span className="text-[#94a3b8] uppercase">{member.role}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4">
-                      <p className="text-xs uppercase tracking-wide text-[#64748b] mb-3">Channels</p>
-                      <div className="space-y-2">
-                        {channelConversations.map((conversation) => (
-                          <div key={conversation.id} className="flex items-center justify-between gap-2 text-xs">
-                            <span className="text-white truncate"># {conversation.name}</span>
-                            <span className="text-[#94a3b8]">members visible in workspace</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSidebarItem === 'files' && (
-                <div className="max-w-5xl mx-auto py-10">
-                <div className="flex items-center justify-between mb-8">
-                  <h4 className="text-2xl font-bold text-white">Channel Files</h4>
-                  <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20">
-                    <Plus size={18} />
-                    Upload File
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {messages.filter(m => m.file_url).map(msg => (
-                    <div key={msg.id} className="bg-[#16171d] border border-[#26272e] p-5 rounded-2xl hover:border-indigo-500/50 transition-all group cursor-pointer shadow-xl">
-                      <div className="w-12 h-12 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                        {msg.file_type?.startsWith('image/') ? <ImageIcon size={24} /> : <FileText size={24} />}
-                      </div>
-                      <h5 className="font-bold text-white mb-1 truncate">{msg.file_name}</h5>
-                      <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest mb-4">{msg.file_type?.split('/')[1] || 'FILE'}</p>
-                      <div className="flex items-center justify-between pt-4 border-t border-[#26272e]">
-                        <span className="text-[10px] text-[#475569] font-bold uppercase">{new Date(msg.timestamp).toLocaleDateString()}</span>
-                        <ExternalLink size={14} className="text-[#94a3b8] group-hover:text-white" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                </div>
-              )}
-
-              {activeSidebarItem === 'pins' && (
-                <div className="max-w-5xl mx-auto py-10">
-                {messages.filter((message) => pinnedMessageIds.includes(message.id)).length === 0 ? (
-                  <div className="opacity-40 text-center">
-                    <Pin size={48} className="mx-auto mb-4 text-[#94a3b8]" />
-                    <h4 className="text-xl font-bold text-white">No Pinned Messages</h4>
-                    <p className="text-[#94a3b8] mt-2">Pin a message in the channel and it appears here.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {messages.filter((message) => pinnedMessageIds.includes(message.id)).map((msg) => (
-                      <div key={msg.id} className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-semibold text-white">{msg.userName}</span>
-                          <button
-                            onClick={() => togglePinMessage(msg.id)}
-                            className="text-xs text-indigo-400 hover:text-indigo-300"
-                          >
-                            Unpin
-                          </button>
-                        </div>
-                        <p className="text-sm text-[#cbd5e1]">{msg.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                </div>
-              )}
-
-              {activeSidebarItem === 'huddle' && (
-                <div className="max-w-5xl mx-auto py-10 text-center">
-                <div className="w-24 h-24 bg-[#26272e] rounded-[2rem] flex items-center justify-center mb-6 mx-auto">
-                  <Headphones size={40} className="text-[#94a3b8]" />
-                </div>
-                <h4 className="text-xl font-bold text-white mb-2">Standup UPS</h4>
-                <p className="text-[#94a3b8] font-medium mb-6">
-                  Real-time video uses WebRTC with STUN servers and can be launched from the top bar or chat composer video icon.
-                </p>
-                <button
-                  onClick={() => setIsVideoActive(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                >
-                  Start UPS
-                </button>
-                <button
-                  onClick={() => setIsMeetingModalOpen(true)}
-                  className="ml-3 bg-[#26272e] hover:bg-[#303236] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                >
-                  Schedule Video Meeting
-                </button>
-                {notifications.filter((item) => item.kind === 'meeting_invite').length > 0 && (
-                  <div className="mt-6 space-y-2 text-left max-w-3xl mx-auto">
-                    {notifications
-                      .filter((item) => item.kind === 'meeting_invite')
-                      .map((item) => (
-                        <div key={item.id} className="bg-[#16171d] border border-[#26272e] rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-white">{item.payload?.title || 'Meeting invite'}</p>
-                            <p className="text-xs text-[#94a3b8]">{item.payload?.scheduled_for ? new Date(item.payload.scheduled_for).toLocaleString() : 'Schedule pending'}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => item.payload?.meeting_id && respondMeeting(item.payload.meeting_id, 'accepted')}
-                              className="px-2.5 py-1 text-[11px] rounded bg-emerald-600/30 text-emerald-200"
-                            >
-                              Yes
-                            </button>
-                            <button
-                              onClick={() => item.payload?.meeting_id && respondMeeting(item.payload.meeting_id, 'declined')}
-                              className="px-2.5 py-1 text-[11px] rounded bg-red-600/20 text-red-200"
-                            >
-                              No
-                            </button>
-                            <button
-                              onClick={() => item.payload?.meeting_id && respondMeeting(item.payload.meeting_id, 'tentative')}
-                              className="px-2.5 py-1 text-[11px] rounded bg-amber-600/20 text-amber-200"
-                            >
-                              Maybe
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
               </div>
-              )}
             </div>
 
             {/* Input Area */}
@@ -687,10 +507,9 @@ export default function App() {
                     onVideoClick={handleComposerVideoClick}
                     onTerminateVideo={terminateHuddle}
                     isVideoActive={isVideoActive}
+                    conversationName={activeConversation?.name || currentChannel?.name || 'conversation'}
+                    conversationKind={activeConversation?.kind === 'channel' ? 'channel' : 'dm'}
                     onScheduleMeeting={() => setIsMeetingModalOpen(true)}
-                    onOpenIssue={() => goToCoreView('issues', 'assigned-to-me')}
-                    onOpenDocs={() => goToCoreView('chat', 'files')}
-                    onOpenIDE={() => goToCoreView('code-prs', 'pull-requests')}
                   />
                 </div>
               </div>
@@ -1241,7 +1060,7 @@ export default function App() {
 
     const { data, error } = await supabase
       .from('comm_conversation_members')
-      .select('conversation:comm_conversations(id,name,kind,workspace_id)')
+      .select('conversation:comm_conversations(id,name,kind,workspace_id,is_private)')
       .eq('user_id', userId);
 
     if (error) {
@@ -2026,6 +1845,7 @@ export default function App() {
   const isAdminUser = currentMemberRole === 'owner' || currentMemberRole === 'admin';
   const channelConversations = commConversations.filter((conversation) => conversation.kind === 'channel');
   const directConversations = commConversations.filter((conversation) => conversation.kind !== 'channel');
+  const activeConversation = commConversations.find((conversation) => conversation.id === commConversationId) || null;
   const filteredNewChannelMembers = panelMembers
     .filter((member) => member.user_id !== userId)
     .filter((member) => {
@@ -2220,6 +2040,61 @@ export default function App() {
       setCommError(err instanceof Error ? err.message : 'Unable to create channel.');
     } finally {
       setIsCreatingCommChannel(false);
+    }
+  };
+
+  const handleDeleteChannel = async (conversationId: string, channelName: string) => {
+    if (!supabase) {
+      setCommError('Supabase client is not available.');
+      return;
+    }
+    if (!supabaseWorkspaceId) {
+      setCommError('Select a workspace before deleting a channel.');
+      return;
+    }
+
+    const approved = window.confirm(`Delete #${channelName}? This removes channel messages and cannot be undone.`);
+    if (!approved) return;
+
+    setDeletingChannelId(conversationId);
+    setCommError(null);
+
+    try {
+      const { error } = await supabase.rpc('comm_delete_channel', {
+        p_workspace_id: supabaseWorkspaceId,
+        p_conversation_id: conversationId,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const nextConversations = commConversations.filter((conversation) => conversation.id !== conversationId);
+      setCommConversations(nextConversations);
+
+      if (commConversationId === conversationId) {
+        const fallback = nextConversations.find((conversation) => conversation.kind === 'channel') || nextConversations[0] || null;
+        if (fallback) {
+          setCommConversationId(fallback.id);
+          setCurrentChannel({
+            id: fallback.id,
+            workspace_id: fallback.workspace_id || supabaseWorkspaceId || workspaceId,
+            name: fallback.name,
+          });
+          await loadCommMessages(fallback.id);
+        } else {
+          setCommConversationId(null);
+          setCurrentChannel(null);
+          setMessages([]);
+        }
+      }
+
+      await loadCommConversations(supabaseWorkspaceId);
+    } catch (error) {
+      console.error('Error deleting channel:', error);
+      setCommError(error instanceof Error ? error.message : 'Unable to delete channel.');
+    } finally {
+      setDeletingChannelId(null);
     }
   };
 
@@ -2705,9 +2580,6 @@ export default function App() {
               <button onClick={() => goToCoreView('time-tracker', 'active-timer')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Time clock management">
                 <Clock size={16} />
               </button>
-              <button onClick={() => goToCoreView('chat', 'files')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Docs page">
-                <FileText size={16} />
-              </button>
               <button onClick={() => goToCoreView('chat', 'messages')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Chat page">
                 <MessageSquare size={16} />
               </button>
@@ -2749,24 +2621,8 @@ export default function App() {
 
         {/* Page-Level Navigation Row */}
         {activeGlobalNav === 'chat' ? (
-          <div className="border-b border-[#26272e] px-6 py-2.5 bg-[#0d0e12] space-y-2">
+          <div className="border-b border-[#26272e] px-6 py-2 bg-[#0d0e12]">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                {topBarTabs.map((tab: any) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveSidebarItem(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
-                      activeSidebarItem === tab.id
-                        ? 'bg-[#26272e] text-white'
-                        : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]/50'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
               <select
                 value={commConversationId || ''}
                 onChange={(e) => {
@@ -2780,64 +2636,55 @@ export default function App() {
                     name: conversation.name,
                   });
                 }}
-                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs"
+                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs min-w-[220px]"
               >
-                <option value="">Select channel/DM</option>
+                <option value="">Select channel or DM</option>
                 {commConversations.map((conversation) => (
                   <option key={conversation.id} value={conversation.id}>
-                    {conversation.kind === 'channel' ? `# ${conversation.name}` : conversation.name}
+                    {conversation.kind === 'channel' ? `# ${conversation.name}` : `@ ${conversation.name}`}
                   </option>
                 ))}
               </select>
 
-              <button
-                onClick={() => setShowCallLauncher(true)}
-                className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
-                title="Start call"
-              >
-                + Call
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2">
               <input
                 value={userSearchTerm}
                 onChange={(e) => searchUsersByName(e.target.value)}
-                placeholder="Find teammate by name or email"
+                placeholder="Search teammate"
                 className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs w-full max-w-sm"
               />
-              {userSearchTerm.trim() && (
-                <div className="space-y-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
-                  {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
-                  {!isSearchingUsers && userSearchResults.map((result) => (
-                    <div key={result.user_id} className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#16171d] rounded border border-[#303236] max-w-2xl">
-                      <span className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => startPrivateCall({
-                            id: result.user_id,
-                            name: result.display_name || result.email || 'User',
-                            roomId: currentChannel?.id || 'general',
-                            workspaceId: result.default_workspace_id || workspaceId,
-                          })}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                        >
-                          Open DM
-                        </button>
-                        {commConversationId && (
-                          <button
-                            onClick={() => addUserToCurrentConversation(result.user_id, result.default_workspace_id)}
-                            className="bg-[#26272e] hover:bg-[#303236] text-white rounded px-2 py-1 text-[10px] font-semibold"
-                          >
-                            Add to Channel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+
+              <button
+                onClick={() => setShowCallLauncher(true)}
+                className="p-1.5 border border-[#303236] text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg"
+                title="Start call"
+              >
+                <Video size={14} />
+              </button>
             </div>
+
+            {userSearchTerm.trim() && (
+              <div className="mt-2 space-y-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
+                {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
+                {!isSearchingUsers && userSearchResults.map((result) => (
+                  <div key={result.user_id} className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#16171d] rounded border border-[#303236] max-w-2xl">
+                    <span className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => startPrivateCall({
+                          id: result.user_id,
+                          name: result.display_name || result.email || 'User',
+                          roomId: currentChannel?.id || 'general',
+                          workspaceId: result.default_workspace_id || workspaceId,
+                        })}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                      >
+                        Open DM
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-[44px] border-b border-[#26272e] flex items-center px-6 bg-[#0d0e12]">
@@ -3011,9 +2858,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Panel (Details & Threads) */}
+          {/* Right Panel (DM Context) */}
           <AnimatePresence>
-            {isChatOpen && activeGlobalNav === 'chat' && (
+            {isChatOpen && activeGlobalNav === 'chat' && activeConversation?.kind !== 'channel' && (
               <motion.section
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: 360, opacity: 1 }}
@@ -3021,7 +2868,7 @@ export default function App() {
                 className="bg-[#16171d] border-l border-[#26272e] flex flex-col flex-shrink-0 z-10"
               >
                 <div className="h-[64px] border-b border-[#26272e] flex items-center justify-between px-6">
-                  <h3 className="font-bold text-white text-lg tracking-tight">Details</h3>
+                  <h3 className="font-bold text-white text-lg tracking-tight">Direct Message</h3>
                   <button onClick={() => setIsChatOpen(false)} className="text-[#94a3b8] hover:text-white p-1.5 hover:bg-[#26272e] rounded-lg transition-all">
                     <X size={20} />
                   </button>
@@ -3029,8 +2876,8 @@ export default function App() {
 
                 <div className="px-6 py-4 border-b border-[#26272e] bg-[#0d0e12] flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Thread Focus</p>
-                    <p className="text-xs text-[#94a3b8] mt-1">Use this panel for context, not channel-wide composing.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Profile</p>
+                    <p className="text-xs text-[#94a3b8] mt-1">Context for this direct conversation.</p>
                   </div>
                   <select
                     value={myStatus}
@@ -3045,10 +2892,10 @@ export default function App() {
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                   <div>
-                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">About Channel</h4>
+                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">About Person</h4>
                     <div className="bg-[#0d0e12] rounded-xl p-4 border border-[#26272e]">
-                      <p className="text-sm text-white font-bold mb-1">#{currentChannel?.name || 'general'}</p>
-                      <p className="text-xs text-[#94a3b8] leading-relaxed">Thread replies belong to a specific message. The center column remains the main stream.</p>
+                      <p className="text-sm text-white font-bold mb-1">@{activeConversation?.name || currentChannel?.name || 'user'}</p>
+                      <p className="text-xs text-[#94a3b8] leading-relaxed">DM panel is shown only for direct messages. Channels keep focus in the center stream.</p>
                     </div>
                   </div>
 
@@ -3554,28 +3401,23 @@ function ChatInput({
   onVideoClick,
   onTerminateVideo,
   isVideoActive,
+  conversationName,
+  conversationKind,
   onScheduleMeeting,
-  onOpenIssue,
-  onOpenDocs,
-  onOpenIDE,
 }: {
   onSend: (text?: string, fileData?: any) => void;
   onUploadFile: (file: File) => Promise<{ url: string; name: string; type: string }>;
   onVideoClick: () => void;
   onTerminateVideo: () => void;
   isVideoActive: boolean;
+  conversationName: string;
+  conversationKind: 'channel' | 'dm';
   onScheduleMeeting: () => void;
-  onOpenIssue: () => void;
-  onOpenDocs: () => void;
-  onOpenIDE: () => void;
 }) {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [showSlashMenu, setShowSlashMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const commandPresets = ['/issue ', '/meet ', '/doc ', '/task ', '/status available'];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3609,29 +3451,6 @@ function ChatInput({
   return (
     <div className="relative">
       <AnimatePresence>
-        {showSlashMenu && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: 8 }}
-            className="absolute bottom-full right-0 mb-3 w-64 bg-[#16171d] border border-[#26272e] rounded-xl shadow-2xl z-50 p-2"
-          >
-            <p className="text-[10px] uppercase tracking-wide font-bold text-[#64748b] px-2 py-1">Command Bar</p>
-            {commandPresets.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => {
-                  setText(preset);
-                  setShowSlashMenu(false);
-                }}
-                className="w-full text-left px-2 py-1.5 rounded text-xs text-[#cbd5e1] hover:bg-[#26272e]"
-              >
-                {preset}
-              </button>
-            ))}
-          </motion.div>
-        )}
         {showEmoji && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -3656,56 +3475,77 @@ function ChatInput({
           onChange={handleFileUpload} 
           className="hidden" 
         />
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <button type="button" onClick={onOpenIssue} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Create/Open Issue</button>
-          <button type="button" onClick={onOpenDocs} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Docs</button>
-          <button type="button" onClick={onOpenIDE} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">IDE</button>
-          <button type="button" onClick={onScheduleMeeting} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Schedule Meeting</button>
-          {isVideoActive && (
-            <button type="button" onClick={onTerminateVideo} className="px-2 py-1 text-[11px] rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30">Terminate UPS</button>
-          )}
-        </div>
-        <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden focus-within:border-indigo-500 transition-all shadow-2xl">
-          <div className="flex items-center gap-1 px-4 py-2 bg-[#0d0e12]/30 border-b border-[#26272e]">
+        <div className="bg-[#16171d] border border-[#26272e] rounded-xl overflow-hidden focus-within:border-indigo-500 transition-all">
+          <div className="flex items-end gap-1 px-3 py-2">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
               title="Attach file"
             >
-              <Plus size={18} />
+              <Plus size={16} />
             </button>
-            <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Smile size={18} /></button>
-            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><AtSign size={18} /></button>
-            <button type="button" onClick={() => setShowSlashMenu((prev) => !prev)} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" title="Slash commands">
-              <ListTodo size={18} />
+            <button
+              type="button"
+              onClick={() => setShowEmoji(!showEmoji)}
+              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
+              title="Emoji"
+            >
+              <Smile size={16} />
             </button>
-            <button type="button" onClick={onVideoClick} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Video size={18} /></button>
-            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><Mic size={18} /></button>
-            <button type="button" className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"><FileCode size={18} /></button>
-          </div>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === '/' && text.length === 0) {
-                setShowSlashMenu(true);
-              }
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-            placeholder="Message @issue or type / for commands"
-            className="w-full bg-transparent text-[15px] text-white p-4 min-h-[120px] focus:outline-none resize-none placeholder-[#475569]"
-          />
-          <div className="flex items-center justify-end px-4 py-2 bg-[#0d0e12]/30">
+            <button
+              type="button"
+              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
+              title="Mention"
+            >
+              <AtSign size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onVideoClick}
+              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
+              title="Start UPS"
+            >
+              <Video size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onScheduleMeeting}
+              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
+              title="Schedule meeting"
+            >
+              <CalendarDays size={16} />
+            </button>
+            {isVideoActive && (
+              <button
+                type="button"
+                onClick={onTerminateVideo}
+                className="p-1.5 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-lg transition-all"
+                title="Terminate UPS"
+              >
+                <VideoOff size={16} />
+              </button>
+            )}
+
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder={`Message ${conversationKind === 'channel' ? '#' : '@'}${conversationName}`}
+              className="flex-1 bg-transparent text-sm text-white px-2 py-1.5 focus:outline-none placeholder-[#64748b]"
+            />
+
             <button 
               type="submit"
               disabled={!text.trim() || isUploading}
-              className="text-[#94a3b8] hover:text-indigo-400 disabled:opacity-30 p-2 transition-all"
+              className="text-[#94a3b8] hover:text-indigo-400 disabled:opacity-30 p-1.5 transition-all"
             >
-              <Send size={20} />
+              <Send size={16} />
             </button>
           </div>
         </div>
