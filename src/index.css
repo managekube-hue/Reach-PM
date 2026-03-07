@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -6,21 +6,28 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
   --color-brand-bg: #0d0e12;
-  --color-brand-sidebar: #16171d;
-  --color-brand-border: #26272e;
+  --color-brand-sidebar: #0f1117;
+  --color-brand-border: #1e2028;
   --color-brand-accent: #6366f1;
-  --color-brand-text: #e2e8f0;
-  --color-brand-muted: #94a3b8;
+  --color-brand-text: #c5ccdb;
+  --color-brand-muted: #64748b;
 }
 
 @layer base {
   body {
     @apply bg-brand-bg text-brand-text font-sans antialiased;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+  * {
+    box-sizing: border-box;
   }
 }
 
+/* Smooth scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
+  height: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -32,5 +39,19 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-brand-muted/30;
+  background: #2e3240;
+}
+
+/* Hide scrollbar but keep scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Focus rings */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: none;
 }

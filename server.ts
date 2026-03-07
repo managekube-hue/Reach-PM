@@ -87,6 +87,21 @@ async function startServer() {
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
 
+  type PresenceStatus = "online" | "available" | "out_of_office" | "last_seen";
+  type ConnectedUser = {
+    id: string;
+    name: string;
+    roomId: string;
+    workspaceId: string;
+    status: PresenceStatus;
+    lastActiveAt: number;
+  };
+
+  // Room state: Map<roomId, Set<WebSocket>>
+  const rooms = new Map<string, Set<WebSocket>>();
+  // User state per active websocket connection
+  const users = new Map<WebSocket, ConnectedUser>();
+
   const PORT = Number(process.env.PORT ?? 5173);
 
   app.use(express.json());
@@ -185,10 +200,62 @@ async function startServer() {
     res.json(schema);
   });
 
-  // Room state: Map<roomId, Set<WebSocket>>
-  const rooms = new Map<string, Set<WebSocket>>();
-  // User state: Map<WebSocket, { id: string, name: string, roomId: string, workspaceId: string }>
-  const users = new Map<WebSocket, { id: string, name: string, roomId: string, workspaceId: string }>();
+  app.get("/api/workspaces/:id/presence", (req, res) => {
+    const workspaceId = req.params.id;
+    const members = db.prepare("SELECT * FROM workspace_members WHERE workspace_id = ?").all(workspaceId) as any[];
+
+    const onlineByUserId = new Map<string, { name: string; status: PresenceStatus; lastActiveAt: number }>();
+    for (const connected of users.values()) {
+      if (connected.workspaceId !== workspaceId) continue;
+      const existing = onlineByUserId.get(connected.id);
+      if (!existing || connected.lastActiveAt > existing.lastActiveAt) {
+        onlineByUserId.set(connected.id, {
+          name: connected.name,
+          status: connected.status,
+          lastActiveAt: connected.lastActiveAt,
+        });
+      }
+    }
+
+    const now = Date.now();
+    const presence = members.map((member) => {
+      const active = onlineByUserId.get(member.user_id);
+      const stale = active ? now - active.lastActiveAt > 5 * 60 * 1000 : false;
+      const status = !active
+        ? "offline"
+        : active.status === "out_of_office"
+          ? "out_of_office"
+          : stale || active.status === "last_seen"
+            ? "last_seen"
+            : active.status;
+      return {
+        userId: member.user_id,
+        userName: member.user_name,
+        role: member.role,
+        online: Boolean(active) && status !== "last_seen",
+        status,
+        lastActiveAt: active?.lastActiveAt || null,
+      };
+    });
+
+    // Include active users not yet materialized in workspace_members.
+    for (const [id, active] of onlineByUserId.entries()) {
+      if (!presence.find((p) => p.userId === id)) {
+        const stale = now - active.lastActiveAt > 5 * 60 * 1000;
+        const status = stale || active.status === "last_seen" ? "last_seen" : active.status;
+        presence.push({
+          userId: id,
+          userName: active.name,
+          role: "member",
+          online: status !== "last_seen",
+          status,
+          lastActiveAt: active.lastActiveAt,
+        });
+      }
+    }
+
+    res.json({ workspaceId, presence });
+  });
 
   wss.on("connection", (ws) => {
     ws.on("message", (data) => {
@@ -208,7 +275,14 @@ async function startServer() {
               rooms.set(roomId, new Set());
             }
             rooms.get(roomId)!.add(ws);
-            users.set(ws, { id: userId, name: userName, roomId, workspaceId });
+            users.set(ws, {
+              id: userId,
+              name: userName,
+              roomId,
+              workspaceId,
+              status: "online",
+              lastActiveAt: Date.now(),
+            });
 
             // Notify others in the room
             broadcastToRoom(roomId, {
@@ -230,6 +304,13 @@ async function startServer() {
 
           case "signal": {
             const { targetId, signal, senderId } = payload;
+            const sender = users.get(ws);
+            if (sender) {
+              sender.lastActiveAt = Date.now();
+              if (sender.status !== "out_of_office") {
+                sender.status = "available";
+              }
+            }
             const targetWs = Array.from(users.entries())
               .find(([_, u]) => u.id === targetId)?.[0];
 
@@ -245,6 +326,10 @@ async function startServer() {
           case "chat": {
             const user = users.get(ws);
             if (user) {
+              user.lastActiveAt = Date.now();
+              if (user.status !== "out_of_office") {
+                user.status = "available";
+              }
               const msgId = Math.random().toString(36).substr(2, 9);
               const timestamp = Date.now();
               
@@ -262,6 +347,23 @@ async function startServer() {
                   timestamp
                 }
               });
+            }
+            break;
+          }
+
+          case "presence": {
+            const user = users.get(ws);
+            if (user) {
+              const requested = payload?.status;
+              if (
+                requested === "online" ||
+                requested === "available" ||
+                requested === "out_of_office" ||
+                requested === "last_seen"
+              ) {
+                user.status = requested;
+              }
+              user.lastActiveAt = Date.now();
             }
             break;
           }

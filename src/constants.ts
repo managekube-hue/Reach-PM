@@ -111,6 +111,8 @@ export const NAVIGATION_TREE = {
   ],
   chat: [
     { id: 'messages', label: 'Messages' },
+    { id: 'activity', label: 'Activity' },
+    { id: 'directory', label: 'Directory' },
     { id: 'files', label: 'Files' },
     { id: 'pins', label: 'Pins' },
     { id: 'huddle', label: 'Huddle' },
