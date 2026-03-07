@@ -144,6 +144,16 @@ function formatLastSeen(lastActiveAt: number | null) {
   });
 }
 
+function getInitials(value: string) {
+  const clean = (value || '').trim();
+  if (!clean) return '?';
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
+}
+
 export default function App() {
   type CommMember = {
     workspace_id: string;
@@ -198,6 +208,7 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelVisibility, setNewChannelVisibility] = useState<'public' | 'private'>('public');
   const [createChannelStep, setCreateChannelStep] = useState<1 | 2 | 3>(1);
   const [newChannelMemberIds, setNewChannelMemberIds] = useState<string[]>([]);
   const [newChannelMemberSearch, setNewChannelMemberSearch] = useState('');
@@ -522,7 +533,15 @@ export default function App() {
                       <div className="space-y-2">
                         {panelMembers.map((member) => (
                           <div key={member.user_id} className="flex items-center justify-between gap-2 text-xs">
-                            <span className="text-white truncate">{member.user_name}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-7 h-7 rounded-full bg-[#26272e] border border-[#303236] text-white font-bold text-[10px] flex items-center justify-center"
+                                title={`${member.user_name || member.user_id} (${member.user_id})`}
+                              >
+                                {getInitials(member.user_name || member.user_id)}
+                              </div>
+                              <span className="text-white truncate">{member.user_name}</span>
+                            </div>
                             <span className="text-[#94a3b8] uppercase">{member.role}</span>
                           </div>
                         ))}
@@ -743,8 +762,11 @@ export default function App() {
                     return (
                       <div key={member.user_id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
                         <div className="col-span-4 flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 bg-[#26272e] rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                            {(member.user_name || '?')[0]?.toUpperCase()}
+                          <div
+                            className="w-9 h-9 bg-[#26272e] rounded-full flex items-center justify-center text-white font-bold text-xs"
+                            title={`${member.user_name || member.user_id} (${member.user_id})`}
+                          >
+                            {getInitials(member.user_name || member.user_id)}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm text-white font-semibold truncate">
@@ -864,46 +886,57 @@ export default function App() {
                 </div>
 
                 {userSearchTerm.trim() && (
-                  <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                  <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1">
                     {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
-                    {!isSearchingUsers && userSearchResults.map((result) => {
-                      const inWorkspace = panelMembers.some((member) => member.user_id === result.user_id);
-                      const isWorking = memberActionUserId === result.user_id;
+                    {!isSearchingUsers && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {userSearchResults.map((result) => {
+                          const inWorkspace = panelMembers.some((member) => member.user_id === result.user_id);
+                          const isWorking = memberActionUserId === result.user_id;
+                          const displayName = result.display_name || result.email || result.user_id;
 
-                      return (
-                        <div
-                          key={result.user_id}
-                          className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#0d0e12] rounded border border-[#303236]"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</p>
-                            <p className="text-[10px] text-[#64748b] truncate">{result.email || result.user_id}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => startPrivateCall({
-                                id: result.user_id,
-                                name: result.display_name || result.email || 'User',
-                                roomId: currentChannel?.id || 'general',
-                                workspaceId: result.default_workspace_id || workspaceId,
-                              })}
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                            >
-                              Open DM
-                            </button>
-                            {isAdminPortal && (
-                              <button
-                                onClick={() => addUserToWorkspace(result.user_id)}
-                                disabled={inWorkspace || isWorking}
-                                className="bg-[#26272e] hover:bg-[#303236] disabled:opacity-50 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                              >
-                                {inWorkspace ? 'In Workspace' : isWorking ? 'Adding...' : 'Add Member'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                          return (
+                            <div key={result.user_id} className="bg-[#0d0e12] border border-[#303236] rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                              <div className="relative group">
+                                <div
+                                  className="w-12 h-12 rounded-full bg-indigo-600/25 border border-indigo-500/40 text-white text-xs font-bold flex items-center justify-center"
+                                  title={`${displayName} (${result.user_id})`}
+                                >
+                                  {getInitials(displayName)}
+                                </div>
+                                <div className="pointer-events-none absolute top-14 left-1/2 -translate-x-1/2 w-48 bg-[#0a0b0f] border border-[#303236] rounded-lg px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                  <p className="text-[11px] text-white truncate">{displayName}</p>
+                                  <p className="text-[10px] text-[#94a3b8] truncate">{result.user_id}</p>
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-[#cbd5e1] truncate w-full">{displayName}</p>
+                              <div className="flex flex-col gap-1 w-full">
+                                <button
+                                  onClick={() => startPrivateCall({
+                                    id: result.user_id,
+                                    name: displayName,
+                                    roomId: currentChannel?.id || 'general',
+                                    workspaceId: result.default_workspace_id || workspaceId,
+                                  })}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                                >
+                                  Open DM
+                                </button>
+                                {isAdminPortal && (
+                                  <button
+                                    onClick={() => addUserToWorkspace(result.user_id)}
+                                    disabled={inWorkspace || isWorking}
+                                    className="bg-[#26272e] hover:bg-[#303236] disabled:opacity-50 text-white rounded px-2 py-1 text-[10px] font-semibold"
+                                  >
+                                    {inWorkspace ? 'In Workspace' : isWorking ? 'Adding...' : 'Add Member'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -926,8 +959,11 @@ export default function App() {
                     return (
                       <div key={member.user_id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
                         <div className="col-span-4 flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 bg-[#26272e] rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                            {(member.user_name || '?')[0]?.toUpperCase()}
+                          <div
+                            className="w-9 h-9 bg-[#26272e] rounded-full flex items-center justify-center text-white font-bold text-xs"
+                            title={`${member.user_name || member.user_id} (${member.user_id})`}
+                          >
+                            {getInitials(member.user_name || member.user_id)}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm text-white font-semibold truncate">
@@ -2053,6 +2089,7 @@ export default function App() {
 
   const openCreateChannelWizard = () => {
     setNewChannelName('');
+    setNewChannelVisibility('public');
     setNewChannelMemberIds([]);
     setNewChannelMemberSearch('');
     setCreateChannelStep(1);
@@ -2063,6 +2100,7 @@ export default function App() {
   const closeCreateChannelWizard = () => {
     setShowCreateChannel(false);
     setCreateChannelStep(1);
+    setNewChannelVisibility('public');
     setNewChannelMemberSearch('');
   };
 
@@ -2076,14 +2114,27 @@ export default function App() {
 
   const handleCreateChannel = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!supabase || !supabaseWorkspaceId || !newChannelName.trim()) return;
+    if (!supabase) {
+      setCommError('Supabase client is not available. Check environment configuration.');
+      return;
+    }
+    if (!supabaseWorkspaceId) {
+      setCommError('Select a workspace before creating a channel.');
+      return;
+    }
+    if (!newChannelName.trim()) {
+      setCommError('Enter a channel name before submitting.');
+      return;
+    }
 
+    setIsCreatingCommChannel(true);
+    setCommError(null);
     try {
       const { data, error } = await supabase.rpc('comm_create_channel', {
         p_workspace_id: supabaseWorkspaceId,
         p_name: newChannelName.trim(),
         p_topic: '',
-        p_is_private: false,
+        p_is_private: newChannelVisibility === 'private',
         p_slug: null,
       });
 
@@ -2099,8 +2150,25 @@ export default function App() {
       setNewChannelName('');
       setShowCreateChannel(false);
       setCreateChannelStep(1);
+      setNewChannelVisibility('public');
       setCurrentChannel(channel);
       setCommConversationId(channel.id);
+      setActiveSidebarItem('messages');
+
+      // Optimistically place created conversation into sidebar state immediately.
+      setCommConversations((prev) => {
+        const exists = prev.some((conversation) => conversation.id === channel.id);
+        if (exists) return prev;
+        return [
+          {
+            id: channel.id,
+            name: channel.name,
+            kind: channel.kind || 'channel',
+            workspace_id: channel.workspace_id || supabaseWorkspaceId,
+          },
+          ...prev,
+        ];
+      });
 
       const inviteeIds = Array.from(new Set(
         newChannelMemberIds.filter((candidateId) => candidateId && candidateId !== userId)
@@ -2150,6 +2218,8 @@ export default function App() {
     } catch (err) {
       console.error("Error creating channel:", err);
       setCommError(err instanceof Error ? err.message : 'Unable to create channel.');
+    } finally {
+      setIsCreatingCommChannel(false);
     }
   };
 
@@ -3232,7 +3302,7 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-3xl shadow-2xl"
             >
               <div className="mb-5">
                 <h2 className="text-xl font-bold text-white">Create a Channel</h2>
@@ -3248,6 +3318,12 @@ export default function App() {
               </div>
 
               <form onSubmit={handleCreateChannel} className="space-y-4">
+                {commError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 text-xs text-red-300">
+                    {commError}
+                  </div>
+                )}
+
                 {createChannelStep === 1 && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel Name</label>
@@ -3275,27 +3351,35 @@ export default function App() {
                       placeholder="Filter by name, email, or ID"
                       className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <div className="max-h-56 overflow-y-auto custom-scrollbar border border-[#303236] rounded-xl bg-[#1a1d21] p-2 space-y-1">
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar border border-[#303236] rounded-xl bg-[#1a1d21] p-3">
                       {filteredNewChannelMembers.length === 0 && (
                         <p className="text-xs text-[#64748b] px-2 py-2">No members match this filter.</p>
                       )}
-                      {filteredNewChannelMembers.map((member) => {
-                        const checked = newChannelMemberIds.includes(member.user_id);
-                        return (
-                          <label key={member.user_id} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-[#22252b] cursor-pointer">
-                            <div className="min-w-0">
-                              <p className="text-sm text-white truncate">{member.user_name}</p>
-                              <p className="text-[10px] text-[#64748b] truncate">{(member as any).email || member.user_id}</p>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleChannelWizardMember(member.user_id)}
-                              className="w-4 h-4"
-                            />
-                          </label>
-                        );
-                      })}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {filteredNewChannelMembers.map((member) => {
+                          const checked = newChannelMemberIds.includes(member.user_id);
+                          const displayName = member.user_name || member.user_id;
+                          return (
+                            <button
+                              key={member.user_id}
+                              type="button"
+                              onClick={() => toggleChannelWizardMember(member.user_id)}
+                              className={`relative group rounded-xl border p-2 transition-all ${checked ? 'border-indigo-500 bg-indigo-500/10' : 'border-[#303236] bg-[#111218] hover:bg-[#22252b]'}`}
+                              aria-label={`Toggle member ${displayName}`}
+                            >
+                              <div className="mx-auto w-12 h-12 rounded-full border border-indigo-500/40 bg-indigo-600/25 text-white text-xs font-bold flex items-center justify-center">
+                                {getInitials(displayName)}
+                              </div>
+                              <p className="mt-2 text-[11px] text-[#cbd5e1] truncate">{displayName}</p>
+                              <div className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 w-52 bg-[#0a0b0f] border border-[#303236] rounded-lg px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                <p className="text-[11px] text-white truncate">{displayName}</p>
+                                <p className="text-[10px] text-[#94a3b8] truncate">{member.user_id}</p>
+                              </div>
+                              <span className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${checked ? 'bg-indigo-400' : 'bg-[#475569]'}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     <p className="text-[11px] text-[#94a3b8]">{newChannelMemberIds.length} member(s) selected.</p>
                   </div>
@@ -3306,6 +3390,35 @@ export default function App() {
                     <p className="text-xs uppercase tracking-wide text-[#94a3b8]">Review</p>
                     <div className="text-sm text-white">
                       <span className="text-[#94a3b8]">Channel:</span> #{newChannelName.trim() || 'untitled-channel'}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-white">
+                        <span className="text-[#94a3b8]">Visibility:</span> {newChannelVisibility === 'private' ? 'Private' : 'Public'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewChannelVisibility('public')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                            newChannelVisibility === 'public'
+                              ? 'bg-indigo-600/20 border-indigo-500/60 text-white'
+                              : 'bg-[#111218] border-[#303236] text-[#cbd5e1] hover:bg-[#22252b]'
+                          }`}
+                        >
+                          Public
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewChannelVisibility('private')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                            newChannelVisibility === 'private'
+                              ? 'bg-indigo-600/20 border-indigo-500/60 text-white'
+                              : 'bg-[#111218] border-[#303236] text-[#cbd5e1] hover:bg-[#22252b]'
+                          }`}
+                        >
+                          Private
+                        </button>
+                      </div>
                     </div>
                     <div className="text-sm text-white">
                       <span className="text-[#94a3b8]">Members invited:</span> {newChannelMemberIds.length}
