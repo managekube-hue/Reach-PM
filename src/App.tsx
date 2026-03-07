@@ -24,7 +24,6 @@ import {
   FileText,
   Image as ImageIcon,
   UserPlus,
-  Users2,
   Home,
   CheckSquare,
   Clock,
@@ -60,6 +59,7 @@ import { ChatMessage, User, Workspace, Channel, Team } from './types';
 import { NEW_GLOBAL_NAV, NAVIGATION_TREE } from './constants';
 import { supabase } from './lib/supabase';
 import {
+  createWorkspaceUser,
   getCommunicationPresenceSnapshot,
   heartbeatCommunicationPresence,
   openDirectMessage,
@@ -89,7 +89,7 @@ const OLD_GLOBAL_NAV = [
 const SIDEBAR_SECTIONS = [
   { icon: MessageSquare, label: 'Unreads', id: 'unreads' },
   { icon: AtSign, label: 'Threads', id: 'threads' },
-  { icon: Headphones, label: 'Huddles', id: 'huddles' },
+  { icon: Headphones, label: 'UPS', id: 'huddles' },
   { icon: Send, label: 'Drafts & sent', id: 'drafts' },
   { icon: Users, label: 'Directories', id: 'directories' },
 ];
@@ -197,10 +197,10 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
-  const [newTeamName, setNewTeamName] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [createChannelStep, setCreateChannelStep] = useState<1 | 2 | 3>(1);
+  const [newChannelMemberIds, setNewChannelMemberIds] = useState<string[]>([]);
+  const [newChannelMemberSearch, setNewChannelMemberSearch] = useState('');
   const [workspacePresence, setWorkspacePresence] = useState<WorkspacePresence[]>([]);
   const [supabaseWorkspaceId, setSupabaseWorkspaceId] = useState<string | null>(null);
   const [workspaceChoices, setWorkspaceChoices] = useState<Array<{ id: string; name: string; slug: string }>>([]);
@@ -216,6 +216,13 @@ export default function App() {
   const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
   const [memberActionError, setMemberActionError] = useState<string | null>(null);
   const [memberActionUserId, setMemberActionUserId] = useState<string | null>(null);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserDisplayName, setNewUserDisplayName] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'owner' | 'admin' | 'employee'>('employee');
+  const [isCreatingWorkspaceUser, setIsCreatingWorkspaceUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
+  const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
   const [commError, setCommError] = useState<string | null>(null);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   const [myStatus, setMyStatus] = useState<PresenceOptionValue>('available');
@@ -331,7 +338,17 @@ export default function App() {
               {!isWorkspaceSidebarCollapsed && (
                 <>
                   <div className="pt-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b] px-2">Channels</p>
+                    <div className="flex items-center justify-between px-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Channels</p>
+                      <button
+                        onClick={openCreateChannelWizard}
+                        className="inline-flex items-center gap-1 rounded-md border border-[#303236] bg-[#16171d] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#cbd5e1] hover:bg-[#26272e]"
+                        title="Create channel"
+                      >
+                        <Plus size={11} />
+                        New
+                      </button>
+                    </div>
                     <div className="mt-1 space-y-0.5">
                       {channelConversations.map((conversation) => (
                         <button
@@ -413,7 +430,7 @@ export default function App() {
                   messages.map((msg, idx) => {
                     const prevMsg = messages[idx - 1];
                     const isSameUser = prevMsg && prevMsg.userId === msg.userId && (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() < 300000);
-                    
+
                     return (
                       <div key={msg.id} className={`group flex gap-4 ${isSameUser ? '-mt-6' : ''}`}>
                         {!isSameUser ? (
@@ -448,7 +465,7 @@ export default function App() {
                             </div>
                           )}
                           <p className="text-[15px] text-[#cbd5e1] leading-relaxed break-words">{msg.text}</p>
-                          
+
                           {msg.file_url && (
                             <div className="mt-3 p-4 bg-[#1e1f26] border border-[#26272e] rounded-2xl flex items-center gap-4 max-w-md group/file hover:border-indigo-500/50 transition-all cursor-pointer shadow-lg">
                               <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400">
@@ -587,7 +604,7 @@ export default function App() {
                 <div className="w-24 h-24 bg-[#26272e] rounded-[2rem] flex items-center justify-center mb-6 mx-auto">
                   <Headphones size={40} className="text-[#94a3b8]" />
                 </div>
-                <h4 className="text-xl font-bold text-white mb-2">Standup Huddle</h4>
+                <h4 className="text-xl font-bold text-white mb-2">Standup UPS</h4>
                 <p className="text-[#94a3b8] font-medium mb-6">
                   Real-time video uses WebRTC with STUN servers and can be launched from the top bar or chat composer video icon.
                 </p>
@@ -595,7 +612,7 @@ export default function App() {
                   onClick={() => setIsVideoActive(true)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
                 >
-                  Start Huddle
+                  Start UPS
                 </button>
                 <button
                   onClick={() => setIsMeetingModalOpen(true)}
@@ -782,6 +799,56 @@ export default function App() {
                   {memberActionError}
                 </div>
               )}
+
+              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-white">Create User</h3>
+                  <span className="text-[10px] uppercase tracking-wide text-[#64748b]">Admin Action</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    value={newUserDisplayName}
+                    onChange={(e) => setNewUserDisplayName(e.target.value)}
+                    placeholder="Display name"
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
+                  />
+                  <input
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="Email"
+                    type="email"
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
+                  />
+                  <input
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="Temporary password (optional)"
+                    type="password"
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
+                  />
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as 'owner' | 'admin' | 'employee')}
+                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
+                  >
+                    <option value="employee">Employee</option>
+                    <option value="admin">Admin</option>
+                    <option value="owner">Owner</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] text-[#94a3b8]">Creates an auth user in Supabase and adds them to this workspace.</p>
+                  <button
+                    onClick={createUserFromAdminPortal}
+                    disabled={isCreatingWorkspaceUser || !newUserEmail.trim() || !newUserDisplayName.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
+                  >
+                    {isCreatingWorkspaceUser ? 'Creating...' : 'Create User'}
+                  </button>
+                </div>
+                {createUserError && <p className="text-xs text-red-300">{createUserError}</p>}
+                {createUserSuccess && <p className="text-xs text-emerald-300">{createUserSuccess}</p>}
+              </div>
 
               <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1260,6 +1327,49 @@ export default function App() {
       await loadCommPresence(supabaseWorkspaceId);
     } finally {
       setMemberActionUserId(null);
+    }
+  };
+
+  const createUserFromAdminPortal = async () => {
+    if (!supabaseWorkspaceId) {
+      setCreateUserError('Select a workspace before creating a user.');
+      return;
+    }
+
+    const emailInput = newUserEmail.trim().toLowerCase();
+    const displayNameInput = newUserDisplayName.trim();
+    const passwordInput = newUserPassword.trim();
+
+    if (!emailInput || !displayNameInput) {
+      setCreateUserError('Email and display name are required.');
+      return;
+    }
+
+    setCreateUserError(null);
+    setCreateUserSuccess(null);
+    setIsCreatingWorkspaceUser(true);
+
+    try {
+      const created = await createWorkspaceUser({
+        workspaceId: supabaseWorkspaceId,
+        email: emailInput,
+        displayName: displayNameInput,
+        password: passwordInput || undefined,
+        role: newUserRole,
+      });
+
+      setCreateUserSuccess(`Created ${created.displayName} (${created.email}) and added to this workspace.`);
+      setNewUserEmail('');
+      setNewUserDisplayName('');
+      setNewUserPassword('');
+      setNewUserRole('employee');
+
+      await loadCommMembers(supabaseWorkspaceId);
+      await loadCommPresence(supabaseWorkspaceId);
+    } catch (error) {
+      setCreateUserError(error instanceof Error ? error.message : 'Unable to create workspace user.');
+    } finally {
+      setIsCreatingWorkspaceUser(false);
     }
   };
 
@@ -1880,6 +1990,16 @@ export default function App() {
   const isAdminUser = currentMemberRole === 'owner' || currentMemberRole === 'admin';
   const channelConversations = commConversations.filter((conversation) => conversation.kind === 'channel');
   const directConversations = commConversations.filter((conversation) => conversation.kind !== 'channel');
+  const filteredNewChannelMembers = panelMembers
+    .filter((member) => member.user_id !== userId)
+    .filter((member) => {
+      const query = newChannelMemberSearch.trim().toLowerCase();
+      if (!query) return true;
+      const memberName = (member.user_name || '').toLowerCase();
+      const memberEmail = String((member as any).email || '').toLowerCase();
+      const memberId = String(member.user_id || '').toLowerCase();
+      return memberName.includes(query) || memberEmail.includes(query) || memberId.includes(query);
+    });
   const unreadNotifications = notifications.filter((item) => !item.read_at);
 
   const unreadCountByConversation = unreadNotifications.reduce<Record<string, number>>((acc, item) => {
@@ -1931,8 +2051,31 @@ export default function App() {
       });
   };
 
-  const handleCreateChannel = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const openCreateChannelWizard = () => {
+    setNewChannelName('');
+    setNewChannelMemberIds([]);
+    setNewChannelMemberSearch('');
+    setCreateChannelStep(1);
+    setShowCreateChannel(true);
+    setCommError(null);
+  };
+
+  const closeCreateChannelWizard = () => {
+    setShowCreateChannel(false);
+    setCreateChannelStep(1);
+    setNewChannelMemberSearch('');
+  };
+
+  const toggleChannelWizardMember = (targetUserId: string) => {
+    setNewChannelMemberIds((prev) => (
+      prev.includes(targetUserId)
+        ? prev.filter((id) => id !== targetUserId)
+        : [...prev, targetUserId]
+    ));
+  };
+
+  const handleCreateChannel = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!supabase || !supabaseWorkspaceId || !newChannelName.trim()) return;
 
     try {
@@ -1955,22 +2098,59 @@ export default function App() {
 
       setNewChannelName('');
       setShowCreateChannel(false);
-      setSelectedTeamId(null);
+      setCreateChannelStep(1);
       setCurrentChannel(channel);
       setCommConversationId(channel.id);
+
+      const inviteeIds = Array.from(new Set(
+        newChannelMemberIds.filter((candidateId) => candidateId && candidateId !== userId)
+      ));
+
+      if (inviteeIds.length > 0) {
+        const { error: addMembersError } = await supabase
+          .from('comm_conversation_members')
+          .upsert(
+            inviteeIds.map((inviteeId) => ({
+              conversation_id: channel.id,
+              user_id: inviteeId,
+              workspace_id: supabaseWorkspaceId,
+              role: 'member',
+            })),
+            { onConflict: 'conversation_id,user_id' }
+          );
+
+        if (addMembersError) {
+          throw addMembersError;
+        }
+
+        await Promise.all(
+          inviteeIds.map(async (inviteeId) => {
+            try {
+              await supabase.rpc('comm_notify_user', {
+                p_workspace_id: supabaseWorkspaceId,
+                p_user_id: inviteeId,
+                p_kind: 'added_to_channel',
+                p_payload: {
+                  conversation_id: channel.id,
+                  conversation_name: channel.name,
+                  added_by: userId,
+                },
+              });
+            } catch (notifyError) {
+              console.warn('Unable to send channel invite notification:', notifyError);
+            }
+          })
+        );
+      }
+
+      setNewChannelMemberIds([]);
+      setNewChannelMemberSearch('');
       await loadCommConversations(supabaseWorkspaceId);
       await loadCommMessages(channel.id);
     } catch (err) {
       console.error("Error creating channel:", err);
       setCommError(err instanceof Error ? err.message : 'Unable to create channel.');
     }
-  };
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowCreateTeam(false);
-    setNewTeamName('');
-    setCommError('Team creation is not wired to Supabase yet. Channel, DM, and member workflows are active.');
   };
 
   const toggleVideo = () => {
@@ -2483,9 +2663,9 @@ export default function App() {
                 <button
                   onClick={terminateHuddle}
                   className="px-3 py-2 bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
-                  title="Terminate huddle and release camera/microphone"
+                  title="Terminate UPS and release camera/microphone"
                 >
-                  End Huddle
+                  End UPS
                 </button>
               )}
             </div>
@@ -2540,26 +2720,6 @@ export default function App() {
                 ))}
               </select>
 
-              <input
-                value={newCommChannelName}
-                onChange={(e) => setNewCommChannelName(e.target.value)}
-                placeholder="New channel name"
-                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs"
-              />
-              <button
-                onClick={createCommChannel}
-                disabled={!newCommChannelName.trim() || isCreatingCommChannel}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
-              >
-                {isCreatingCommChannel ? 'Creating...' : 'Create Channel'}
-              </button>
-
-              <button
-                onClick={() => setShowCreateTeam(true)}
-                className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
-              >
-                Create Team
-              </button>
               <button
                 onClick={() => setShowCallLauncher(true)}
                 className="bg-[#26272e] hover:bg-[#303236] text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
@@ -2711,7 +2871,7 @@ export default function App() {
                         : 'border-[#303236] bg-[#16171d] text-[#94a3b8]'
                     }`}
                   >
-                    {isHuddleUploading ? 'Uploading shared asset...' : 'Drag and drop documents or visuals into this huddle'}
+                    {isHuddleUploading ? 'Uploading shared asset...' : 'Drag and drop documents or visuals into this UPS'}
                   </div>
 
                   <div className="flex gap-4 h-full overflow-x-auto custom-scrollbar pb-2">
@@ -3072,52 +3232,125 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-sm shadow-2xl"
+              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
             >
-              <h2 className="text-xl font-bold text-white mb-4">Create a Channel</h2>
-              <form onSubmit={handleCreateChannel} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel Name</label>
-                  <div className="relative">
-                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
-                    <input 
-                      type="text"
-                      value={newChannelName}
-                      onChange={(e) => setNewChannelName(e.target.value)}
-                      placeholder="e.g. project-x"
-                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      autoFocus
+              <div className="mb-5">
+                <h2 className="text-xl font-bold text-white">Create a Channel</h2>
+                <p className="text-xs text-[#94a3b8] mt-1">Step {createChannelStep} of 3</p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((step) => (
+                    <div
+                      key={step}
+                      className={`h-1.5 rounded-full ${createChannelStep >= step ? 'bg-indigo-500' : 'bg-[#303236]'}`}
                     />
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateChannel} className="space-y-4">
+                {createChannelStep === 1 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel Name</label>
+                    <div className="relative">
+                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+                      <input
+                        type="text"
+                        value={newChannelName}
+                        onChange={(e) => setNewChannelName(e.target.value)}
+                        placeholder="e.g. platform-ops"
+                        className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        autoFocus
+                      />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Assign to Team (Optional)</label>
-                  <select 
-                    value={selectedTeamId || ''} 
-                    onChange={(e) => setSelectedTeamId(e.target.value || null)}
-                    className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  >
-                    <option value="">No Team</option>
-                    {workspace?.teams.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
+                )}
+
+                {createChannelStep === 2 && (
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Members</label>
+                    <input
+                      type="text"
+                      value={newChannelMemberSearch}
+                      onChange={(e) => setNewChannelMemberSearch(e.target.value)}
+                      placeholder="Filter by name, email, or ID"
+                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <div className="max-h-56 overflow-y-auto custom-scrollbar border border-[#303236] rounded-xl bg-[#1a1d21] p-2 space-y-1">
+                      {filteredNewChannelMembers.length === 0 && (
+                        <p className="text-xs text-[#64748b] px-2 py-2">No members match this filter.</p>
+                      )}
+                      {filteredNewChannelMembers.map((member) => {
+                        const checked = newChannelMemberIds.includes(member.user_id);
+                        return (
+                          <label key={member.user_id} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-[#22252b] cursor-pointer">
+                            <div className="min-w-0">
+                              <p className="text-sm text-white truncate">{member.user_name}</p>
+                              <p className="text-[10px] text-[#64748b] truncate">{(member as any).email || member.user_id}</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleChannelWizardMember(member.user_id)}
+                              className="w-4 h-4"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-[#94a3b8]">{newChannelMemberIds.length} member(s) selected.</p>
+                  </div>
+                )}
+
+                {createChannelStep === 3 && (
+                  <div className="space-y-3 rounded-xl border border-[#303236] bg-[#1a1d21] p-4">
+                    <p className="text-xs uppercase tracking-wide text-[#94a3b8]">Review</p>
+                    <div className="text-sm text-white">
+                      <span className="text-[#94a3b8]">Channel:</span> #{newChannelName.trim() || 'untitled-channel'}
+                    </div>
+                    <div className="text-sm text-white">
+                      <span className="text-[#94a3b8]">Members invited:</span> {newChannelMemberIds.length}
+                    </div>
+                    <p className="text-[11px] text-[#94a3b8]">Submit will create the channel and add selected members beneath Channels.</p>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   <button 
                     type="button"
-                    onClick={() => setShowCreateChannel(false)}
+                    onClick={closeCreateChannelWizard}
                     className="flex-1 bg-[#303236] hover:bg-[#404246] text-white font-semibold py-2 rounded-xl transition-all"
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit"
-                    disabled={!newChannelName.trim()}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
-                  >
-                    Create
-                  </button>
+
+                  {createChannelStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCreateChannelStep((prev) => (prev === 1 ? 1 : (prev - 1) as 1 | 2 | 3))}
+                      className="flex-1 bg-[#26272e] hover:bg-[#303236] text-white font-semibold py-2 rounded-xl transition-all"
+                    >
+                      Back
+                    </button>
+                  )}
+
+                  {createChannelStep < 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => setCreateChannelStep((prev) => (prev + 1) as 1 | 2 | 3)}
+                      disabled={createChannelStep === 1 && !newChannelName.trim()}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={!newChannelName.trim() || isCreatingCommChannel}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
+                    >
+                      {isCreatingCommChannel ? 'Creating...' : 'Submit'}
+                    </button>
+                  )}
                 </div>
               </form>
             </motion.div>
@@ -3125,53 +3358,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Create Team Modal */}
-      <AnimatePresence>
-        {showCreateTeam && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-sm shadow-2xl"
-            >
-              <h2 className="text-xl font-bold text-white mb-4">Create a Team</h2>
-              <form onSubmit={handleCreateTeam} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Team Name</label>
-                  <div className="relative">
-                    <Users2 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
-                    <input 
-                      type="text"
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      placeholder="e.g. Engineering"
-                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button 
-                    type="button"
-                    onClick={() => setShowCreateTeam(false)}
-                    className="flex-1 bg-[#303236] hover:bg-[#404246] text-white font-semibold py-2 rounded-xl transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={!newTeamName.trim()}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
-                  >
-                    Create
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -3363,7 +3549,7 @@ function ChatInput({
           <button type="button" onClick={onOpenIDE} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">IDE</button>
           <button type="button" onClick={onScheduleMeeting} className="px-2 py-1 text-[11px] rounded-lg bg-[#16171d] border border-[#26272e] text-[#cbd5e1] hover:text-white">Schedule Meeting</button>
           {isVideoActive && (
-            <button type="button" onClick={onTerminateVideo} className="px-2 py-1 text-[11px] rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30">Terminate Huddle</button>
+            <button type="button" onClick={onTerminateVideo} className="px-2 py-1 text-[11px] rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30">Terminate UPS</button>
           )}
         </div>
         <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden focus-within:border-indigo-500 transition-all shadow-2xl">

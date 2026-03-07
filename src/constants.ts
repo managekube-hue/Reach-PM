@@ -115,6 +115,6 @@ export const NAVIGATION_TREE = {
     { id: 'directory', label: 'Directory' },
     { id: 'files', label: 'Files' },
     { id: 'pins', label: 'Pins' },
-    { id: 'huddle', label: 'Huddle' },
+    { id: 'huddle', label: 'UPS' },
   ]
 };

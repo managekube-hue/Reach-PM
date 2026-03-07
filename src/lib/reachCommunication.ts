@@ -136,6 +136,26 @@ export async function routeCommunicationCommand(params: {
   return data as Record<string, unknown>;
 }
 
+export async function createWorkspaceUser(params: {
+  workspaceId: string;
+  email: string;
+  displayName: string;
+  password?: string;
+  role?: 'owner' | 'admin' | 'employee';
+}) {
+  const client = requireSupabase();
+  const { data, error } = await client.functions.invoke('comm-admin-create-user', { body: params });
+  if (error) throw error;
+  return data as {
+    userId: string;
+    email: string;
+    displayName: string;
+    workspaceId: string;
+    role: 'owner' | 'admin' | 'employee';
+    invited: boolean;
+  };
+}
+
 export function resolveChatKeyBinding(event: KeyboardEvent): CommandBindingAction | null {
   const key = `${event.ctrlKey ? 'Control+' : ''}${event.key}`;
   return CHAT_KEY_BINDINGS[key] ?? null;
