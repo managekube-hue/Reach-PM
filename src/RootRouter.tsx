@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
+import LandingPage from './pages/LandingPage';
 import MainApp from './App';
 import { supabase } from './lib/supabase';
 
@@ -33,7 +34,7 @@ export default function RootRouter() {
       <Routes>
         <Route 
           path="/" 
-          element={session ? <Navigate to="/app" /> : <Navigate to="/auth" />} 
+          element={<LandingPage />} 
         />
         <Route 
           path="/auth" 

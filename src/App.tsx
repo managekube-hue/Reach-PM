@@ -1659,12 +1659,31 @@ const initStore = useReachStore(state => state.initStore);
 
 useEffect(() => {
   if (session) {
-    // Get the tenant_id and role from JWT claims
-    const tenantId = session.user.app_metadata?.tenant_id || session.user.user_metadata?.tenant_id;
-    const role = session.user.app_metadata?.user_role || session.user.user_metadata?.user_role || 'member';
-    if (tenantId) {
-      initStore(tenantId, session.user.id, role);
-    }
+    const fetchTenant = async () => {
+      try {
+        const tokenTenant = session.user.app_metadata?.tenant_id || session.user.user_metadata?.tenant_id;
+        const tokenRole = session.user.app_metadata?.user_role || session.user.user_metadata?.user_role || 'member';
+
+        if (tokenTenant) {
+          await initStore(tokenTenant, session.user.id, tokenRole);
+        } else {
+          // Fallback if custom JWT hook hasn't fired yet
+          const { data, error } = await supabase.from('profiles').select('tenant_id, role').eq('id', session.user.id).single();
+          if (data && data.tenant_id) {
+            await initStore(data.tenant_id, session.user.id, data.role);
+          } else {
+            console.error("No tenant profile found!", error);
+            // Break the infinite loop if database is out of sync with Auth
+            await supabase.auth.signOut();
+            window.location.href = '/auth';
+          }
+        }
+      } catch (err) {
+        console.error("Error hydrating tenant", err);
+      }
+    };
+      
+    fetchTenant();
   }
 }, [session, initStore]);
 
