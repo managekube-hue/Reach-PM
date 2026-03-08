@@ -56,7 +56,7 @@ export default function AuthPage() {
 
         if (profileError) throw profileError;
 
-        navigate('/app');
+        navigate('/onboarding');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication');
@@ -104,9 +104,27 @@ export default function AuthPage() {
           </div>
 
           <button type="submit" disabled={loading} style={{ marginTop: 8, background: '#47BFFF', color: '#07070A', border: 'none', padding: '12px', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Workspace & Account')}
+            {loading ? 'Processing...' : (isLogin ? 'Sign In via Email' : 'Create Account')}
           </button>
         </form>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "#1E1E28" }} />
+          <span style={{ fontSize: 12, color: "#8080A0" }}>OR</span>
+          <div style={{ flex: 1, height: 1, background: "#1E1E28" }} />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button style={{ background: "#141418", border: "1px solid #2A2A38", color: "#E8E8E2", padding: "12px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14 }}>
+            <span>GitHub</span>
+          </button>
+          <button style={{ background: "#141418", border: "1px solid #2A2A38", color: "#E8E8E2", padding: "12px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14 }}>
+            <span>Google</span>
+          </button>
+          <button style={{ background: "#141418", border: "1px solid #2A2A38", color: "#E8E8E2", padding: "12px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14 }}>
+            <span>Apple</span>
+          </button>
+        </div>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: '#8080A0' }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}

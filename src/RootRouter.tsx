@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
+import OnboardingPage from './pages/OnboardingPage';
 import MainApp from './App';
 import { supabase } from './lib/supabase';
 
@@ -37,6 +38,10 @@ export default function RootRouter() {
         <Route 
           path="/auth" 
           element={!session ? <AuthPage /> : <Navigate to="/app" />} 
+        />
+        <Route 
+          path="/onboarding" 
+          element={session ? <OnboardingPage session={session} /> : <Navigate to="/auth" />} 
         />
         <Route 
           path="/app/*" 
