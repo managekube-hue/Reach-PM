@@ -1,6 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import RootRouter from './RootRouter';
 import './index.css';
 
 function showRuntimeError(message: string) {
@@ -30,6 +30,6 @@ window.addEventListener('unhandledrejection', (event) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <RootRouter />
   </StrictMode>,
 );

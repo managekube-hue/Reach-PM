@@ -1,3552 +1,1903 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Video, 
-  VideoOff, 
-  Mic, 
-  MicOff, 
-  MessageSquare, 
-  Users, 
-  Hash, 
-  Send, 
-  LogOut,
-  Monitor,
-  Settings,
-  Plus,
-  ChevronRight,
-  Menu,
-  X,
-  Building2,
-  Info,
-  AlertCircle,
-  Smile,
-  Paperclip,
-  FileText,
-  Image as ImageIcon,
-  UserPlus,
-  Home,
-  CheckSquare,
-  Clock,
-  Code2,
-  BarChart3,
-  Layers,
-  FileDown,
-  Trash2,
-  Star,
-  Search,
-  Layout,
-  Bell,
-  HelpCircle,
-  Maximize2,
-  AtSign,
-  Bookmark,
-  Zap,
-  MoreHorizontal,
-  ShieldCheck,
-  Headphones,
-  Pin,
-  ExternalLink,
-  Circle,
-  ChevronDown,
-  CalendarDays,
-  UserCheck
-} from 'lucide-react';
-import EmojiPicker, { Theme } from 'emoji-picker-react';
-import { useWebRTC } from './hooks/useWebRTC';
-import { ChatMessage, User, Workspace, Channel, Team } from './types';
-import { NEW_GLOBAL_NAV, NAVIGATION_TREE } from './constants';
-import { supabase } from './lib/supabase';
-import {
-  createWorkspaceUser,
-  getCommunicationPresenceSnapshot,
-  heartbeatCommunicationPresence,
-  openDirectMessage,
-  respondToCommunicationMeeting,
-  routeCommunicationCommand,
-  scheduleCommunicationMeeting,
-  sendCommunicationMessage,
-  setCommunicationPresence,
-} from './lib/reachCommunication';
-// Issue views moved to IssuePage
-import { IDEView } from './components/views/IDEView';
-import { DocsView } from './components/views/DocsView';
-import { DashboardView } from './components/views/DashboardView';
-import { IssuePage } from './pages/IssuePage';
-
-const OLD_GLOBAL_NAV = [
-  { icon: Home, label: 'Home', id: 'home' },
-  { icon: MessageSquare, label: 'DMs', id: 'dms' },
-  { icon: Bell, label: 'Activity', id: 'activity', badge: 2 },
-  { icon: Bookmark, label: 'Later', id: 'later' },
-  { icon: Zap, label: 'Tools', id: 'tools' },
-  { icon: MoreHorizontal, label: 'More', id: 'more' },
-  { icon: ShieldCheck, label: 'Admin', id: 'admin' },
-];
-
-const SIDEBAR_SECTIONS = [
-  { icon: MessageSquare, label: 'Unreads', id: 'unreads' },
-  { icon: AtSign, label: 'Threads', id: 'threads' },
-  { icon: Headphones, label: 'UPS', id: 'huddles' },
-  { icon: Send, label: 'Drafts & sent', id: 'drafts' },
-  { icon: Users, label: 'Directories', id: 'directories' },
-];
-
-const FAVORITES = [
-  { id: '1', name: 'Board 4' },
-  { id: '2', name: 'Board 3' },
-  { id: '3', name: 'Scrum board' },
-  { id: '4', name: 'Board 6' },
-  { id: '5', name: 'Kanban Board 3' },
-];
-
-const WORKSPACE_STORAGE_KEY = 'reach:workspace-id';
-
-function getInitialWorkspaceId() {
-  const fromStorage = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-  if (fromStorage && fromStorage.trim()) return fromStorage.trim();
-  return 'default-workspace';
-}
-
-type PresenceOptionValue = 'online' | 'available' | 'out_of_office' | 'last_seen';
-
-const PRESENCE_OPTIONS: Array<{ value: PresenceOptionValue; label: string; hint: string }> = [
-  { value: 'online', label: 'Online', hint: 'Active in workspace' },
-  { value: 'available', label: 'Available', hint: 'Ready for meetings' },
-  { value: 'out_of_office', label: 'Out of office', hint: 'Do not disturb' },
-  { value: 'last_seen', label: 'Last seen', hint: 'Shown as unavailable' },
-];
-
-function getStatusLabel(status: string) {
-  if (status === 'out_of_office') return 'Out of office';
-  if (status === 'last_seen') return 'Last seen';
-  if (status === 'available') return 'Available';
-  if (status === 'online') return 'Online';
-  return 'Offline';
-}
-
-function getStatusDotClass(status: string) {
-  if (status === 'available') return 'bg-emerald-400';
-  if (status === 'online') return 'bg-sky-400';
-  if (status === 'out_of_office') return 'bg-orange-400';
-  return 'bg-[#64748b]';
-}
-
-function formatLastSeen(lastActiveAt: number | null) {
-  if (!lastActiveAt) return 'No activity yet';
-  return new Date(lastActiveAt).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getInitials(value: string) {
-  const clean = (value || '').trim();
-  if (!clean) return '?';
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
-  }
-  return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
-}
-
-export default function App() {
-  type CommMember = {
-    workspace_id: string;
-    user_id: string;
-    user_name: string;
-    email?: string | null;
-    role: string;
-    home_workspace_id?: string | null;
-  };
-
-  type WorkspacePresence = {
-    userId: string;
-    userName: string;
-    role: string;
-    online: boolean;
-    status: PresenceOptionValue | 'offline';
-    lastActiveAt: number | null;
-  };
-
-  type ReachNotification = {
-    id: string;
-    user_id: string;
-    workspace_id: string;
-    kind: string;
-    payload: Record<string, any>;
-    read_at: string | null;
-    created_at: string;
-  };
-
-  type IssueActivityItem = {
-    id: string;
-    issue_key: string;
-    action: string;
-    summary: string;
-    actor_user_id: string | null;
-    created_at: string;
-  };
-
-  const [userName, setUserName] = useState('');
-  const [workspaceId, setWorkspaceId] = useState(getInitialWorkspaceId);
-  const [userId, setUserId] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(true);
-  const [showCreateChannel, setShowCreateChannel] = useState(false);
-  const [newChannelName, setNewChannelName] = useState('');
-  const [newChannelVisibility, setNewChannelVisibility] = useState<'public' | 'private'>('public');
-  const [createChannelStep, setCreateChannelStep] = useState<1 | 2 | 3>(1);
-  const [newChannelMemberIds, setNewChannelMemberIds] = useState<string[]>([]);
-  const [newChannelMemberSearch, setNewChannelMemberSearch] = useState('');
-  const [workspacePresence, setWorkspacePresence] = useState<WorkspacePresence[]>([]);
-  const [supabaseWorkspaceId, setSupabaseWorkspaceId] = useState<string | null>(null);
-  const [workspaceChoices, setWorkspaceChoices] = useState<Array<{ id: string; name: string; slug: string }>>([]);
-  const [commConversationId, setCommConversationId] = useState<string | null>(null);
-  const [commConversations, setCommConversations] = useState<Array<{ id: string; name: string; kind: string; workspace_id: string | null; is_private?: boolean | null }>>([]);
-  const [commMembers, setCommMembers] = useState<CommMember[]>([]);
-  const [selectedDmUserId, setSelectedDmUserId] = useState('');
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [userSearchResults, setUserSearchResults] = useState<Array<{ user_id: string; display_name: string; email: string | null; default_workspace_id: string | null }>>([]);
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
-  const [newCommChannelName, setNewCommChannelName] = useState('');
-  const [isCreatingCommChannel, setIsCreatingCommChannel] = useState(false);
-  const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
-  const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
-  const [memberActionError, setMemberActionError] = useState<string | null>(null);
-  const [memberActionUserId, setMemberActionUserId] = useState<string | null>(null);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'owner' | 'admin' | 'employee'>('employee');
-  const [isCreatingWorkspaceUser, setIsCreatingWorkspaceUser] = useState(false);
-  const [createUserError, setCreateUserError] = useState<string | null>(null);
-  const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
-  const [commError, setCommError] = useState<string | null>(null);
-  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
-  const [myStatus, setMyStatus] = useState<PresenceOptionValue>('available');
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
-  const statusMenuRef = useRef<HTMLDivElement>(null);
-  const [isWorkspaceSidebarCollapsed, setIsWorkspaceSidebarCollapsed] = useState(false);
-  const [unreadByConversation, setUnreadByConversation] = useState<Record<string, number>>({});
-  const [notifications, setNotifications] = useState<ReachNotification[]>([]);
-  const [activityItems, setActivityItems] = useState<IssueActivityItem[]>([]);
-  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
-  const [meetingTitle, setMeetingTitle] = useState('');
-  const [meetingWhen, setMeetingWhen] = useState('');
-  const [meetingParticipantIds, setMeetingParticipantIds] = useState<string[]>([]);
-  const [meetingError, setMeetingError] = useState<string | null>(null);
-  
-  const [activeTab, setActiveTab] = useState<string>('messages');
-  const [activeGlobalNav, setActiveGlobalNav] = useState('issues');
-  const [activeSidebarItem, setActiveSidebarItem] = useState('assigned-to-me');
-  const [activeSubTab, setActiveSubTab] = useState<string | null>(null);
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['issues']));
-
-  const [showCallLauncher, setShowCallLauncher] = useState(false);
-  const [callMode, setCallMode] = useState<'member' | 'channel' | 'group' | 'team'>('member');
-  const [selectedCallMemberIds, setSelectedCallMemberIds] = useState<string[]>([]);
-  const [selectedTeamCallId, setSelectedTeamCallId] = useState<string>('');
-  const [isVideoSettingsOpen, setIsVideoSettingsOpen] = useState(false);
-  const [isBackgroundBlurEnabled, setIsBackgroundBlurEnabled] = useState(false);
-  const [customVideoBackgroundUrl, setCustomVideoBackgroundUrl] = useState<string | null>(null);
-  const [isHuddleDragging, setIsHuddleDragging] = useState(false);
-  const [isHuddleUploading, setIsHuddleUploading] = useState(false);
-  const [screenShareStream, setScreenShareStream] = useState<MediaStream | null>(null);
-
-  const toggleExpand = (id: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedItems(newExpanded);
-  };
-
-  interface TreeItemProps {
-    item: any;
-    level?: number;
-    key?: any;
-  }
-
-  const findNode = (nodes: any[], id: string): any => {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      if (node.children) {
-        const found = findNode(node.children, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  const activeNode = (NAVIGATION_TREE as any)[activeGlobalNav] || [];
-  const topBarTabs = activeNode;
-
-  const renderContent = () => {
-    // Determine which view to show based on activeSidebarItem
-    const currentViewId = activeSidebarItem;
-
-    // Chat / Communication Views
-    if (activeGlobalNav === 'chat') {
-      return (
-        <div className="flex-1 flex overflow-hidden">
-          <aside className={`${isWorkspaceSidebarCollapsed ? 'w-14' : 'w-[280px]'} border-r border-[#26272e] bg-[#111217] transition-all duration-200 flex-shrink-0`}>
-            <div className="h-11 px-3 border-b border-[#26272e] flex items-center justify-between">
-              {!isWorkspaceSidebarCollapsed && <p className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8]">Workspace</p>}
-              <button
-                onClick={() => setIsWorkspaceSidebarCollapsed((prev) => !prev)}
-                className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg"
-                title={isWorkspaceSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                <Menu size={16} />
-              </button>
-            </div>
-
-            <div className="p-2 space-y-2 overflow-y-auto h-[calc(100%-44px)] custom-scrollbar">
-              {!isWorkspaceSidebarCollapsed && (
-                <>
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between px-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Channels</p>
-                      <button
-                        onClick={openCreateChannelWizard}
-                        className="inline-flex items-center gap-1 rounded-md border border-[#303236] bg-[#16171d] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#cbd5e1] hover:bg-[#26272e]"
-                        title="Create channel"
-                      >
-                        <Plus size={11} />
-                        New
-                      </button>
-                    </div>
-                    <div className="mt-1 space-y-0.5">
-                      {channelConversations.map((conversation) => (
-                        <div
-                          key={conversation.id}
-                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all ${
-                            commConversationId === conversation.id ? 'bg-[#26272e] text-white' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24]'
-                          }`}
-                        >
-                          <button
-                            onClick={() => {
-                              setActiveSidebarItem('messages');
-                              setCommConversationId(conversation.id);
-                              setCurrentChannel({
-                                id: conversation.id,
-                                workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-                                name: conversation.name,
-                              });
-                            }}
-                            className="flex-1 text-left truncate"
-                            title={`Open #${conversation.name}`}
-                          >
-                            # {conversation.name}
-                          </button>
-                          <div className="flex items-center gap-1 ml-2">
-                            {(unreadCountByConversation[conversation.id] || 0) > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
-                            )}
-                            {isAdminUser && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteChannel(conversation.id, conversation.name)}
-                                disabled={deletingChannelId === conversation.id}
-                                className="p-1 rounded text-[#94a3b8] hover:text-red-300 hover:bg-red-500/10 disabled:opacity-50"
-                                title={deletingChannelId === conversation.id ? 'Deleting channel...' : 'Delete channel'}
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b] px-2">Direct Messages</p>
-                    <div className="mt-1 space-y-0.5">
-                      {directConversations.map((conversation) => (
-                        <button
-                          key={conversation.id}
-                          onClick={() => {
-                            setActiveSidebarItem('messages');
-                            setCommConversationId(conversation.id);
-                            setCurrentChannel({
-                              id: conversation.id,
-                              workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-                              name: conversation.name,
-                            });
-                          }}
-                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all ${
-                            commConversationId === conversation.id ? 'bg-[#26272e] text-white' : 'text-[#94a3b8] hover:text-white hover:bg-[#1c1d24]'
-                          }`}
-                        >
-                          <span className="truncate">@ {conversation.name}</span>
-                          {(unreadCountByConversation[conversation.id] || 0) > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white">{unreadCountByConversation[conversation.id]}</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </aside>
-
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
-              <div className="max-w-5xl mx-auto h-full flex flex-col">
-                <div className="flex items-center justify-between gap-3 px-1 pb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-white">
-                      {activeConversation?.kind === 'channel' ? '#' : '@'} {activeConversation?.name || currentChannel?.name || 'Select a conversation'}
-                    </p>
-                    <p className="text-[11px] text-[#94a3b8] mt-0.5">
-                      {activeConversation?.kind === 'channel'
-                        ? (activeConversation?.is_private ? 'Private channel' : 'Public channel')
-                        : 'Direct message'}
-                    </p>
-                  </div>
-                  {activeConversation?.kind === 'channel' && activeConversation?.is_private && (
-                    <span className="text-[10px] uppercase tracking-wide border border-amber-500/30 text-amber-200 rounded px-2 py-1">
-                      Private
-                    </span>
-                  )}
-                </div>
-
-                {commError && (
-                  <div className="mb-3 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-red-300">
-                    {commError}
-                  </div>
-                )}
-
-                <div className="flex-1 min-h-0 space-y-2 pr-1 overflow-y-auto custom-scrollbar">
-                  {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
-                      <MessageSquare size={28} className="text-[#64748b] mb-3" />
-                      <h4 className="text-base font-semibold text-white">No messages yet</h4>
-                      <p className="text-sm text-[#94a3b8] mt-1">Start the conversation.</p>
-                    </div>
-                  ) : (
-                    messages.map((msg, idx) => {
-                      const prevMsg = messages[idx - 1];
-                      const isSameUser = prevMsg && prevMsg.userId === msg.userId && (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() < 300000);
-
-                      return (
-                        <div key={msg.id} className={`group flex gap-3 px-2 py-1 rounded-md hover:bg-[#14151b] ${isSameUser ? '' : 'mt-1'}`}>
-                          <div className="w-8 flex-shrink-0">
-                            {!isSameUser && (
-                              <div className="w-8 h-8 bg-[#26272e] rounded-md flex items-center justify-center text-white text-xs font-bold">
-                                {msg.userName[0]?.toUpperCase() || '?'}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            {!isSameUser && (
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="font-semibold text-white text-sm">{msg.userName}</span>
-                                <span className="text-[10px] text-[#64748b]">
-                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                <button
-                                  onClick={() => togglePinMessage(msg.id)}
-                                  className={`p-1 rounded transition-all ${
-                                    pinnedMessageIds.includes(msg.id)
-                                      ? 'text-indigo-300 bg-indigo-500/10'
-                                      : 'text-[#475569] hover:text-white hover:bg-[#26272e]'
-                                  }`}
-                                  title={pinnedMessageIds.includes(msg.id) ? 'Unpin message' : 'Pin message'}
-                                >
-                                  <Pin size={12} />
-                                </button>
-                              </div>
-                            )}
-                            <p className="text-sm text-[#d1d5db] leading-6 break-words">{msg.text}</p>
-                            {msg.file_url && (
-                              <a
-                                href={msg.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-2 inline-flex items-center gap-2 rounded-md border border-[#303236] bg-[#16171d] px-2.5 py-1.5 text-xs text-[#cbd5e1] hover:text-white"
-                              >
-                                {msg.file_type?.startsWith('image/') ? <ImageIcon size={14} /> : <FileText size={14} />}
-                                <span className="truncate max-w-[260px]">{msg.file_name || 'Attachment'}</span>
-                                <ExternalLink size={12} />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Input Area */}
-            {activeSidebarItem === 'messages' && (
-              <div className="p-6 bg-[#0d0e12] border-t border-[#26272e]">
-                <div className="max-w-5xl mx-auto">
-                  <ChatInput
-                    onSend={handleSendMessage}
-                    onUploadFile={uploadCommunicationAsset}
-                    onVideoClick={handleComposerVideoClick}
-                    onTerminateVideo={terminateHuddle}
-                    isVideoActive={isVideoActive}
-                    conversationName={activeConversation?.name || currentChannel?.name || 'conversation'}
-                    conversationKind={activeConversation?.kind === 'channel' ? 'channel' : 'dm'}
-                    onScheduleMeeting={() => setIsMeetingModalOpen(true)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // Mapping specific IDs to Views
-    switch (currentViewId) {
-      case 'sprint-board':
-      case 'kanban-board':
-      case 'product-backlog':
-      case 'sprint-planning':
-      case 'defect-board':
-      case 'issue-board':
-      case 'assigned-to-me':
-      case 'reported-by-me':
-        return <IssuePage activeSidebarItem={currentViewId} />;
-      case 'code-prs':
-      case 'my-prs':
-      case 'pull-requests':
-        return <IDEView />;
-      case 'dashboard':
-      case 'velocity-analytics':
-      case 'portfolio-board':
-        return <DashboardView />;
-      case 'files':
-      case 'screenshots':
-      case 'design-files':
-        return <DocsView />;
-      case 'teams':
-        return (
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#0d0e12]">
-            <div className="max-w-6xl mx-auto space-y-6">
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Team Availability</h2>
-                  <p className="text-[#94a3b8] text-sm mt-1">Modern workspace presence: online, available, out of office, and last seen.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass(myStatus)}`} />
-                  <select
-                    value={myStatus}
-                    onChange={(e) => handleSetStatus(e.target.value as PresenceOptionValue)}
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {PRESENCE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-[#26272e] text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
-                  <span className="col-span-4">Member</span>
-                  <span className="col-span-3">Role</span>
-                  <span className="col-span-3">Status</span>
-                  <span className="col-span-2">Last Activity</span>
-                </div>
-                <div className="divide-y divide-[#26272e]">
-                  {panelMembers.map((member) => {
-                    const presence = presenceByUserId.get(member.user_id);
-                    const status = presence?.status || 'offline';
-                    return (
-                      <div key={member.user_id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-9 h-9 bg-[#26272e] rounded-full flex items-center justify-center text-white font-bold text-xs"
-                            title={`${member.user_name || member.user_id} (${member.user_id})`}
-                          >
-                            {getInitials(member.user_name || member.user_id)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm text-white font-semibold truncate">
-                              {member.user_name}{member.user_id === userId ? ' (You)' : ''}
-                            </p>
-                            <p className="text-[10px] uppercase tracking-wide text-[#64748b]">{member.user_id}</p>
-                          </div>
-                        </div>
-                        <p className="col-span-3 text-xs uppercase tracking-wide text-[#94a3b8]">{member.role}</p>
-                        <div className="col-span-3 flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${getStatusDotClass(status)}`} />
-                          <span className="text-xs text-[#cbd5e1]">{getStatusLabel(status)}</span>
-                        </div>
-                        <p className="col-span-2 text-xs text-[#94a3b8]">
-                          {status === 'last_seen' || status === 'offline'
-                            ? formatLastSeen(presence?.lastActiveAt ?? null)
-                            : 'Active now'}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case 'all-members': {
-        const currentRole = currentMemberRole;
-        const isAdminPortal = isAdminUser;
-
-        return (
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#0d0e12]">
-            <div className="max-w-6xl mx-auto space-y-6">
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-6 flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Admin Portal</h2>
-                  <p className="text-[#94a3b8] text-sm mt-1">Manage profiles, workspace roles, and access views by username.</p>
-                </div>
-                <div className="px-3 py-1.5 bg-[#0d0e12] border border-[#303236] rounded-lg text-xs font-semibold text-[#cbd5e1] uppercase tracking-wide">
-                  Role: {currentRole}
-                </div>
-              </div>
-
-              {roleUpdateError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
-                  {roleUpdateError}
-                </div>
-              )}
-
-              {memberActionError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
-                  {memberActionError}
-                </div>
-              )}
-
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-white">Create User</h3>
-                  <span className="text-[10px] uppercase tracking-wide text-[#64748b]">Admin Action</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <input
-                    value={newUserDisplayName}
-                    onChange={(e) => setNewUserDisplayName(e.target.value)}
-                    placeholder="Display name"
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
-                  />
-                  <input
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    placeholder="Email"
-                    type="email"
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
-                  />
-                  <input
-                    value={newUserPassword}
-                    onChange={(e) => setNewUserPassword(e.target.value)}
-                    placeholder="Temporary password (optional)"
-                    type="password"
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
-                  />
-                  <select
-                    value={newUserRole}
-                    onChange={(e) => setNewUserRole(e.target.value as 'owner' | 'admin' | 'employee')}
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs"
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="admin">Admin</option>
-                    <option value="owner">Owner</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] text-[#94a3b8]">Creates an auth user in Supabase and adds them to this workspace.</p>
-                  <button
-                    onClick={createUserFromAdminPortal}
-                    disabled={isCreatingWorkspaceUser || !newUserEmail.trim() || !newUserDisplayName.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
-                  >
-                    {isCreatingWorkspaceUser ? 'Creating...' : 'Create User'}
-                  </button>
-                </div>
-                {createUserError && <p className="text-xs text-red-300">{createUserError}</p>}
-                {createUserSuccess && <p className="text-xs text-emerald-300">{createUserSuccess}</p>}
-              </div>
-
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    value={userSearchTerm}
-                    onChange={(e) => searchUsersByName(e.target.value)}
-                    placeholder="Find user by name or email"
-                    className="bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-xs w-full max-w-sm"
-                  />
-                  <span className="text-[11px] text-[#94a3b8]">
-                    Add teammates to this workspace so they appear in this admin panel.
-                  </span>
-                </div>
-
-                {userSearchTerm.trim() && (
-                  <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1">
-                    {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
-                    {!isSearchingUsers && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-                        {userSearchResults.map((result) => {
-                          const inWorkspace = panelMembers.some((member) => member.user_id === result.user_id);
-                          const isWorking = memberActionUserId === result.user_id;
-                          const displayName = result.display_name || result.email || result.user_id;
-
-                          return (
-                            <div key={result.user_id} className="bg-[#0d0e12] border border-[#303236] rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                              <div className="relative group">
-                                <div
-                                  className="w-12 h-12 rounded-full bg-indigo-600/25 border border-indigo-500/40 text-white text-xs font-bold flex items-center justify-center"
-                                  title={`${displayName} (${result.user_id})`}
-                                >
-                                  {getInitials(displayName)}
-                                </div>
-                                <div className="pointer-events-none absolute top-14 left-1/2 -translate-x-1/2 w-48 bg-[#0a0b0f] border border-[#303236] rounded-lg px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                  <p className="text-[11px] text-white truncate">{displayName}</p>
-                                  <p className="text-[10px] text-[#94a3b8] truncate">{result.user_id}</p>
-                                </div>
-                              </div>
-                              <p className="text-[11px] text-[#cbd5e1] truncate w-full">{displayName}</p>
-                              <div className="flex flex-col gap-1 w-full">
-                                <button
-                                  onClick={() => startPrivateCall({
-                                    id: result.user_id,
-                                    name: displayName,
-                                    roomId: currentChannel?.id || 'general',
-                                    workspaceId: result.default_workspace_id || workspaceId,
-                                  })}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                                >
-                                  Open DM
-                                </button>
-                                {isAdminPortal && (
-                                  <button
-                                    onClick={() => addUserToWorkspace(result.user_id)}
-                                    disabled={inWorkspace || isWorking}
-                                    className="bg-[#26272e] hover:bg-[#303236] disabled:opacity-50 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                                  >
-                                    {inWorkspace ? 'In Workspace' : isWorking ? 'Adding...' : 'Add Member'}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-[#26272e] text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
-                  <span className="col-span-4">User</span>
-                  <span className="col-span-3">Workspace</span>
-                  <span className="col-span-2">Status</span>
-                  <span className="col-span-3">Role / Access</span>
-                </div>
-                <div className="divide-y divide-[#26272e]">
-                  {panelMembers.map((member) => {
-                    const presence = presenceByUserId.get(member.user_id);
-                    const status = presence?.status || 'offline';
-                    const canEditRole = isAdminPortal && member.user_id !== userId;
-                    const canRemoveMember = isAdminPortal && member.user_id !== userId && (currentRole === 'owner' || member.role !== 'owner');
-                    const isWorking = memberActionUserId === member.user_id;
-
-                    return (
-                      <div key={member.user_id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-9 h-9 bg-[#26272e] rounded-full flex items-center justify-center text-white font-bold text-xs"
-                            title={`${member.user_name || member.user_id} (${member.user_id})`}
-                          >
-                            {getInitials(member.user_name || member.user_id)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm text-white font-semibold truncate">
-                              {member.user_name}{member.user_id === userId ? ' (You)' : ''}
-                            </p>
-                            <p className="text-[10px] text-[#64748b] truncate">{(member as any).email || 'email hidden'}</p>
-                          </div>
-                        </div>
-                        <p className="col-span-3 text-xs text-[#94a3b8] truncate">
-                          {(workspaceChoices.find((w) => w.id === (member as any).home_workspace_id)?.name) || 'Current workspace'}
-                        </p>
-                        <div className="col-span-2 flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${getStatusDotClass(status)}`} />
-                          <span className="text-xs text-[#cbd5e1]">{getStatusLabel(status)}</span>
-                        </div>
-                        <div className="col-span-3">
-                          {canEditRole ? (
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={member.role}
-                                onChange={(e) => updateMemberRole(member.user_id, e.target.value as 'owner' | 'admin' | 'employee')}
-                                className="flex-1 bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-2 py-1.5 text-xs"
-                              >
-                                <option value="employee">Employee</option>
-                                <option value="admin">Admin</option>
-                                <option value="owner">Owner</option>
-                              </select>
-                              {canRemoveMember && (
-                                <button
-                                  onClick={() => removeWorkspaceMember(member.user_id)}
-                                  disabled={isWorking}
-                                  className="bg-red-600/20 border border-red-500/40 text-red-200 rounded px-2 py-1 text-[10px] font-semibold disabled:opacity-50"
-                                >
-                                  {isWorking ? 'Removing...' : 'Remove'}
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs uppercase tracking-wide text-[#94a3b8]">{member.role}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {!isAdminPortal && (
-                <div className="text-xs text-[#94a3b8]">Only admins and owners can change roles. Ask your workspace admin to grant access.</div>
-              )}
-            </div>
-          </div>
-        );
-      }
-      default:
-        // Fallback Professional View
-        return (
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#0d0e12]">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-2 tracking-tight uppercase">
-                    {currentViewId.replace(/-/g, ' ')}
-                  </h2>
-                  <p className="text-[#94a3b8] text-sm font-medium">
-                    Manage and track your {currentViewId.replace(/-/g, ' ')} in real-time.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button className="px-4 py-2 bg-[#16171d] border border-[#26272e] rounded-xl text-sm font-bold text-[#94a3b8] hover:text-white transition-all">
-                    Export
-                  </button>
-                  <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center gap-2">
-                    <Plus size={18} />
-                    New Item
-                  </button>
-                </div>
-              </div>
-
-              {/* Professional Dashboard / List View */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-[#16171d] border border-[#26272e] rounded-2xl overflow-hidden shadow-xl">
-                  <div className="p-4 border-b border-[#26272e] flex items-center justify-between bg-[#1a1d21]/50">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Active Items</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-[10px] font-bold text-[#94a3b8] uppercase">Live Updates</span>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-[#26272e]">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="p-4 hover:bg-[#26272e]/30 transition-all cursor-pointer group flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-[#0d0e12] rounded-xl flex items-center justify-center text-indigo-400 font-bold border border-[#26272e]">
-                            #{100 + i}
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Refactor {currentViewId} architecture</h4>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Added {i}h ago</span>
-                              <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[9px] font-black rounded uppercase tracking-tighter">In Progress</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex -space-x-2">
-                            {[1, 2].map(u => (
-                              <div key={u} className="w-6 h-6 rounded-full bg-indigo-600 border-2 border-[#16171d] flex items-center justify-center text-[8px] font-bold text-white">
-                                U{u}
-                              </div>
-                            ))}
-                          </div>
-                          <MoreHorizontal size={18} className="text-[#475569] hover:text-white transition-colors" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-[#16171d] border border-[#26272e] rounded-2xl p-6 shadow-xl">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6">Quick Stats</h3>
-                    <div className="space-y-4">
-                      {[
-                        { label: 'Total Items', value: '124', color: 'text-indigo-400' },
-                        { label: 'Completed', value: '89', color: 'text-green-400' },
-                        { label: 'Pending', value: '35', color: 'text-yellow-400' },
-                      ].map((stat, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">{stat.label}</span>
-                          <span className={`text-lg font-black ${stat.color}`}>{stat.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 shadow-2xl shadow-indigo-500/20">
-                    <Zap size={24} className="text-white mb-4" />
-                    <h3 className="text-white font-bold text-lg mb-2">Pro Insights</h3>
-                    <p className="text-indigo-100 text-xs leading-relaxed mb-4">
-                      Your team's velocity has increased by 12% this week. Keep it up!
-                    </p>
-                    <button className="w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all backdrop-blur-sm">
-                      View Full Report
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-    }
-  };
-  const [isVideoActive, setIsVideoActive] = useState(false);
-  const [videoEnabled, setVideoEnabled] = useState(true);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-  
-  const { localStream, remoteStreams, participants } = useWebRTC(
-    socket, 
-    userId, 
-    userName, 
-    currentChannel?.id || '', 
-    workspaceId,
-    isVideoActive
-  );
-
-  const applySessionIdentity = (session: any) => {
-    const authUser = session?.user;
-    if (!authUser?.id) {
-      setIsJoined(false);
-      return;
-    }
-
-    const resolvedName =
-      authUser.user_metadata?.full_name ||
-      authUser.user_metadata?.name ||
-      authUser.email?.split('@')[0] ||
-      'User';
-
-    setUserId(authUser.id);
-    setUserName(resolvedName);
-    setIsJoined(true);
-    setAuthError(null);
-  };
-
-  useEffect(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get('workspace');
-    if (!fromUrl?.trim()) return;
-    setWorkspaceId(fromUrl.trim());
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (!supabase) {
-      setAuthError('Supabase auth is not configured. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-      return;
-    }
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        applySessionIdentity(data.session);
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        applySessionIdentity(session);
-      } else {
-        setIsJoined(false);
-      }
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isVideoActive) {
-      setVideoEnabled(true);
-      setAudioEnabled(true);
-    }
-  }, [isVideoActive]);
-
-  useEffect(() => {
-    return () => {
-      if (customVideoBackgroundUrl) {
-        URL.revokeObjectURL(customVideoBackgroundUrl);
-      }
-    };
-  }, [customVideoBackgroundUrl]);
-
-  const handleVideoBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (customVideoBackgroundUrl) {
-      URL.revokeObjectURL(customVideoBackgroundUrl);
-    }
-    setCustomVideoBackgroundUrl(URL.createObjectURL(file));
-    event.target.value = '';
-  };
-
-  const loadCommMembers = async (workspaceUuid: string) => {
-    if (!supabase) return;
-
-    const { data: memberRows, error: memberErr } = await supabase.rpc('comm_workspace_directory', {
-      p_workspace_id: workspaceUuid,
-    });
-
-    if (memberErr || !memberRows) {
-      if (memberErr) console.error('Error fetching comm members:', memberErr);
-      return;
-    }
-
-    setCommMembers(
-      (memberRows as any[]).map((row) => {
-        return {
-          workspace_id: row.workspace_id,
-          user_id: row.user_id,
-          user_name: row.display_name || row.user_id,
-          email: row.email || null,
-          role: row.role,
-          home_workspace_id: row.default_workspace_id || null,
-        };
-      })
-    );
-  };
-
-  const loadCommConversations = async (workspaceUuid: string) => {
-    if (!supabase || !userId) return;
-
-    const { data, error } = await supabase
-      .from('comm_conversation_members')
-      .select('conversation:comm_conversations(id,name,kind,workspace_id,is_private)')
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error fetching conversations:', error);
-      return;
-    }
-
-    const rows = (data || [])
-      .map((row: any) => row.conversation)
-      .filter((conversation: any) => !conversation?.workspace_id || conversation.workspace_id === workspaceUuid);
-
-    setCommConversations(rows);
-  };
-
-  const createCommChannel = async () => {
-    if (!supabase || !supabaseWorkspaceId || !userId || !newCommChannelName.trim()) {
-      setCommError('Select a workspace and enter a channel name before creating a channel.');
-      return;
-    }
-
-    setIsCreatingCommChannel(true);
-    setCommError(null);
-    try {
-      const { data, error } = await supabase.rpc('comm_create_channel', {
-        p_workspace_id: supabaseWorkspaceId,
-        p_name: newCommChannelName.trim(),
-        p_topic: '',
-        p_is_private: false,
-        p_slug: null,
-      });
-
-      const conversation = Array.isArray(data) ? data[0] : data;
-
-      if (error || !conversation) {
-        console.error('Error creating channel:', error);
-        setCommError(error?.message || 'Unable to create channel.');
-        return;
-      }
-
-      setNewCommChannelName('');
-      setCommConversationId(conversation.id);
-      setCurrentChannel({
-        id: conversation.id,
-        workspace_id: supabaseWorkspaceId,
-        name: conversation.name,
-      });
-      await loadCommConversations(supabaseWorkspaceId);
-      await loadCommMessages(conversation.id);
-    } finally {
-      setIsCreatingCommChannel(false);
-    }
-  };
-
-  const updateMemberRole = async (targetUserId: string, nextRole: 'owner' | 'admin' | 'employee') => {
-    if (!supabase || !supabaseWorkspaceId) return;
-    setRoleUpdateError(null);
-
-    const { error } = await supabase.rpc('comm_set_member_role', {
-      p_workspace_id: supabaseWorkspaceId,
-      p_user_id: targetUserId,
-      p_role: nextRole,
-    });
-
-    if (error) {
-      setRoleUpdateError(error.message);
-      return;
-    }
-
-    await loadCommMembers(supabaseWorkspaceId);
-  };
-
-  const addUserToWorkspace = async (targetUserId: string) => {
-    if (!supabase || !supabaseWorkspaceId) return;
-    setMemberActionError(null);
-    setMemberActionUserId(targetUserId);
-
-    try {
-      const { error } = await supabase
-        .from('workspace_members')
-        .upsert(
-          {
-            workspace_id: supabaseWorkspaceId,
-            user_id: targetUserId,
-            role: 'employee',
-          },
-          { onConflict: 'workspace_id,user_id' }
-        );
-
-      if (error) {
-        setMemberActionError(error.message);
-        return;
-      }
-
-      await loadCommMembers(supabaseWorkspaceId);
-      await loadCommPresence(supabaseWorkspaceId);
-    } finally {
-      setMemberActionUserId(null);
-    }
-  };
-
-  const removeWorkspaceMember = async (targetUserId: string) => {
-    if (!supabase || !supabaseWorkspaceId || targetUserId === userId) return;
-    setMemberActionError(null);
-    setMemberActionUserId(targetUserId);
-
-    try {
-      const { error } = await supabase
-        .from('workspace_members')
-        .delete()
-        .eq('workspace_id', supabaseWorkspaceId)
-        .eq('user_id', targetUserId);
-
-      if (error) {
-        setMemberActionError(error.message);
-        return;
-      }
-
-      await loadCommMembers(supabaseWorkspaceId);
-      await loadCommPresence(supabaseWorkspaceId);
-    } finally {
-      setMemberActionUserId(null);
-    }
-  };
-
-  const createUserFromAdminPortal = async () => {
-    if (!supabaseWorkspaceId) {
-      setCreateUserError('Select a workspace before creating a user.');
-      return;
-    }
-
-    const emailInput = newUserEmail.trim().toLowerCase();
-    const displayNameInput = newUserDisplayName.trim();
-    const passwordInput = newUserPassword.trim();
-
-    if (!emailInput || !displayNameInput) {
-      setCreateUserError('Email and display name are required.');
-      return;
-    }
-
-    setCreateUserError(null);
-    setCreateUserSuccess(null);
-    setIsCreatingWorkspaceUser(true);
-
-    try {
-      const created = await createWorkspaceUser({
-        workspaceId: supabaseWorkspaceId,
-        email: emailInput,
-        displayName: displayNameInput,
-        password: passwordInput || undefined,
-        role: newUserRole,
-      });
-
-      setCreateUserSuccess(`Created ${created.displayName} (${created.email}) and added to this workspace.`);
-      setNewUserEmail('');
-      setNewUserDisplayName('');
-      setNewUserPassword('');
-      setNewUserRole('employee');
-
-      await loadCommMembers(supabaseWorkspaceId);
-      await loadCommPresence(supabaseWorkspaceId);
-    } catch (error) {
-      setCreateUserError(error instanceof Error ? error.message : 'Unable to create workspace user.');
-    } finally {
-      setIsCreatingWorkspaceUser(false);
-    }
-  };
-
-  const searchUsersByName = async (query: string) => {
-    if (!supabase) return;
-    const term = query.trim();
-    setUserSearchTerm(query);
-
-    if (!term) {
-      setUserSearchResults([]);
-      setCommError(null);
-      return;
-    }
-
-    setIsSearchingUsers(true);
-    setCommError(null);
-    try {
-      const { data, error } = await supabase.rpc('comm_find_user_by_name', {
-        p_name: term,
-      });
-
-      if (error) {
-        console.error('Error searching users:', error);
-        setCommError(error.message);
-        setUserSearchResults([]);
-        return;
-      }
-
-      setUserSearchResults((data || []) as Array<{ user_id: string; display_name: string; email: string | null; default_workspace_id: string | null }>);
-    } finally {
-      setIsSearchingUsers(false);
-    }
-  };
-
-  const addUserToCurrentConversation = async (targetUserId: string, targetWorkspaceId?: string | null) => {
-    if (!supabase || !commConversationId || !supabaseWorkspaceId) {
-      setCommError('Open a channel before adding members.');
-      return;
-    }
-
-    const workspaceForMember = targetWorkspaceId || supabaseWorkspaceId;
-    const { error } = await supabase
-      .from('comm_conversation_members')
-      .upsert({
-        conversation_id: commConversationId,
-        user_id: targetUserId,
-        workspace_id: workspaceForMember,
-        role: 'member',
-      }, { onConflict: 'conversation_id,user_id' });
-
-    if (error) {
-      console.error('Error adding member to conversation:', error);
-      setCommError(error.message);
-      return;
-    }
-
-    await supabase.rpc('comm_notify_user', {
-      p_workspace_id: workspaceForMember,
-      p_user_id: targetUserId,
-      p_kind: 'added_to_channel',
-      p_payload: {
-        conversation_id: commConversationId,
-        conversation_name: currentChannel?.name || 'channel',
-        added_at: new Date().toISOString(),
-      },
-    });
-
-    setCommError(null);
-    await loadCommConversations(supabaseWorkspaceId);
-    await loadNotifications(supabaseWorkspaceId);
-  };
-
-  const loadCommMessages = async (conversationId: string) => {
-    if (!supabase) return;
-
-    const { data: messageRows, error: msgErr } = await supabase
-      .from('comm_messages')
-      .select('id,sender_user_id,body,attachments,created_at')
-      .eq('conversation_id', conversationId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-      .limit(200);
-
-    if (msgErr || !messageRows) {
-      if (msgErr) console.error('Error fetching comm messages:', msgErr);
-      return;
-    }
-
-    const senderIds = Array.from(new Set(messageRows.map((row) => row.sender_user_id)));
-    const { data: profileRows } = await supabase
-      .from('profiles')
-      .select('id,display_name')
-      .in('id', senderIds);
-
-    const nameById = new Map((profileRows || []).map((row) => [row.id, row.display_name || row.id]));
-
-    const mapped = messageRows.map((row: any) => {
-      const attachments = Array.isArray(row.attachments) ? row.attachments : [];
-      const firstAttachment = attachments[0] || null;
-      return {
-        id: row.id,
-        userId: row.sender_user_id,
-        userName: nameById.get(row.sender_user_id) || row.sender_user_id,
-        text: row.body,
-        file_url: firstAttachment?.url,
-        file_name: firstAttachment?.name,
-        file_type: firstAttachment?.type,
-        timestamp: new Date(row.created_at).getTime(),
-      } as ChatMessage;
-    });
-
-    setMessages(mapped);
-
-    if (supabaseWorkspaceId && userId) {
-      const { data: unreadRows } = await supabase
-        .from('comm_notifications')
-        .select('id')
-        .eq('workspace_id', supabaseWorkspaceId)
-        .eq('user_id', userId)
-        .is('read_at', null)
-        .contains('payload', { conversation_id: conversationId })
-        .limit(200);
-
-      if (unreadRows?.length) {
-        const now = new Date().toISOString();
-        await supabase
-          .from('comm_notifications')
-          .update({ read_at: now })
-          .in('id', unreadRows.map((row) => row.id));
-      }
-    }
-  };
-
-  const loadCommPresence = async (workspaceUuid: string) => {
-    if (!supabase) return;
-
-    try {
-      const snapshot = await getCommunicationPresenceSnapshot({ workspaceId: workspaceUuid });
-      setWorkspacePresence(
-        snapshot.members.map((member) => ({
-          userId: member.userId,
-          userName: member.userName,
-          role: member.role,
-          online: member.online,
-          status: member.status,
-          lastActiveAt: member.lastActiveAt ? new Date(member.lastActiveAt).getTime() : null,
-        }))
-      );
-    } catch (error) {
-      console.error('Error fetching comm presence snapshot:', error);
-    }
-  };
-
-  const sendPresenceHeartbeat = async (workspaceUuid: string, status: PresenceOptionValue) => {
-    try {
-      await heartbeatCommunicationPresence({ workspaceId: workspaceUuid, status });
-    } catch (error) {
-      console.error('Error sending presence heartbeat:', error);
-    }
-  };
-
-  const loadNotifications = async (workspaceUuid: string) => {
-    if (!supabase || !userId) return;
-    const { data, error } = await supabase
-      .from('comm_notifications')
-      .select('id,user_id,workspace_id,kind,payload,read_at,created_at')
-      .eq('workspace_id', workspaceUuid)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Error loading notifications:', error);
-      return;
-    }
-
-    setNotifications((data || []) as ReachNotification[]);
-  };
-
-  const loadIssueActivity = async (workspaceUuid: string) => {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from('issue_activity')
-      .select('id,issue_key,action,summary,actor_user_id,created_at')
-      .eq('workspace_id', workspaceUuid)
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) {
-      console.error('Error loading issue activity:', error);
-      return;
-    }
-
-    setActivityItems((data || []) as IssueActivityItem[]);
-  };
-
-  const scheduleMeeting = async () => {
-    if (!supabaseWorkspaceId || !meetingTitle.trim() || !meetingWhen) {
-      setMeetingError('Meeting title and time are required.');
-      return;
-    }
-
-    setMeetingError(null);
-    try {
-      const { meetingId } = await scheduleCommunicationMeeting({
-        workspaceId: supabaseWorkspaceId,
-        title: meetingTitle.trim(),
-        scheduledFor: new Date(meetingWhen).toISOString(),
-        participantIds: meetingParticipantIds,
-        conversationId: commConversationId || undefined,
-      });
-
-      if (supabase) {
-        for (const participantId of meetingParticipantIds) {
-          await supabase.rpc('comm_notify_user', {
-            p_workspace_id: supabaseWorkspaceId,
-            p_user_id: participantId,
-            p_kind: 'meeting_invite',
-            p_payload: {
-              meeting_id: meetingId,
-              title: meetingTitle.trim(),
-              scheduled_for: new Date(meetingWhen).toISOString(),
-              conversation_id: commConversationId,
-            },
-          });
-        }
-      }
-
-      setMeetingTitle('');
-      setMeetingWhen('');
-      setMeetingParticipantIds([]);
-      setIsMeetingModalOpen(false);
-      await loadNotifications(supabaseWorkspaceId);
-    } catch (error: any) {
-      setMeetingError(error?.message || 'Unable to schedule meeting.');
-    }
-  };
-
-  const respondMeeting = async (meetingId: string, response: 'accepted' | 'declined' | 'tentative') => {
-    try {
-      await respondToCommunicationMeeting({ meetingId, response });
-      if (supabaseWorkspaceId) {
-        await loadNotifications(supabaseWorkspaceId);
-      }
-    } catch (error) {
-      console.error('Error responding to meeting:', error);
-    }
-  };
-
-  const ensureCommConversation = async (workspaceUuid: string) => {
-    if (!supabase || !userId) return;
-
-    const { data: existing, error: existingErr } = await supabase
-      .from('comm_conversations')
-      .select('id,name')
-      .eq('workspace_id', workspaceUuid)
-      .eq('kind', 'channel')
-      .eq('slug', 'general')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingErr) {
-      console.error('Error checking conversation:', existingErr);
-      return;
-    }
-
-    let conversationId = existing?.id as string | null;
-    if (!conversationId) {
-      const { data: created, error: createErr } = await supabase
-        .from('comm_conversations')
-        .insert({
-          workspace_id: workspaceUuid,
-          kind: 'channel',
-          name: 'general',
-          slug: 'general',
-          topic: 'Workspace default channel',
-          created_by: userId,
-        })
-        .select('id,name')
-        .single();
-
-      if (createErr || !created) {
-        console.error('Error creating conversation:', createErr);
-        return;
-      }
-      conversationId = created.id;
-    }
-
-    const { error: memberErr } = await supabase
-      .from('comm_conversation_members')
-      .upsert({
-        conversation_id: conversationId,
-        user_id: userId,
-        workspace_id: workspaceUuid,
-        role: 'owner',
-      }, { onConflict: 'conversation_id,user_id' });
-
-    if (memberErr) {
-      console.error('Error syncing conversation member:', memberErr);
-    }
-
-    setCommConversationId(conversationId);
-    setCurrentChannel({
-      id: conversationId,
-      workspace_id: workspaceUuid,
-      name: existing?.name || 'general',
-    });
-  };
-
-  const loadSupabaseCommunicationContext = async () => {
-    if (!supabase || !userId) return;
-
-    const preferredSlug = workspaceId?.trim() || null;
-    const { data: bootRows, error: bootstrapErr } = await supabase.rpc('comm_bootstrap_workspace_context', {
-      p_preferred_slug: preferredSlug,
-    });
-
-    if (bootstrapErr) {
-      console.error('Error bootstrapping workspace context:', bootstrapErr);
-    }
-
-    const normalizedBootRows = (bootRows || []) as Array<{ id: string; name: string; slug: string; is_default: boolean }>;
-    if (normalizedBootRows.length > 0) {
-      const choices = normalizedBootRows.map((row) => ({ id: row.id, name: row.name, slug: row.slug }));
-      setWorkspaceChoices(choices);
-      const chosen = normalizedBootRows.find((row) => row.is_default) || normalizedBootRows[0];
-      setSupabaseWorkspaceId(chosen.id);
-      if (chosen.slug) setWorkspaceId(chosen.slug);
-      return;
-    }
-
-    const { data: profileRow } = await supabase
-      .from('profiles')
-      .select('default_workspace_id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    const { data: memberships, error: membershipErr } = await supabase
-      .from('workspace_members')
-      .select('workspace_id')
-      .eq('user_id', userId);
-
-    if (membershipErr || !memberships?.length) {
-      if (membershipErr) console.error('Error fetching workspace memberships:', membershipErr);
-      return;
-    }
-
-    const workspaceIds = memberships.map((m) => m.workspace_id);
-    const { data: workspaces } = await supabase
-      .from('workspaces')
-      .select('id,name,slug')
-      .in('id', workspaceIds);
-
-    if (workspaces?.length) {
-      setWorkspaceChoices(workspaces);
-    }
-
-    const chosenWorkspace =
-      profileRow?.default_workspace_id && workspaceIds.includes(profileRow.default_workspace_id)
-        ? profileRow.default_workspace_id
-        : workspaceIds[0];
-
-    setSupabaseWorkspaceId(chosenWorkspace);
-    const chosenRecord = (workspaces || []).find((w) => w.id === chosenWorkspace);
-    if (chosenRecord?.slug) {
-      setWorkspaceId(chosenRecord.slug);
-    }
-  };
-
-
-  useEffect(() => {
-    if (!isJoined || !userId) return;
-    loadSupabaseCommunicationContext().catch((err) => {
-      console.error('Error initializing communication context:', err);
-    });
-  }, [isJoined, userId]);
-
-  useEffect(() => {
-    if (!supabaseWorkspaceId || !isJoined) return;
-    ensureCommConversation(supabaseWorkspaceId).catch((err) => {
-      console.error('Error ensuring default conversation:', err);
-    });
-    loadCommConversations(supabaseWorkspaceId).catch((err) => {
-      console.error('Error loading conversations:', err);
-    });
-    loadCommMembers(supabaseWorkspaceId).catch((err) => {
-      console.error('Error loading communication members:', err);
-    });
-  }, [supabaseWorkspaceId, isJoined, userId]);
-
-  useEffect(() => {
-    if (!supabaseWorkspaceId || !isJoined) return;
-    sendPresenceHeartbeat(supabaseWorkspaceId, myStatus).catch(() => {});
-    loadCommPresence(supabaseWorkspaceId).catch((err) => {
-      console.error('Error loading communication presence:', err);
-    });
-    loadNotifications(supabaseWorkspaceId).catch(() => {});
-    loadIssueActivity(supabaseWorkspaceId).catch(() => {});
-
-    const timer = setInterval(() => {
-      sendPresenceHeartbeat(supabaseWorkspaceId, myStatus).catch(() => {});
-      loadCommPresence(supabaseWorkspaceId).catch(() => {});
-      loadNotifications(supabaseWorkspaceId).catch(() => {});
-      loadIssueActivity(supabaseWorkspaceId).catch(() => {});
-    }, 12000);
-
-    return () => clearInterval(timer);
-  }, [supabaseWorkspaceId, isJoined, commMembers, myStatus]);
-
-  useEffect(() => {
-    if (!supabase || !commConversationId) return;
-
-    loadCommMessages(commConversationId).catch((err) => {
-      console.error('Error loading communication messages:', err);
-    });
-
-    const messageChannel = supabase
-      .channel(`comm-messages-${commConversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'comm_messages',
-          filter: `conversation_id=eq.${commConversationId}`,
-        },
-        () => {
-          loadCommMessages(commConversationId).catch(() => {});
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(messageChannel);
-    };
-  }, [commConversationId, supabase, commMembers]);
-
-  useEffect(() => {
-    if (!supabase || !supabaseWorkspaceId) return;
-
-    const presenceChannel = supabase
-      .channel(`comm-presence-${supabaseWorkspaceId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comm_presence',
-          filter: `workspace_id=eq.${supabaseWorkspaceId}`,
-        },
-        () => {
-          loadCommPresence(supabaseWorkspaceId).catch(() => {});
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(presenceChannel);
-    };
-  }, [supabaseWorkspaceId, supabase, commMembers]);
-
-  useEffect(() => {
-    const key = commConversationId || currentChannel?.id;
-    if (!key) return;
-    try {
-      const raw = window.localStorage.getItem(`reach:pins:${key}`);
-      setPinnedMessageIds(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch {
-      setPinnedMessageIds([]);
-    }
-  }, [commConversationId, currentChannel?.id]);
-
-  const togglePinMessage = (messageId: string) => {
-    const key = commConversationId || currentChannel?.id;
-    if (!key) return;
-
-    setPinnedMessageIds((prev) => {
-      const next = prev.includes(messageId)
-        ? prev.filter((id) => id !== messageId)
-        : [...prev, messageId];
-      window.localStorage.setItem(`reach:pins:${key}`, JSON.stringify(next));
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    const shouldUseLocalSocket = isVideoActive;
-    if (isJoined && currentChannel && shouldUseLocalSocket) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}`);
-      
-      ws.onopen = () => {
-        ws.send(JSON.stringify({
-          type: 'join',
-          payload: { workspaceId, roomId: currentChannel.id, userId, userName }
-        }));
-      };
-
-      setSocket(ws);
-      return () => ws.close();
-    }
-  }, [isJoined, currentChannel, userId, userName, workspaceId, isVideoActive]);
-
-  const uploadCommunicationAsset = async (file: File) => {
-    if (!supabase || !supabaseWorkspaceId) {
-      throw new Error('Workspace context is required before uploading files.');
-    }
-
-    const targetConversationId = commConversationId || currentChannel?.id;
-    if (!targetConversationId) {
-      throw new Error('Open a conversation before uploading files.');
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const objectPath = `${supabaseWorkspaceId}/${targetConversationId}/${Date.now()}-${safeName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('comm-uploads')
-      .upload(objectPath, file, {
-        upsert: false,
-        contentType: file.type || undefined,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data: urlData } = supabase.storage.from('comm-uploads').getPublicUrl(objectPath);
-    return {
-      url: urlData.publicUrl,
-      name: file.name,
-      type: file.type,
-    };
-  };
-
-  const emitPresence = (status: PresenceOptionValue) => {
-    if (supabaseWorkspaceId) {
-      setCommunicationPresence({
-        workspaceId: supabaseWorkspaceId,
-        status,
-      }).catch((err) => {
-        console.error('Error setting communication presence:', err);
-      });
-      return;
-    }
-
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: 'presence',
-        payload: { status },
-      }));
-    }
-  };
-
-  const handleSetStatus = (status: PresenceOptionValue) => {
-    setMyStatus(status);
-    setShowStatusMenu(false);
-    emitPresence(status);
-  };
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const sendCurrent = () => {
-      emitPresence(myStatus);
-    };
-
-    if (socket.readyState === WebSocket.OPEN) {
-      sendCurrent();
-      return;
-    }
-
-    socket.addEventListener('open', sendCurrent);
-    return () => socket.removeEventListener('open', sendCurrent);
-  }, [socket, myStatus, supabaseWorkspaceId]);
-
-  useEffect(() => {
-    const onVisibility = () => {
-      if (!document.hidden) {
-        emitPresence(myStatus);
-      }
-    };
-
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [socket, myStatus, supabaseWorkspaceId]);
-
-  useEffect(() => {
-    if (!showStatusMenu) return;
-
-    const onPointerDown = (event: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
-        setShowStatusMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [showStatusMenu]);
-
-  const presenceByUserId = new Map<string, WorkspacePresence>(
-    workspacePresence.map((presence): [string, WorkspacePresence] => [presence.userId, presence])
-  );
-  const onlineCount = workspacePresence.filter((presence) => presence.online).length || (participants.length + 1);
-  const panelMembers = commMembers.length
-    ? commMembers
-    : workspace?.members?.length
-    ? workspace.members
-    : [{ workspace_id: workspaceId, user_id: userId, user_name: userName || 'You', role: 'employee' }];
-  const onlineMembers = panelMembers.filter((member) => {
-    const status = presenceByUserId.get(member.user_id)?.status || 'offline';
-    return status === 'online' || status === 'available' || status === 'out_of_office';
-  });
-  const currentMemberRole = panelMembers.find((member) => member.user_id === userId)?.role || 'employee';
-  const isAdminUser = currentMemberRole === 'owner' || currentMemberRole === 'admin';
-  const channelConversations = commConversations.filter((conversation) => conversation.kind === 'channel');
-  const directConversations = commConversations.filter((conversation) => conversation.kind !== 'channel');
-  const activeConversation = commConversations.find((conversation) => conversation.id === commConversationId) || null;
-  const filteredNewChannelMembers = panelMembers
-    .filter((member) => member.user_id !== userId)
-    .filter((member) => {
-      const query = newChannelMemberSearch.trim().toLowerCase();
-      if (!query) return true;
-      const memberName = (member.user_name || '').toLowerCase();
-      const memberEmail = String((member as any).email || '').toLowerCase();
-      const memberId = String(member.user_id || '').toLowerCase();
-      return memberName.includes(query) || memberEmail.includes(query) || memberId.includes(query);
-    });
-  const unreadNotifications = notifications.filter((item) => !item.read_at);
-
-  const unreadCountByConversation = unreadNotifications.reduce<Record<string, number>>((acc, item) => {
-    const conversationId = item.payload?.conversation_id;
-    if (typeof conversationId === 'string' && conversationId) {
-      acc[conversationId] = (acc[conversationId] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  const handleSendMessage = (text?: string, fileData?: any) => {
-    if (!commConversationId || !(text?.trim() || fileData)) {
-      setCommError('Open a channel or DM before sending a message.');
-      return;
-    }
-
-    if (!supabaseWorkspaceId) {
-      setCommError('Communication workspace is not initialized.');
-      return;
-    }
-
-    setCommError(null);
-    const attachments = fileData ? [{
-      url: fileData.url,
-      name: fileData.name,
-      type: fileData.type,
-    }] : [];
-
-    const input = text?.trim() || '';
-    const body = input || (fileData?.name ? `Shared file: ${fileData.name}` : 'Shared attachment');
-
-    const sender = input.startsWith('/')
-      ? routeCommunicationCommand({
-          workspaceId: supabaseWorkspaceId,
-          conversationId: commConversationId,
-          input,
-        })
-      : sendCommunicationMessage({
-          conversationId: commConversationId,
-          body,
-          attachments,
-        });
-
-    sender
-      .then(() => loadCommMessages(commConversationId))
-      .catch((err) => {
-        console.error('Error sending communication message:', err);
-        setCommError(err?.message || 'Failed to send communication message.');
-      });
-  };
-
-  const openCreateChannelWizard = () => {
-    setNewChannelName('');
-    setNewChannelVisibility('public');
-    setNewChannelMemberIds([]);
-    setNewChannelMemberSearch('');
-    setCreateChannelStep(1);
-    setShowCreateChannel(true);
-    setCommError(null);
-  };
-
-  const closeCreateChannelWizard = () => {
-    setShowCreateChannel(false);
-    setCreateChannelStep(1);
-    setNewChannelVisibility('public');
-    setNewChannelMemberSearch('');
-  };
-
-  const toggleChannelWizardMember = (targetUserId: string) => {
-    setNewChannelMemberIds((prev) => (
-      prev.includes(targetUserId)
-        ? prev.filter((id) => id !== targetUserId)
-        : [...prev, targetUserId]
-    ));
-  };
-
-  const handleCreateChannel = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!supabase) {
-      setCommError('Supabase client is not available. Check environment configuration.');
-      return;
-    }
-    if (!supabaseWorkspaceId) {
-      setCommError('Select a workspace before creating a channel.');
-      return;
-    }
-    if (!newChannelName.trim()) {
-      setCommError('Enter a channel name before submitting.');
-      return;
-    }
-
-    setIsCreatingCommChannel(true);
-    setCommError(null);
-    try {
-      const { data, error } = await supabase.rpc('comm_create_channel', {
-        p_workspace_id: supabaseWorkspaceId,
-        p_name: newChannelName.trim(),
-        p_topic: '',
-        p_is_private: newChannelVisibility === 'private',
-        p_slug: null,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      const channel = Array.isArray(data) ? data[0] : data;
-      if (!channel?.id) {
-        throw new Error('Channel was not returned by comm_create_channel');
-      }
-
-      setNewChannelName('');
-      setShowCreateChannel(false);
-      setCreateChannelStep(1);
-      setNewChannelVisibility('public');
-      setCurrentChannel(channel);
-      setCommConversationId(channel.id);
-      setActiveSidebarItem('messages');
-
-      // Optimistically place created conversation into sidebar state immediately.
-      setCommConversations((prev) => {
-        const exists = prev.some((conversation) => conversation.id === channel.id);
-        if (exists) return prev;
-        return [
-          {
-            id: channel.id,
-            name: channel.name,
-            kind: channel.kind || 'channel',
-            workspace_id: channel.workspace_id || supabaseWorkspaceId,
-          },
-          ...prev,
-        ];
-      });
-
-      const inviteeIds = Array.from(new Set(
-        newChannelMemberIds.filter((candidateId) => candidateId && candidateId !== userId)
-      ));
-
-      if (inviteeIds.length > 0) {
-        const { error: addMembersError } = await supabase
-          .from('comm_conversation_members')
-          .upsert(
-            inviteeIds.map((inviteeId) => ({
-              conversation_id: channel.id,
-              user_id: inviteeId,
-              workspace_id: supabaseWorkspaceId,
-              role: 'member',
-            })),
-            { onConflict: 'conversation_id,user_id' }
-          );
-
-        if (addMembersError) {
-          throw addMembersError;
-        }
-
-        await Promise.all(
-          inviteeIds.map(async (inviteeId) => {
-            try {
-              await supabase.rpc('comm_notify_user', {
-                p_workspace_id: supabaseWorkspaceId,
-                p_user_id: inviteeId,
-                p_kind: 'added_to_channel',
-                p_payload: {
-                  conversation_id: channel.id,
-                  conversation_name: channel.name,
-                  added_by: userId,
-                },
-              });
-            } catch (notifyError) {
-              console.warn('Unable to send channel invite notification:', notifyError);
-            }
-          })
-        );
-      }
-
-      setNewChannelMemberIds([]);
-      setNewChannelMemberSearch('');
-      await loadCommConversations(supabaseWorkspaceId);
-      await loadCommMessages(channel.id);
-    } catch (err) {
-      console.error("Error creating channel:", err);
-      setCommError(err instanceof Error ? err.message : 'Unable to create channel.');
-    } finally {
-      setIsCreatingCommChannel(false);
-    }
-  };
-
-  const handleDeleteChannel = async (conversationId: string, channelName: string) => {
-    if (!supabase) {
-      setCommError('Supabase client is not available.');
-      return;
-    }
-    if (!supabaseWorkspaceId) {
-      setCommError('Select a workspace before deleting a channel.');
-      return;
-    }
-
-    const approved = window.confirm(`Delete #${channelName}? This removes channel messages and cannot be undone.`);
-    if (!approved) return;
-
-    setDeletingChannelId(conversationId);
-    setCommError(null);
-
-    try {
-      const { error } = await supabase.rpc('comm_delete_channel', {
-        p_workspace_id: supabaseWorkspaceId,
-        p_conversation_id: conversationId,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      const nextConversations = commConversations.filter((conversation) => conversation.id !== conversationId);
-      setCommConversations(nextConversations);
-
-      if (commConversationId === conversationId) {
-        const fallback = nextConversations.find((conversation) => conversation.kind === 'channel') || nextConversations[0] || null;
-        if (fallback) {
-          setCommConversationId(fallback.id);
-          setCurrentChannel({
-            id: fallback.id,
-            workspace_id: fallback.workspace_id || supabaseWorkspaceId || workspaceId,
-            name: fallback.name,
-          });
-          await loadCommMessages(fallback.id);
-        } else {
-          setCommConversationId(null);
-          setCurrentChannel(null);
-          setMessages([]);
-        }
-      }
-
-      await loadCommConversations(supabaseWorkspaceId);
-    } catch (error) {
-      console.error('Error deleting channel:', error);
-      setCommError(error instanceof Error ? error.message : 'Unable to delete channel.');
-    } finally {
-      setDeletingChannelId(null);
-    }
-  };
-
-  const toggleVideo = () => {
-    if (localStream) {
-      localStream.getVideoTracks().forEach(track => track.enabled = !videoEnabled);
-      setVideoEnabled(!videoEnabled);
-    } else {
-      setMediaError("Camera not accessible. Please check permissions.");
-    }
-  };
-
-  const toggleAudio = () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(track => track.enabled = !audioEnabled);
-      setAudioEnabled(!audioEnabled);
-    } else {
-      setMediaError("Microphone not accessible. Please check permissions.");
-    }
-  };
-
-  const toggleStandup = () => {
-    setIsVideoActive((prev) => !prev);
-  };
-
-  const terminateHuddle = () => {
-    if (localStream) {
-      localStream.getTracks().forEach((track) => {
-        track.stop();
-      });
-    }
-    if (screenShareStream) {
-      screenShareStream.getTracks().forEach((track) => track.stop());
-      setScreenShareStream(null);
-    }
-    setVideoEnabled(false);
-    setAudioEnabled(false);
-    setIsVideoActive(false);
-    setMediaError(null);
-  };
-
-  const toggleScreenShare = async () => {
-    if (screenShareStream) {
-      screenShareStream.getTracks().forEach((track) => track.stop());
-      setScreenShareStream(null);
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-      });
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.addEventListener('ended', () => {
-          setScreenShareStream(null);
-        });
-      }
-      setScreenShareStream(stream);
-    } catch (error) {
-      console.error('Screen share unavailable:', error);
-      setMediaError('Unable to start screen share.');
-    }
-  };
-
-  const launchCall = () => {
-    if (callMode === 'channel') {
-      setActiveSidebarItem('huddle');
-      setIsVideoActive(true);
-      setShowCallLauncher(false);
-      return;
-    }
-
-    if (callMode === 'team') {
-      const teamChannel = workspace?.channels?.find((channel) => channel.team_id === selectedTeamCallId) || workspace?.channels?.[0] || currentChannel;
-      if (teamChannel) {
-        setCurrentChannel(teamChannel);
-      }
-      setActiveSidebarItem('huddle');
-      setIsVideoActive(true);
-      setShowCallLauncher(false);
-      return;
-    }
-
-    if (callMode === 'member') {
-      const memberId = selectedCallMemberIds[0];
-      const target = panelMembers.find((member) => member.user_id === memberId);
-      if (!target) return;
-      startPrivateCall({
-        id: target.user_id,
-        name: target.user_name,
-        roomId: currentChannel?.id || 'general',
-        workspaceId: (target as any).home_workspace_id || target.workspace_id || workspaceId,
-      });
-      setActiveSidebarItem('huddle');
-      setIsVideoActive(true);
-      setShowCallLauncher(false);
-      return;
-    }
-
-    if (callMode === 'group') {
-      if (!selectedCallMemberIds.length) return;
-      const roomName = selectedCallMemberIds
-        .map((id) => panelMembers.find((member) => member.user_id === id)?.user_name || id)
-        .slice(0, 2)
-        .join(', ');
-
-      setCurrentChannel({
-        id: `group-call-${[userId, ...selectedCallMemberIds].sort().join('-')}`,
-        workspace_id: workspaceId,
-        name: `Group: ${roomName}`,
-      });
-      setMessages([]);
-      setActiveSidebarItem('huddle');
-      setIsVideoActive(true);
-      setShowCallLauncher(false);
-    }
-  };
-
-  const uploadHuddleAsset = async (file: File) => {
-    setIsHuddleUploading(true);
-    try {
-      const data = await uploadCommunicationAsset(file);
-      handleSendMessage(`Shared during huddle: ${file.name}`, data);
-    } catch (error) {
-      console.error('Failed to upload huddle asset:', error);
-      setCommError(error instanceof Error ? error.message : 'Failed to upload huddle asset.');
-    } finally {
-      setIsHuddleUploading(false);
-    }
-  };
-
-  const handleHuddleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    await uploadHuddleAsset(file);
-    event.target.value = '';
-  };
-
-  const handleHeaderVideoClick = () => {
-    if (!isVideoActive) {
-      setIsVideoActive(true);
-      return;
-    }
-    toggleVideo();
-  };
-
-  const handleComposerVideoClick = () => {
-    if (!isVideoActive) {
-      setIsVideoActive(true);
-      setActiveSidebarItem('huddle');
-      return;
-    }
-    toggleVideo();
-  };
-
-  const goToCoreView = (globalId: string, sidebarId: string) => {
-    setActiveGlobalNav(globalId);
-    setActiveSidebarItem(sidebarId);
-  };
-
-  const startPrivateCall = (user: User) => {
-    if (user.id === userId) return;
-
-    if (!supabaseWorkspaceId) {
-      // Fallback for local test mode.
-      const privateRoomId = [userId, user.id].sort().join('--');
-      setCurrentChannel({
-        id: privateRoomId,
-        workspace_id: workspaceId,
-        name: `DM: ${user.name}`,
-      });
-      setMessages([]);
-      return;
-    }
-
-    openDirectMessage({
-      workspaceId: supabaseWorkspaceId,
-      targetUserId: user.id,
-      targetWorkspaceId: user.workspaceId || undefined,
-    })
-      .then((result) => {
-        setCommError(null);
-        setCommConversationId(result.conversationId);
-        setCurrentChannel({
-          id: result.conversationId,
-          workspace_id: supabaseWorkspaceId,
-          name: `DM: ${user.name}`,
-        });
-        return loadCommMessages(result.conversationId);
-      })
-      .catch((err) => {
-        console.error('Error opening direct conversation:', err);
-        setCommError(err?.message || 'Unable to open direct message conversation.');
-      });
-  };
-
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
-    if (!supabase) {
-      setAuthError('Supabase auth is not configured.');
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-
-    try {
-      if (isSignUpMode) {
-        const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: {
-              full_name: email.trim().split('@')[0],
-            },
-          },
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-      }
-    } catch (err: any) {
-      setAuthError(err?.message || 'Authentication failed.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleGitHubAuth = async () => {
-    if (!supabase) {
-      setAuthError('Supabase auth is not configured.');
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) {
-      setAuthError(error.message);
-      setAuthLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    if (!supabase) {
-      setIsJoined(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setAuthError(error.message);
-      return;
-    }
-
-    setSupabaseWorkspaceId(null);
-    setWorkspaceChoices([]);
-    setCommConversationId(null);
-    setCommConversations([]);
-    setCommMembers([]);
-    setWorkspacePresence([]);
-    setMessages([]);
-    setCurrentChannel(null);
-    setIsJoined(false);
-  };
-
-  if (!isJoined) {
-    return (
-      <div className="min-h-screen bg-[#1a1d21] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#222529] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#303236]"
-        >
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Video className="text-white w-8 h-8" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-white text-center mb-2">Welcome to REACH</h1>
-          <p className="text-gray-400 text-center mb-8">Sign in to your isolated workspace</p>
-
-          <form onSubmit={handleAuthSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Email</label>
-                <div className="relative">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                  <input 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Password</label>
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  autoFocus
-                />
-              </div>
-              {authError && (
-                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                  {authError}
-                </div>
-              )}
-              <button 
-                type="submit"
-                disabled={!email || !password || authLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
-              >
-                {authLoading ? 'Please wait...' : isSignUpMode ? 'Create Account' : 'Sign In'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleGitHubAuth}
-                disabled={authLoading}
-                className="w-full bg-[#1a1d21] border border-[#303236] hover:border-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
-              >
-                Continue with GitHub
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsSignUpMode((prev) => !prev)}
-                className="w-full text-xs text-[#94a3b8] hover:text-white transition-colors"
-              >
-                {isSignUpMode ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-              </button>
-            </div>
-          </form>
-          <div className="mt-6 pt-6 border-t border-[#303236] text-center text-xs text-[#64748b]">
-            Supabase-backed workspace messaging is active.
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen bg-[#0d0e12] flex overflow-hidden font-sans text-[#e2e8f0]">
-      {/* Global Navigation Sidebar (Far Left) */}
-      <nav className="w-[72px] bg-[#16171d] border-r border-[#26272e] flex flex-col items-center py-4 flex-shrink-0 z-30">
-        <button
-          onClick={() => {
-            setActiveGlobalNav('issues');
-            setActiveSidebarItem('assigned-to-me');
-          }}
-          className="w-10 h-10 bg-[#1f2130] rounded-xl flex items-center justify-center mb-6 border border-[#2c2f3b] text-[#cbd5e1] hover:text-white hover:bg-[#26272e] transition-all"
-          aria-label="Go to Home"
-        >
-          <Home className="w-5 h-5" />
-        </button>
-        <div className="flex-1 flex flex-col gap-5 overflow-y-auto custom-scrollbar w-full items-center">
-          {NEW_GLOBAL_NAV.map((item) => (
-            <div key={item.id} className="group relative">
-              <button 
-                onClick={() => {
-                  setActiveGlobalNav(item.id);
-                  const firstChild = (NAVIGATION_TREE as any)[item.id]?.[0];
-                  if (firstChild) {
-                    setActiveSidebarItem(firstChild.id);
-                  }
-                }}
-                className={`p-2.5 rounded-xl transition-all relative ${
-                  activeGlobalNav === item.id 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'
-                }`}
-              >
-                <item.icon size={22} />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-auto flex flex-col gap-4 items-center">
-          <button
-            onClick={() => goToCoreView('members', 'all-members')}
-            className="p-2.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-xl transition-all"
-            title="Admin portal"
-          >
-            <Settings size={22} />
-          </button>
-          <button className="p-2.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-xl transition-all">
-            <Plus size={22} />
-          </button>
-          <button
-            onClick={handleLogout}
-            className="p-2.5 text-[#94a3b8] hover:text-red-200 hover:bg-red-500/10 rounded-xl transition-all"
-            title="Log out"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
-      </nav>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative bg-[#0d0e12]">
-        {/* Top Header Bar */}
-        <header className="h-[64px] border-b border-[#26272e] flex items-center justify-between px-6 bg-[#0d0e12] z-10">
-          <div className="flex items-center gap-3">
-            <h3 className="font-bold text-white text-sm tracking-[0.08em] uppercase">
-              {NEW_GLOBAL_NAV.find(n => n.id === activeGlobalNav)?.label || activeGlobalNav}
-            </h3>
-            {workspaceChoices.length > 0 && (
-              <select
-                value={supabaseWorkspaceId || ''}
-                onChange={(e) => setSupabaseWorkspaceId(e.target.value || null)}
-                className="bg-[#16171d] border border-[#26272e] text-[#cbd5e1] rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                title="Communication workspace"
-              >
-                {workspaceChoices.map((choice) => (
-                  <option key={choice.id} value={choice.id}>{choice.name} ({choice.slug})</option>
-                ))}
-              </select>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div ref={statusMenuRef} className="relative">
-              <button
-                onClick={() => setShowStatusMenu((prev) => !prev)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#16171d] border border-[#26272e] rounded-xl text-[#94a3b8] hover:text-white transition-all"
-              >
-                <Users size={16} />
-                <span className="text-xs font-bold">{onlineCount}</span>
-                <span className={`w-2 h-2 rounded-full ${getStatusDotClass(myStatus)}`} />
-                <ChevronDown size={14} className={`transition-transform ${showStatusMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showStatusMenu && (
-                <div className="absolute top-[calc(100%+8px)] left-0 w-64 bg-[#16171d] border border-[#26272e] rounded-xl shadow-2xl z-30 p-2">
-                  <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Set your status</p>
-                  <div className="space-y-1">
-                    {PRESENCE_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => handleSetStatus(option.value)}
-                        className={`w-full text-left px-2 py-2 rounded-lg flex items-start gap-2 transition-all ${
-                          myStatus === option.value
-                            ? 'bg-indigo-600/20 border border-indigo-500/30'
-                            : 'hover:bg-[#26272e] border border-transparent'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full mt-1.5 ${getStatusDotClass(option.value)}`} />
-                        <span>
-                          <span className="block text-xs font-semibold text-white">{option.label}</span>
-                          <span className="block text-[10px] text-[#94a3b8]">{option.hint}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-0.5 bg-[#16171d] border border-[#26272e] rounded-xl px-1.5 py-1">
-              <button onClick={() => goToCoreView('issues', 'following')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Favorite view">
-                <Star size={16} />
-              </button>
-              <button onClick={() => goToCoreView('code-prs', 'pull-requests')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="IDE page">
-                <Code2 size={16} />
-              </button>
-              <button onClick={() => goToCoreView('time-tracker', 'active-timer')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Time clock management">
-                <Clock size={16} />
-              </button>
-              <button onClick={() => goToCoreView('chat', 'messages')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="Chat page">
-                <MessageSquare size={16} />
-              </button>
-              <button onClick={() => goToCoreView('members', 'all-members')} className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all" aria-label="User profile settings">
-                <Settings size={16} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={toggleStandup}
-                className={`p-2 rounded-xl transition-all ${isVideoActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'}`}
-              >
-                <Headphones size={20} />
-              </button>
-              <button
-                onClick={handleHeaderVideoClick}
-                className={`p-2 rounded-xl transition-all ${isVideoActive && videoEnabled ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]'}`}
-              >
-                <Video size={20} />
-              </button>
-              {isVideoActive && (
-                <button
-                  onClick={terminateHuddle}
-                  className="px-3 py-2 bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
-                  title="Terminate UPS and release camera/microphone"
-                >
-                  End UPS
-                </button>
-              )}
-            </div>
-            <div className="h-6 w-px bg-[#26272e]" />
-            <div className="flex items-center bg-[#16171d] border border-[#26272e] rounded-xl px-3 py-1.5 gap-2">
-              <Search size={16} className="text-[#94a3b8]" />
-              <input type="text" placeholder="Search..." className="bg-transparent border-none text-xs text-white focus:outline-none w-48" />
-            </div>
-          </div>
-        </header>
-
-        {/* Page-Level Navigation Row */}
-        {activeGlobalNav === 'chat' ? (
-          <div className="border-b border-[#26272e] px-6 py-2 bg-[#0d0e12]">
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={commConversationId || ''}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const conversation = commConversations.find((item) => item.id === id);
-                  if (!conversation) return;
-                  setCommConversationId(conversation.id);
-                  setCurrentChannel({
-                    id: conversation.id,
-                    workspace_id: conversation.workspace_id || supabaseWorkspaceId || workspaceId,
-                    name: conversation.name,
-                  });
-                }}
-                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs min-w-[220px]"
-              >
-                <option value="">Select channel or DM</option>
-                {commConversations.map((conversation) => (
-                  <option key={conversation.id} value={conversation.id}>
-                    {conversation.kind === 'channel' ? `# ${conversation.name}` : `@ ${conversation.name}`}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                value={userSearchTerm}
-                onChange={(e) => searchUsersByName(e.target.value)}
-                placeholder="Search teammate"
-                className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs w-full max-w-sm"
-              />
-
-              <button
-                onClick={() => setShowCallLauncher(true)}
-                className="p-1.5 border border-[#303236] text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg"
-                title="Start call"
-              >
-                <Video size={14} />
-              </button>
-            </div>
-
-            {userSearchTerm.trim() && (
-              <div className="mt-2 space-y-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
-                {isSearchingUsers && <p className="text-[10px] text-[#64748b]">Searching users...</p>}
-                {!isSearchingUsers && userSearchResults.map((result) => (
-                  <div key={result.user_id} className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#16171d] rounded border border-[#303236] max-w-2xl">
-                    <span className="text-xs text-white truncate">{result.display_name || result.email || result.user_id}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => startPrivateCall({
-                          id: result.user_id,
-                          name: result.display_name || result.email || 'User',
-                          roomId: currentChannel?.id || 'general',
-                          workspaceId: result.default_workspace_id || workspaceId,
-                        })}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-[10px] font-semibold"
-                      >
-                        Open DM
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="h-[44px] border-b border-[#26272e] flex items-center px-6 bg-[#0d0e12]">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
-              {topBarTabs.map((tab: any) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSidebarItem(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
-                    activeSidebarItem === tab.id
-                      ? 'bg-[#26272e] text-white'
-                      : 'text-[#94a3b8] hover:text-white hover:bg-[#26272e]/50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-              <button className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all flex-shrink-0">
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Dynamic Content Surface */}
-        <div className="flex-1 flex overflow-hidden relative">
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Video Overlay / Grid */}
-            <AnimatePresence>
-              {isVideoActive && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: '300px', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="bg-[#0d0e12] border-b border-[#26272e] p-4 overflow-hidden"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setShowCallLauncher(true)}
-                        className="px-3 py-1.5 rounded-lg border border-[#303236] bg-[#16171d] text-xs text-white hover:bg-[#26272e]"
-                      >
-                        + Add to Call
-                      </button>
-                      <label className="px-3 py-1.5 rounded-lg border border-[#303236] bg-[#16171d] text-xs text-white hover:bg-[#26272e] cursor-pointer">
-                        + Share File
-                        <input type="file" className="hidden" onChange={handleHuddleFileInput} />
-                      </label>
-                    </div>
-                    <button
-                      onClick={() => setIsVideoSettingsOpen((prev) => !prev)}
-                      className="p-2 rounded-lg border border-[#303236] bg-[#16171d] text-[#cbd5e1] hover:bg-[#26272e]"
-                      title="Video settings"
-                    >
-                      <Settings size={16} />
-                    </button>
-                  </div>
-
-                  {isVideoSettingsOpen && (
-                    <div className="mb-3 bg-[#16171d] border border-[#26272e] rounded-xl p-3 flex flex-wrap items-center gap-3">
-                      <label className="flex items-center gap-2 text-xs text-[#cbd5e1]">
-                        <input
-                          type="checkbox"
-                          checked={isBackgroundBlurEnabled}
-                          onChange={(e) => setIsBackgroundBlurEnabled(e.target.checked)}
-                        />
-                        Blur background
-                      </label>
-                      <label className="text-xs text-[#cbd5e1] px-2 py-1 rounded border border-[#303236] cursor-pointer hover:bg-[#26272e]">
-                        Upload background
-                        <input type="file" accept="image/*" className="hidden" onChange={handleVideoBackgroundUpload} />
-                      </label>
-                      {customVideoBackgroundUrl && (
-                        <button
-                          onClick={() => setCustomVideoBackgroundUrl(null)}
-                          className="text-xs text-red-200 px-2 py-1 rounded border border-red-500/40 bg-red-500/10"
-                        >
-                          Remove background
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsHuddleDragging(true);
-                    }}
-                    onDragLeave={() => setIsHuddleDragging(false)}
-                    onDrop={async (e) => {
-                      e.preventDefault();
-                      setIsHuddleDragging(false);
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) {
-                        await uploadHuddleAsset(file);
-                      }
-                    }}
-                    className={`mb-3 px-3 py-2 rounded-lg border text-xs ${
-                      isHuddleDragging
-                        ? 'border-indigo-400 bg-indigo-500/10 text-indigo-200'
-                        : 'border-[#303236] bg-[#16171d] text-[#94a3b8]'
-                    }`}
-                  >
-                    {isHuddleUploading ? 'Uploading shared asset...' : 'Drag and drop documents or visuals into this UPS'}
-                  </div>
-
-                  <div className="flex gap-4 h-full overflow-x-auto custom-scrollbar pb-2">
-                    {screenShareStream && (
-                      <div className="w-64 flex-shrink-0">
-                        <VideoCard stream={screenShareStream} name="Shared Screen" />
-                      </div>
-                    )}
-                    <div className="w-64 flex-shrink-0">
-                      <VideoCard
-                        stream={localStream}
-                        name={`${userName} (You)`}
-                        isLocal
-                        muted
-                        blurBackground={isBackgroundBlurEnabled}
-                        backgroundImageUrl={customVideoBackgroundUrl}
-                      />
-                    </div>
-                    {Array.from(remoteStreams.entries()).map(([id, stream]) => {
-                      const participant = participants.find(p => p.id === id);
-                      return (
-                        <div key={id} className="w-64 flex-shrink-0">
-                          <VideoCard stream={stream} name={participant?.name || 'User'} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex justify-center mt-4 gap-3">
-                    <ControlButton 
-                      onClick={toggleAudio} 
-                      active={audioEnabled} 
-                      icon={audioEnabled ? Mic : MicOff} 
-                      label={audioEnabled ? 'Mute' : 'Unmute'}
-                    />
-                    <ControlButton 
-                      onClick={toggleVideo} 
-                      active={videoEnabled} 
-                      icon={videoEnabled ? Video : VideoOff} 
-                      label={videoEnabled ? 'Stop Video' : 'Start Video'}
-                    />
-                    <ControlButton
-                      onClick={toggleScreenShare}
-                      active={!screenShareStream}
-                      icon={Monitor}
-                      label={screenShareStream ? 'Stop Share' : 'Share'}
-                    />
-                    <ControlButton
-                      onClick={() => setShowCallLauncher(true)}
-                      icon={UserPlus}
-                      label="Add"
-                    />
-                    <button 
-                      onClick={terminateHuddle}
-                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-500/20 text-xs"
-                    >
-                      <LogOut size={16} />
-                      End Call
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Render Content based on activeSidebarItem */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              {renderContent()}
-            </div>
-          </div>
-
-          {/* Right Panel (DM Context) */}
-          <AnimatePresence>
-            {isChatOpen && activeGlobalNav === 'chat' && activeConversation?.kind !== 'channel' && (
-              <motion.section
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 360, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="bg-[#16171d] border-l border-[#26272e] flex flex-col flex-shrink-0 z-10"
-              >
-                <div className="h-[64px] border-b border-[#26272e] flex items-center justify-between px-6">
-                  <h3 className="font-bold text-white text-lg tracking-tight">Direct Message</h3>
-                  <button onClick={() => setIsChatOpen(false)} className="text-[#94a3b8] hover:text-white p-1.5 hover:bg-[#26272e] rounded-lg transition-all">
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="px-6 py-4 border-b border-[#26272e] bg-[#0d0e12] flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Profile</p>
-                    <p className="text-xs text-[#94a3b8] mt-1">Context for this direct conversation.</p>
-                  </div>
-                  <select
-                    value={myStatus}
-                    onChange={(e) => handleSetStatus(e.target.value as PresenceOptionValue)}
-                    className="bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {PRESENCE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                  <div>
-                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">About Person</h4>
-                    <div className="bg-[#0d0e12] rounded-xl p-4 border border-[#26272e]">
-                      <p className="text-sm text-white font-bold mb-1">@{activeConversation?.name || currentChannel?.name || 'user'}</p>
-                      <p className="text-xs text-[#94a3b8] leading-relaxed">DM panel is shown only for direct messages. Channels keep focus in the center stream.</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Members</h4>
-                      <span className="text-[10px] font-bold text-indigo-400">{onlineCount}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {onlineMembers.map((member) => {
-                        const presence = presenceByUserId.get(member.user_id);
-                        const status = presence?.status || 'offline';
-                        const isYou = member.user_id === userId;
-
-                        return (
-                          <button
-                            key={member.user_id}
-                            onClick={() => {
-                              if (isYou) return;
-                              startPrivateCall({
-                                id: member.user_id,
-                                name: member.user_name,
-                                roomId: currentChannel?.id || 'general',
-                                workspaceId: (member as any).home_workspace_id || member.workspace_id || workspaceId,
-                              });
-                            }}
-                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-all ${
-                              isYou
-                                ? 'bg-[#0d0e12] border-[#303236] cursor-default'
-                                : 'bg-[#0d0e12] border-[#303236] hover:border-indigo-500/50 hover:bg-[#1a1d21]'
-                            }`}
-                          >
-                            <span className="text-xs text-white font-semibold truncate text-left">
-                              {member.user_name}{isYou ? ' (You)' : ''}
-                            </span>
-                            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#94a3b8]">
-                              <span className={`w-2 h-2 rounded-full ${getStatusDotClass(status)}`} />
-                              {getStatusLabel(status)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-3">Pinned</h4>
-                    <div className="space-y-2">
-                      {messages.filter((message) => pinnedMessageIds.includes(message.id)).slice(0, 4).map((msg) => (
-                        <div key={msg.id} className="bg-[#0d0e12] border border-[#303236] rounded-lg px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-wide text-[#64748b]">{msg.userName}</p>
-                          <p className="text-xs text-[#cbd5e1] mt-1 line-clamp-2">{msg.text}</p>
-                        </div>
-                      ))}
-                      {messages.filter((message) => pinnedMessageIds.includes(message.id)).length === 0 && (
-                        <p className="text-xs text-[#64748b]">No pinned messages yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
-
-        </div>
-
-        {/* Unread Mentions Indicator (Bottom) */}
-      </main>
-
-      {/* Schedule Meeting Modal */}
-      <AnimatePresence>
-        {showCallLauncher && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Start Call</h2>
-                <button onClick={() => setShowCallLauncher(false)} className="text-[#94a3b8] hover:text-white">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 mb-4">
-                {[
-                  { id: 'member', label: 'Call Member' },
-                  { id: 'channel', label: 'Call Channel' },
-                  { id: 'team', label: 'Call Team' },
-                  { id: 'group', label: 'Call Multiple' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setCallMode(item.id as 'member' | 'channel' | 'group' | 'team');
-                      setSelectedCallMemberIds([]);
-                      setSelectedTeamCallId('');
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                      callMode === item.id ? 'bg-indigo-600 text-white' : 'bg-[#16171d] text-[#94a3b8] hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              {callMode !== 'channel' && callMode !== 'team' && (
-                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
-                  {panelMembers
-                    .filter((member) => member.user_id !== userId)
-                    .map((member) => {
-                      const selected = selectedCallMemberIds.includes(member.user_id);
-                      return (
-                        <button
-                          key={member.user_id}
-                          onClick={() => {
-                            if (callMode === 'member') {
-                              setSelectedCallMemberIds([member.user_id]);
-                              return;
-                            }
-                            setSelectedCallMemberIds((prev) =>
-                              selected ? prev.filter((id) => id !== member.user_id) : [...prev, member.user_id]
-                            );
-                          }}
-                          className={`w-full flex items-center justify-between px-2 py-2 rounded text-xs ${
-                            selected ? 'bg-indigo-600/20 border border-indigo-500/30 text-white' : 'bg-[#16171d] text-[#cbd5e1] border border-[#26272e]'
-                          }`}
-                        >
-                          <span>{member.user_name}</span>
-                          {selected && <UserCheck size={14} />}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-
-              {callMode === 'channel' && (
-                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 text-sm text-[#cbd5e1]">
-                  Channel call starts in current context: #{currentChannel?.name || 'general'}
-                </div>
-              )}
-
-              {callMode === 'team' && (
-                <div className="border border-[#303236] bg-[#0d0e12] rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-[#94a3b8]">Select team to call</p>
-                  <select
-                    value={selectedTeamCallId}
-                    onChange={(e) => setSelectedTeamCallId(e.target.value)}
-                    className="w-full bg-[#16171d] border border-[#303236] text-white rounded-lg px-2.5 py-2 text-xs"
-                  >
-                    <option value="">Choose team</option>
-                    {(workspace?.teams || []).map((team) => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <button onClick={() => setShowCallLauncher(false)} className="px-3 py-2 text-sm bg-[#303236] hover:bg-[#404246] text-white rounded-lg">Cancel</button>
-                <button
-                  onClick={launchCall}
-                  disabled={(callMode === 'member' || callMode === 'group') ? selectedCallMemberIds.length === 0 : callMode === 'team' ? !selectedTeamCallId : false}
-                  className="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-lg"
-                >
-                  Start Call
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {isMeetingModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-lg shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Schedule Video Meeting</h2>
-                <button onClick={() => setIsMeetingModalOpen(false)} className="text-[#94a3b8] hover:text-white">
-                  <X size={18} />
-                </button>
-              </div>
-
-              {meetingError && (
-                <div className="mb-3 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-red-300">
-                  {meetingError}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#94a3b8] uppercase tracking-wide mb-1.5">Meeting Title</label>
-                  <input
-                    value={meetingTitle}
-                    onChange={(e) => setMeetingTitle(e.target.value)}
-                    placeholder="Issue sync with backend"
-                    className="w-full bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#94a3b8] uppercase tracking-wide mb-1.5">Date and Time</label>
-                  <input
-                    type="datetime-local"
-                    value={meetingWhen}
-                    onChange={(e) => setMeetingWhen(e.target.value)}
-                    className="w-full bg-[#0d0e12] border border-[#303236] text-white rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#94a3b8] uppercase tracking-wide mb-1.5">Invite Members</label>
-                  <div className="max-h-36 overflow-y-auto custom-scrollbar border border-[#303236] rounded-lg p-2 bg-[#0d0e12] space-y-1">
-                    {panelMembers.map((member) => (
-                      <label key={member.user_id} className="flex items-center gap-2 text-xs text-[#cbd5e1]">
-                        <input
-                          type="checkbox"
-                          checked={meetingParticipantIds.includes(member.user_id)}
-                          onChange={(e) => {
-                            setMeetingParticipantIds((prev) =>
-                              e.target.checked ? [...prev, member.user_id] : prev.filter((id) => id !== member.user_id)
-                            );
-                          }}
-                        />
-                        {member.user_name}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <button onClick={() => setIsMeetingModalOpen(false)} className="px-3 py-2 text-sm bg-[#303236] hover:bg-[#404246] text-white rounded-lg">Cancel</button>
-                <button onClick={scheduleMeeting} className="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">Schedule</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Create Channel Modal */}
-      <AnimatePresence>
-        {showCreateChannel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#222529] border border-[#303236] p-6 rounded-2xl w-full max-w-3xl shadow-2xl"
-            >
-              <div className="mb-5">
-                <h2 className="text-xl font-bold text-white">Create a Channel</h2>
-                <p className="text-xs text-[#94a3b8] mt-1">Step {createChannelStep} of 3</p>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((step) => (
-                    <div
-                      key={step}
-                      className={`h-1.5 rounded-full ${createChannelStep >= step ? 'bg-indigo-500' : 'bg-[#303236]'}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateChannel} className="space-y-4">
-                {commError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 text-xs text-red-300">
-                    {commError}
-                  </div>
-                )}
-
-                {createChannelStep === 1 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel Name</label>
-                    <div className="relative">
-                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
-                      <input
-                        type="text"
-                        value={newChannelName}
-                        onChange={(e) => setNewChannelName(e.target.value)}
-                        placeholder="e.g. platform-ops"
-                        className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {createChannelStep === 2 && (
-                  <div className="space-y-3">
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Members</label>
-                    <input
-                      type="text"
-                      value={newChannelMemberSearch}
-                      onChange={(e) => setNewChannelMemberSearch(e.target.value)}
-                      placeholder="Filter by name, email, or ID"
-                      className="w-full bg-[#1a1d21] border border-[#303236] text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <div className="max-h-72 overflow-y-auto custom-scrollbar border border-[#303236] rounded-xl bg-[#1a1d21] p-3">
-                      {filteredNewChannelMembers.length === 0 && (
-                        <p className="text-xs text-[#64748b] px-2 py-2">No members match this filter.</p>
-                      )}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {filteredNewChannelMembers.map((member) => {
-                          const checked = newChannelMemberIds.includes(member.user_id);
-                          const displayName = member.user_name || member.user_id;
-                          return (
-                            <button
-                              key={member.user_id}
-                              type="button"
-                              onClick={() => toggleChannelWizardMember(member.user_id)}
-                              className={`relative group rounded-xl border p-2 transition-all ${checked ? 'border-indigo-500 bg-indigo-500/10' : 'border-[#303236] bg-[#111218] hover:bg-[#22252b]'}`}
-                              aria-label={`Toggle member ${displayName}`}
-                            >
-                              <div className="mx-auto w-12 h-12 rounded-full border border-indigo-500/40 bg-indigo-600/25 text-white text-xs font-bold flex items-center justify-center">
-                                {getInitials(displayName)}
-                              </div>
-                              <p className="mt-2 text-[11px] text-[#cbd5e1] truncate">{displayName}</p>
-                              <div className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 w-52 bg-[#0a0b0f] border border-[#303236] rounded-lg px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                <p className="text-[11px] text-white truncate">{displayName}</p>
-                                <p className="text-[10px] text-[#94a3b8] truncate">{member.user_id}</p>
-                              </div>
-                              <span className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${checked ? 'bg-indigo-400' : 'bg-[#475569]'}`} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-[#94a3b8]">{newChannelMemberIds.length} member(s) selected.</p>
-                  </div>
-                )}
-
-                {createChannelStep === 3 && (
-                  <div className="space-y-3 rounded-xl border border-[#303236] bg-[#1a1d21] p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8]">Review</p>
-                    <div className="text-sm text-white">
-                      <span className="text-[#94a3b8]">Channel:</span> #{newChannelName.trim() || 'untitled-channel'}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-white">
-                        <span className="text-[#94a3b8]">Visibility:</span> {newChannelVisibility === 'private' ? 'Private' : 'Public'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setNewChannelVisibility('public')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                            newChannelVisibility === 'public'
-                              ? 'bg-indigo-600/20 border-indigo-500/60 text-white'
-                              : 'bg-[#111218] border-[#303236] text-[#cbd5e1] hover:bg-[#22252b]'
-                          }`}
-                        >
-                          Public
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNewChannelVisibility('private')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                            newChannelVisibility === 'private'
-                              ? 'bg-indigo-600/20 border-indigo-500/60 text-white'
-                              : 'bg-[#111218] border-[#303236] text-[#cbd5e1] hover:bg-[#22252b]'
-                          }`}
-                        >
-                          Private
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-sm text-white">
-                      <span className="text-[#94a3b8]">Members invited:</span> {newChannelMemberIds.length}
-                    </div>
-                    <p className="text-[11px] text-[#94a3b8]">Submit will create the channel and add selected members beneath Channels.</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-2">
-                  <button 
-                    type="button"
-                    onClick={closeCreateChannelWizard}
-                    className="flex-1 bg-[#303236] hover:bg-[#404246] text-white font-semibold py-2 rounded-xl transition-all"
-                  >
-                    Cancel
-                  </button>
-
-                  {createChannelStep > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setCreateChannelStep((prev) => (prev === 1 ? 1 : (prev - 1) as 1 | 2 | 3))}
-                      className="flex-1 bg-[#26272e] hover:bg-[#303236] text-white font-semibold py-2 rounded-xl transition-all"
-                    >
-                      Back
-                    </button>
-                  )}
-
-                  {createChannelStep < 3 ? (
-                    <button
-                      type="button"
-                      onClick={() => setCreateChannelStep((prev) => (prev + 1) as 1 | 2 | 3)}
-                      disabled={createChannelStep === 1 && !newChannelName.trim()}
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
-                    >
-                      Next
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={!newChannelName.trim() || isCreatingCommChannel}
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition-all"
-                    >
-                      {isCreatingCommChannel ? 'Creating...' : 'Submit'}
-                    </button>
-                  )}
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-    </div>
-  );
-}
-
-interface VideoCardProps {
-  stream: MediaStream | null;
-  name: string;
-  isLocal?: boolean;
-  muted?: boolean;
-  blurBackground?: boolean;
-  backgroundImageUrl?: string | null;
-  key?: string | number;
-}
-
-function VideoCard({ stream, name, isLocal, muted, blurBackground, backgroundImageUrl }: VideoCardProps) {
+﻿import { useState, useEffect, useRef } from "react";
+import IdeApp from "./components/views/IDEView";
+import { useWebRTC } from "./hooks/useWebRTC";
+import { useReachStore } from "./store/useReachStore";
+import { supabase } from "./lib/supabase";
+
+function VideoPlayer({ stream, muted = false, style, ...props }: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
-
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
+  return <video ref={videoRef} autoPlay playsInline muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover", ...style }} {...props} />;
+}
+
+// ============================================================
+// THEME SYSTEM
+// ============================================================
+const THEMES = {
+  dark: {
+    bg: "#07070A", bgSecondary: "#0E0E12", bgTertiary: "#141418",
+    bgHover: "#1A1A20", border: "#1E1E28", borderStrong: "#2A2A38",
+    text: "#E8E8E2", textSecondary: "#8080A0", textMuted: "#404058",
+    accent: "#47BFFF", accentDim: "rgba(71,191,255,0.12)", accentText: "#47BFFF",
+    blue: "#47BFFF", orange: "#FF7040", red: "#FF4040", green: "#40FF90",
+    purple: "#A060FF", yellow: "#FFD040",
+    shadow: "0 2px 8px rgba(0,0,0,0.6)", shadowLg: "0 16px 48px rgba(0,0,0,0.7)",
+  },
+  light: {
+    bg: "#F2F2EE", bgSecondary: "#FFFFFF", bgTertiary: "#EAEAE6",
+    bgHover: "#E4E4E0", border: "#D8D8D2", borderStrong: "#C0C0BA",
+    text: "#16161A", textSecondary: "#505060", textMuted: "#909098",
+    accent: "#0060A8", accentDim: "rgba(0,96,168,0.10)", accentText: "#0060A8",
+    blue: "#0060A8", orange: "#B83000", red: "#B82000", green: "#006828",
+    purple: "#6020C0", yellow: "#806000",
+    shadow: "0 2px 8px rgba(0,0,0,0.08)", shadowLg: "0 16px 48px rgba(0,0,0,0.14)",
+  },
+};
+
+// ============================================================
+// DATA
+// ============================================================
+const ISSUES = [
+  { id:"RC-001", title:"API client code generation with retry logic", status:"in_progress", priority:"high", points:5, assignee:"SL", project:"Core", tags:["backend","api"], pr:"#42", time:"2h 14m", pillar:"work", files:["src/api/client.ts","src/api/retry.ts"] },
+  { id:"RC-002", title:"Auth redirect after Google OAuth flow", status:"review", priority:"high", points:3, assignee:"MK", project:"Core", tags:["auth","bug"], pr:"#38", time:"4h 02m", pillar:"work", files:["src/auth/Login.tsx","src/lib/supabase.ts"] },
+  { id:"RC-003", title:"Kanban WIP limit enforcement UI", status:"todo", priority:"medium", points:8, assignee:"JP", project:"Platform", tags:["frontend"], pr:null, time:"0m", pillar:"work", files:[] },
+  { id:"RC-004", title:"EVM cost performance index dashboard", status:"todo", priority:"medium", points:13, assignee:"AL", project:"Analytics", tags:["analytics","evm"], pr:null, time:"0m", pillar:"insights", files:[] },
+  { id:"RC-005", title:"Real-time presence cursors in editor", status:"done", priority:"low", points:5, assignee:"SL", project:"IDE", tags:["realtime","collab"], pr:"#35", time:"6h 30m", pillar:"work", files:["src/ide/Editor.tsx"] },
+  { id:"RC-006", title:"Sprint burn-down chart auto-generation", status:"in_progress", priority:"high", points:8, assignee:"MK", project:"Analytics", tags:["analytics","sprint"], pr:"#44", time:"1h 48m", pillar:"insights", files:["src/analytics/Burndown.tsx"] },
+  { id:"RC-007", title:"Role-based permission matrix for projects", status:"todo", priority:"medium", points:5, assignee:"JP", project:"Platform", tags:["permissions"], pr:null, time:"0m", pillar:"structure", files:[] },
+  { id:"RC-008", title:"Drag-and-drop issue -> chat channel binding", status:"todo", priority:"high", points:13, assignee:null, project:"Core", tags:["dnd","chat"], pr:null, time:"0m", pillar:"work", files:[] },
+];
+
+const MEMBERS = [
+  { id:"SL", name:"Sarah L.", role:"Frontend Eng", status:"active", color:"#47BFFF" },
+  { id:"MK", name:"Marcus K.", role:"Backend Eng", status:"active", color:"#FF7040" },
+  { id:"JP", name:"Jordan P.", role:"Full Stack", status:"away", color:"#C8FF00" },
+  { id:"AL", name:"Alex L.", role:"PM", status:"active", color:"#FF47C0" },
+];
+
+const CHANNELS = [
+  { id:"general", name:"general", unread:2 },
+  { id:"engineering", name:"engineering", unread:0 },
+  { id:"done", name:"done", unread:4 },
+  { id:"handoffs", name:"handoffs", unread:1 },
+  { id:"bugs", name:"bugs", unread:7 },
+  { id:"pr-reviews", name:"pr-reviews", unread:0 },
+];
+
+const STATUS = { todo:{label:"Todo",color:"#404058"}, in_progress:{label:"In Progress",color:"#47BFFF"}, review:{label:"Review",color:"#C8FF00"}, done:{label:"Done",color:"#40FF90"} };
+const PRIORITY = { high:{label:"High",sym:"^^",color:"#FF4040"}, medium:{label:"Med",sym:"^",color:"#FFD040"}, low:{label:"Low",sym:"v",color:"#404058"} };
+
+const NAV = [
+  { pillar:"WORK", pillarKey:"accent", items:[
+    { id:"home", label:"Home", icon:"~" },
+    { id:"board", label:"Sprint Board", icon:"#" },
+    { id:"backlog", label:"Backlog", icon:"=" },
+    { id:"mytasks", label:"My Tasks", icon:"o" },
+    { id:"roadmap", label:"Roadmap", icon:">" },
+    { id:"ide", label:"Code & PRs", icon:"/", badge:3 },
+    { id:"ideapp", label:"IDE", icon:"[/]" },
+    { id:"docs", label:"Docs", icon:"[]" },
+    { id:"chat", label:"Chat", icon:"*", badge:14 },
+    { id:"standup", label:"Standups", icon:"o", badge:1 },
+  ]},
+  { pillar:"INSIGHTS", pillarKey:"blue", items:[
+    { id:"dashboard", label:"Dashboard", icon:"@" },
+    { id:"analytics", label:"Analytics", icon:"~" },
+    { id:"reports", label:"Reports", icon:"$" },
+  ]},
+  { pillar:"STRUCTURE", pillarKey:"orange", items:[
+    { id:"projects", label:"Projects", icon:"#" },
+    { id:"members", label:"Members", icon:"o" },
+    { id:"clients", label:"Clients", icon:"x" },
+    { id:"settings", label:"Settings", icon:"%" },
+  ]},
+];
+
+// ============================================================
+// MICRO COMPONENTS
+// ============================================================
+function Avatar({ id, size=28, color }: any) {
+  const m = MEMBERS.find(m=>m.id===id);
+  const bg = m?.color || color || "#505060";
+  return <div style={{ width:size,height:size,borderRadius:"50%",background:bg+"28",border:`1.5px solid ${bg}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.37,fontWeight:700,color:bg,flexShrink:0,fontFamily:"inherit" }}>{id?.slice(0,2)}</div>;
+}
+
+function Dot({ status }) {
+  const c = {active:"#40FF90",away:"#FFD040",offline:"#404058"}[status]||"#404058";
+  return <div style={{ width:7,height:7,borderRadius:"50%",background:c,boxShadow:status==="active"?`0 0 5px ${c}`:"none" }} />;
+}
+
+function Tag({ label, color, t }: any) {
+  return <span style={{ fontSize:10,padding:"2px 7px",background:color?color+"18":t.bgTertiary,color:color||t.textMuted,borderRadius:3,letterSpacing:"0.04em",border:`1px solid ${color?color+"30":t.border}` }}>{label}</span>;
+}
+
+function Btn({ children, accent, t, onClick, small }: any) {
+  return <button onClick={onClick} style={{ background:accent?t.accentDim:"none",border:`1px solid ${accent?t.accent:t.border}`,color:accent?t.accentText:t.textSecondary,borderRadius:5,padding:small?"4px 10px":"7px 14px",fontSize:small?10:12,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em",fontWeight:accent?700:400,transition:"all 0.15s",whiteSpace:"nowrap" }}>{children}</button>;
+}
+
+function SectionLabel({ children, t, style }: any) {
+  return <div style={{ fontSize:9,letterSpacing:"0.2em",color:t.textMuted,textTransform:"uppercase",marginBottom:10,fontFamily:"inherit" }}>{children}</div>;
+}
+
+function Card({ children, t, style={} }: any) {
+  return <div style={{ background:t.bgSecondary,border:`1px solid ${t.border}`,borderRadius:8,padding:20,...style }}>{children}</div>;
+}
+
+function KPICard({ label, value, sub, trend, up, t }) {
+  return (
+    <Card t={t}>
+      <SectionLabel t={t}>{label}</SectionLabel>
+      <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:32,color:t.text,lineHeight:1 }}>{value}</div>
+      <div style={{ fontSize:11,color:t.textMuted,marginTop:4 }}>{sub}</div>
+      <div style={{ fontSize:11,color:up?t.green:t.red,marginTop:6 }}>{trend}</div>
+    </Card>
+  );
+}
+
+function IssuePill({ issue, t, onClick, draggable, onDragStart }: any) {
+  return (
+    <div
+      draggable={draggable} onDragStart={onDragStart} onClick={onClick}
+      style={{ background:t.bgSecondary,border:`1px solid ${t.border}`,borderRadius:7,padding:"11px 14px",cursor:draggable?"grab":"pointer",transition:"all 0.15s",userSelect:"none" }}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor=t.borderStrong;e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow=t.shadow;}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor=t.border;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}
+    >
+      <div style={{ display:"flex",justifyContent:"space-between",marginBottom:6 }}>
+        <span style={{ fontSize:10,color:t.accent,letterSpacing:"0.08em" }}>{issue.id}</span>
+        <div style={{ display:"flex",gap:6 }}>
+          <span style={{ fontSize:10,color:PRIORITY[issue.priority].color }}>{PRIORITY[issue.priority].sym}</span>
+          <span style={{ fontSize:10,color:t.textMuted }}>{issue.points}pt</span>
+        </div>
+      </div>
+      <div style={{ fontSize:13,color:t.text,lineHeight:1.4,marginBottom:8 }}>{issue.title}</div>
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+        <div style={{ display:"flex",gap:4 }}>
+          {issue.tags.slice(0,2).map(tag=><Tag key={tag} label={tag} t={t}/>)}
+        </div>
+        <div style={{ display:"flex",gap:6,alignItems:"center" }}>
+          {issue.pr&&<span style={{ fontSize:10,color:t.blue }}>{issue.pr}</span>}
+          {issue.assignee&&<Avatar id={issue.assignee} size={20}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MINI CHART COMPONENTS
+// ============================================================
+function SparkLine({ data, color, width=80, height=32 }) {
+  if(!data||data.length<2) return null;
+  const max=Math.max(...data), min=Math.min(...data);
+  const range=max-min||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*width},${height-((v-min)/range*(height-4)+2)}`).join(" ");
+  return <svg width={width} height={height}><polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+
+function BarChart({ data, color, t, width=200, height=60 }) {
+  const max=Math.max(...data.map(d=>d.v))||1;
+  const bw=Math.floor(width/data.length)-4;
+  return (
+    <svg width={width} height={height+20}>
+      {data.map((d,i)=>{
+        const bh=Math.max(2,(d.v/max)*(height-8));
+        return (
+          <g key={i}>
+            <rect x={i*(bw+4)} y={height-bh} width={bw} height={bh} fill={color} rx={2} opacity={0.85}/>
+            <text x={i*(bw+4)+bw/2} y={height+14} textAnchor="middle" fontSize={9} fill={t.textMuted} fontFamily="inherit">{d.l}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function DonutChart({ segments, size=80 }) {
+  let offset=0;
+  const r=30, cx=40, cy=40, circ=2*Math.PI*r;
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1E1E28" strokeWidth="12"/>
+      {segments.map((s,i)=>{
+        const dash=s.pct/100*circ;
+        const el=<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth="12" strokeDasharray={`${dash} ${circ-dash}`} strokeDashoffset={-offset*circ/100+circ/4} strokeLinecap="round"/>;
+        offset+=s.pct;
+        return el;
+      })}
+    </svg>
+  );
+}
+
+// ============================================================
+// MODULE: LANDING / HOME
+// ============================================================
+function Home({ t, setModule }) {
+  const done=ISSUES.filter(i=>i.status==="done").length;
+  const inProg=ISSUES.filter(i=>i.status==="in_progress").length;
+  const pct=Math.round(done/ISSUES.length*100);
 
   return (
-    <div className="relative bg-[#16171d] rounded-2xl overflow-hidden border border-[#26272e] aspect-video group shadow-2xl transition-all hover:border-indigo-500/30">
-      {backgroundImageUrl && (
-        <div className="absolute inset-0">
-          <img src={backgroundImageUrl} alt="background" className="w-full h-full object-cover opacity-60" />
+    <div style={{ padding:"32px 40px",overflowY:"auto",height:"100%" }}>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      
+      {/* Hero */}
+      <div style={{ marginBottom:40,animation:"fadeUp 0.4s ease both" }}>
+        <div style={{ fontSize:10,color:t.textMuted,letterSpacing:"0.2em",marginBottom:6 }}>MONDAY, MARCH 10 . SPRINT 12</div>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:"clamp(28px,4vw,42px)",color:t.text,lineHeight:1.1,marginBottom:8 }}>
+          Good morning, <span style={{ color:t.accent }}>Alex.</span>
+        </h1>
+        <p style={{ fontSize:14,color:t.textSecondary,lineHeight:1.7,maxWidth:500 }}>
+          You have <strong style={{ color:t.text }}>3 issues in progress</strong>, 1 standup in 20 minutes, and 2 PRs waiting for your review.
+        </p>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display:"flex",gap:10,marginBottom:36,flexWrap:"wrap",animation:"fadeUp 0.4s 0.05s ease both",opacity:0 }}>
+        {[
+          { label:"+ New Issue", key:"board", accent:true },
+          { label:"[B] Sprint Board", key:"board" },
+          { label:"[/] Code & PRs", key:"ide" },
+          { label:"[o] Join Standup", key:"standup", special:"#FF4040" },
+          { label:"[D] Open Docs", key:"docs" },
+        ].map(a=>(
+          <button key={a.key+a.label} onClick={()=>setModule(a.key)} style={{
+            background:a.accent?t.accentDim:a.special?a.special+"18":"none",
+            border:`1px solid ${a.accent?t.accent:a.special||t.border}`,
+            color:a.accent?t.accentText:a.special||t.textSecondary,
+            borderRadius:6,padding:"8px 16px",fontSize:12,cursor:"pointer",
+            fontFamily:"inherit",fontWeight:a.accent||a.special?700:400,
+            letterSpacing:"0.05em",
+          }}>{a.label}</button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div style={{ display:"grid",gridTemplateColumns:"2fr 1fr",gap:16,marginBottom:16 }}>
+        {/* Sprint progress */}
+        <Card t={t} style={{ animation:"fadeUp 0.4s 0.1s ease both",opacity:0 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
+            <div>
+              <SectionLabel t={t}>SPRINT 12 PROGRESS</SectionLabel>
+              <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:28,color:t.text }}>{pct}%</div>
+              <div style={{ fontSize:12,color:t.textMuted }}>6 days remaining . {done} of {ISSUES.length} done</div>
+            </div>
+            <DonutChart size={72} segments={[
+              { pct:pct, color:t.accent },
+              { pct:Math.round(inProg/ISSUES.length*100), color:t.blue },
+              { pct:100-pct-Math.round(inProg/ISSUES.length*100), color:t.border },
+            ]}/>
+          </div>
+          {/* Progress bar per column */}
+          {Object.entries(STATUS).map(([key,meta])=>{
+            const cnt=ISSUES.filter(i=>i.status===key).length;
+            const p=Math.round(cnt/ISSUES.length*100);
+            return (
+              <div key={key} style={{ marginBottom:10 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                  <span style={{ fontSize:12,color:t.text }}>{meta.label}</span>
+                  <span style={{ fontSize:11,color:t.textMuted }}>{cnt}</span>
+                </div>
+                <div style={{ height:3,background:t.bgTertiary,borderRadius:2,overflow:"hidden" }}>
+                  <div style={{ width:`${p}%`,height:"100%",background:meta.color,borderRadius:2,transition:"width 0.8s ease" }}/>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+
+        {/* Right column */}
+        <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+          {/* Standup alert */}
+          <div style={{ background:t.red+"12",border:`1px solid ${t.red}40`,borderRadius:8,padding:16,animation:"fadeUp 0.4s 0.12s ease both",opacity:0 }}>
+            <div style={{ fontSize:10,color:t.red,letterSpacing:"0.12em",marginBottom:4 }}>STANDUP IN 20 MIN</div>
+            <div style={{ fontSize:14,fontWeight:700,color:t.text,marginBottom:8 }}>Daily . Eng Team</div>
+            <div style={{ display:"flex",marginBottom:10 }}>
+              {MEMBERS.slice(0,3).map((m,i)=><div key={m.id} style={{ marginLeft:i>0?-8:0 }}><Avatar id={m.id} size={26}/></div>)}
+              <div style={{ marginLeft:-8,width:26,height:26,borderRadius:"50%",background:t.bgTertiary,border:`1px solid ${t.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:t.textMuted }}>+1</div>
+            </div>
+            <Btn accent t={t} onClick={()=>setModule("standup")}>Join Now {"->"}</Btn>
+          </div>
+
+          {/* My PRs */}
+          <Card t={t} style={{ animation:"fadeUp 0.4s 0.15s ease both",opacity:0 }}>
+            <SectionLabel t={t}>MY PRs WAITING</SectionLabel>
+            {ISSUES.filter(i=>i.pr&&i.status==="review").map(i=>(
+              <div key={i.id} onClick={()=>setModule("ide")} style={{ padding:"8px 0",borderBottom:`1px solid ${t.border}`,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center" }}
+                onMouseEnter={e=>e.currentTarget.style.opacity="0.7"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                <div>
+                  <div style={{ fontSize:11,color:t.accent }}>{i.pr} . {i.id}</div>
+                  <div style={{ fontSize:12,color:t.text }}>{i.title.slice(0,32)}...</div>
+                </div>
+                <span style={{ fontSize:10,padding:"2px 7px",background:t.yellow+"20",color:t.yellow,borderRadius:3 }}>Review</span>
+              </div>
+            ))}
+          </Card>
         </div>
-      )}
-      {stream ? (
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
-          muted={muted}
-          className={`w-full h-full object-cover ${isLocal ? 'scale-x-[-1]' : ''} ${blurBackground ? 'blur-sm scale-110' : ''}`}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-[#0d0e12]">
-          <div className="w-24 h-24 bg-indigo-600 rounded-3xl flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-indigo-500/20">
-            {name[0]?.toUpperCase() || '?'}
+      </div>
+
+      {/* Bottom row */}
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16 }}>
+        {/* Recent issues */}
+        <Card t={t} style={{ animation:"fadeUp 0.4s 0.18s ease both",opacity:0 }}>
+          <SectionLabel t={t}>MY ISSUES</SectionLabel>
+          {ISSUES.filter(i=>i.assignee==="AL").slice(0,3).map(i=>(
+            <div key={i.id} style={{ display:"flex",gap:8,alignItems:"flex-start",marginBottom:10 }}>
+              <div style={{ width:6,height:6,borderRadius:"50%",background:STATUS[i.status].color,marginTop:5,flexShrink:0 }}/>
+              <div>
+                <div style={{ fontSize:11,color:t.accent }}>{i.id}</div>
+                <div style={{ fontSize:12,color:t.text,lineHeight:1.3 }}>{i.title.slice(0,45)}...</div>
+              </div>
+            </div>
+          ))}
+        </Card>
+
+        {/* EVM snapshot */}
+        <Card t={t} style={{ animation:"fadeUp 0.4s 0.2s ease both",opacity:0 }}>
+          <SectionLabel t={t}>EVM SNAPSHOT</SectionLabel>
+          {[["PV","$1,400",t.blue],["EV","$1,456",t.accent],["AC","$1,400",t.orange]].map(([k,v,c])=>(
+            <div key={k} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+              <span style={{ fontSize:11,color:t.textMuted }}>{k}</span>
+              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                <div style={{ width:60,height:3,background:t.bgTertiary,borderRadius:2,overflow:"hidden" }}>
+                  <div style={{ width:parseInt(v.replace(/\D/g,""))/14+"px",maxWidth:"100%",height:"100%",background:c }}/>
+                </div>
+                <span style={{ fontSize:12,fontWeight:700,color:c,width:52,textAlign:"right" }}>{v}</span>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${t.border}`,display:"flex",gap:16 }}>
+            {[["CPI","1.04",true],["SPI","1.04",true]].map(([k,v,up])=>(
+              <div key={k}><div style={{ fontSize:10,color:t.textMuted }}>{k}</div><div style={{ fontSize:18,fontWeight:700,color:up?t.green:t.red }}>{v}</div></div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Velocity */}
+        <Card t={t} style={{ animation:"fadeUp 0.4s 0.22s ease both",opacity:0 }}>
+          <SectionLabel t={t}>VELOCITY . LAST 6 SPRINTS</SectionLabel>
+          <div style={{ display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:4 }}>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:28,color:t.text }}>42</div>
+            <span style={{ fontSize:11,color:t.green }}>+12%</span>
+          </div>
+          <BarChart t={t} color={t.accent} width={180} height={50} data={[{v:28,l:"S7"},{v:34,l:"S8"},{v:30,l:"S9"},{v:38,l:"S10"},{v:40,l:"S11"},{v:42,l:"S12"}]}/>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: SPRINT BOARD
+// ============================================================
+function Board({ t }) {
+  const cols=["todo","in_progress","review","done"];
+  const [issues,setIssues]=useState(ISSUES);
+  const [drag,setDrag]=useState(null);
+  const [sel,setSel]=useState(null);
+
+  const grouped=cols.reduce((a,c)=>({...a,[c]:issues.filter(i=>i.status===c)}),[]);
+
+  const velData=[28,34,30,38,40,42];
+  const burnIdeal=[42,36,30,24,18,12,6,0];
+  const burnActual=[42,38,32,28];
+
+  return (
+    <div style={{ display:"flex",flexDirection:"column",height:"100%",overflow:"hidden" }}>
+      {/* Header */}
+      <div style={{ padding:"14px 24px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0 }}>
+        <div>
+          <div style={{ fontSize:10,color:t.textMuted,letterSpacing:"0.12em",marginBottom:2 }}>SPRINT 12 . MAR 3-17</div>
+          <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+            <span style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:18,color:t.text }}>Sprint Board</span>
+            <span style={{ fontSize:11,padding:"2px 8px",background:t.accentDim,color:t.accent,borderRadius:3 }}>IN PROGRESS</span>
           </div>
         </div>
-      )}
-      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-xl px-4 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-white/10">
-        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-        {name}
-        {isLocal && <span className="text-[10px] opacity-60 font-medium">(You)</span>}
-      </div>
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-        <div className="bg-black/60 backdrop-blur-xl p-2 rounded-xl border border-white/10">
-          <Settings size={16} className="text-white cursor-pointer" />
+        <div style={{ display:"flex",gap:24,alignItems:"center" }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:22,color:t.text }}>42</div>
+            <div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.08em" }}>PTS TOTAL</div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:22,color:t.accent }}>28</div>
+            <div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.08em" }}>COMPLETE</div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:22,color:t.text }}>6d</div>
+            <div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.08em" }}>REMAIN</div>
+          </div>
+          {/* Mini burn-down */}
+          <div style={{ position:"relative" }}>
+            <svg width={120} height={48} viewBox="0 0 120 48">
+              <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#40FF90" stopOpacity="0.15"/><stop offset="100%" stopColor="#40FF90" stopOpacity="0"/></linearGradient></defs>
+              {burnIdeal.map((v,i,arr)=>{
+                if(i===arr.length-1)return null;
+                const x1=i/7*120,y1=v/42*40+4,x2=(i+1)/7*120,y2=arr[i+1]/42*40+4;
+                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={t.borderStrong} strokeWidth={1} strokeDasharray="3,2"/>;
+              })}
+              <polyline points={burnActual.map((v,i)=>`${i/7*120},${v/42*40+4}`).join(" ")} fill="none" stroke={t.accent} strokeWidth={2} strokeLinecap="round"/>
+              {burnActual.map((v,i)=><circle key={i} cx={i/7*120} cy={v/42*40+4} r={2.5} fill={t.accent}/>)}
+              <text x={0} y={48} fontSize={8} fill={t.textMuted} fontFamily="inherit">Burn-down</text>
+            </svg>
+          </div>
         </div>
       </div>
+
+      {/* Columns */}
+      <div style={{ display:"flex",flex:1,overflow:"auto" }}>
+        {cols.map((col,ci)=>{
+          const meta=STATUS[col];
+          const colIssues=grouped[col];
+          const wip=col==="in_progress"&&colIssues.length>=3;
+          return (
+            <div key={col}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={()=>{if(drag)setIssues(p=>p.map(i=>i.id===drag?{...i,status:col}:i));setDrag(null);}}
+              style={{ flex:1,minWidth:220,borderRight:ci<cols.length-1?`1px solid ${t.border}`:"none",display:"flex",flexDirection:"column",background:wip?t.orange+"06":"transparent" }}
+            >
+              <div style={{ padding:"12px 14px 10px",borderBottom:`2px solid ${meta.color}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:t.bg,zIndex:2 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:7 }}>
+                  <div style={{ width:6,height:6,borderRadius:"50%",background:meta.color,boxShadow:`0 0 6px ${meta.color}` }}/>
+                  <span style={{ fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:t.text }}>{meta.label.toUpperCase()}</span>
+                  {wip&&<span style={{ fontSize:9,color:t.orange,background:t.orange+"18",borderRadius:3,padding:"1px 5px" }}>WIP LIMIT</span>}
+                </div>
+                <span style={{ fontSize:11,color:t.textMuted }}>{colIssues.length}</span>
+              </div>
+              <div style={{ padding:10,display:"flex",flexDirection:"column",gap:8,overflowY:"auto",flex:1 }}>
+                {colIssues.map(issue=>(
+                  <IssuePill key={issue.id} issue={issue} t={t} draggable onDragStart={()=>setDrag(issue.id)} onClick={()=>setSel(issue)}/>
+                ))}
+                {colIssues.length===0&&<div style={{ border:`2px dashed ${t.border}`,borderRadius:6,padding:"28px 12px",textAlign:"center",color:t.textMuted,fontSize:11 }}>Drop here</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {sel&&<IssueDetail issue={sel} t={t} onClose={()=>setSel(null)}/>}
     </div>
   );
 }
 
-function ControlButton({ onClick, active = true, icon: Icon, label, className = "" }: any) {
+// ============================================================
+// ISSUE DETAIL PANEL
+// ============================================================
+function IssueDetail({ issue, t, onClose }) {
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <button 
-        onClick={onClick}
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all transform active:scale-90 ${
-          active 
-            ? 'bg-[#26272e] text-[#e2e8f0] hover:bg-[#303236] shadow-lg' 
-            : 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20'
-        }`}
-      >
-        <Icon size={24} />
-      </button>
-      <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">{label}</span>
-    </div>
-  );
-}
-
-function ChatInput({
-  onSend,
-  onUploadFile,
-  onVideoClick,
-  onTerminateVideo,
-  isVideoActive,
-  conversationName,
-  conversationKind,
-  onScheduleMeeting,
-}: {
-  onSend: (text?: string, fileData?: any) => void;
-  onUploadFile: (file: File) => Promise<{ url: string; name: string; type: string }>;
-  onVideoClick: () => void;
-  onTerminateVideo: () => void;
-  isVideoActive: boolean;
-  conversationName: string;
-  conversationKind: 'channel' | 'dm';
-  onScheduleMeeting: () => void;
-}) {
-  const [text, setText] = useState('');
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (text.trim()) {
-      onSend(text);
-      setText('');
-      setShowEmoji(false);
-    }
-  };
-
-  const handleEmojiClick = (emojiData: any) => {
-    setText(prev => prev + emojiData.emoji);
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const uploaded = await onUploadFile(file);
-      onSend(undefined, uploaded);
-    } catch (err) {
-      console.error("Upload failed:", err);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  return (
-    <div className="relative">
-      <AnimatePresence>
-        {showEmoji && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="absolute bottom-full left-0 mb-4 z-50"
-          >
-            <EmojiPicker 
-              onEmojiClick={handleEmojiClick}
-              theme={Theme.DARK}
-              width={320}
-              height={400}
-            />
-          </motion.div>
+    <div style={{ position:"absolute",right:0,top:0,bottom:0,width:440,background:t.bgSecondary,borderLeft:`1px solid ${t.border}`,boxShadow:t.shadowLg,display:"flex",flexDirection:"column",zIndex:50,animation:"slideIn 0.2s ease" }}>
+      <style>{`@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
+      <div style={{ padding:"14px 18px",borderBottom:`1px solid ${t.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+        <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+          <span style={{ fontSize:11,color:t.accent,letterSpacing:"0.08em" }}>{issue.id}</span>
+          <span style={{ fontSize:10,padding:"2px 7px",background:STATUS[issue.status].color+"20",color:STATUS[issue.status].color,borderRadius:3 }}>{STATUS[issue.status].label}</span>
+        </div>
+        <button onClick={onClose} style={{ background:"none",border:"none",color:t.textMuted,cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px" }}>x</button>
+      </div>
+      <div style={{ padding:20,overflowY:"auto",flex:1 }}>
+        <h2 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:17,color:t.text,lineHeight:1.35,marginBottom:18 }}>{issue.title}</h2>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:t.border,border:`1px solid ${t.border}`,borderRadius:6,overflow:"hidden",marginBottom:18 }}>
+          {[["Assignee",issue.assignee?MEMBERS.find(m=>m.id===issue.assignee)?.name:"Unassigned"],["Priority",PRIORITY[issue.priority].label],["Points",`${issue.points} pts`],["Time",issue.time||"0m"],["Project",issue.project],["Pillar",issue.pillar?.toUpperCase()]].map(([k,v])=>(
+            <div key={k} style={{ padding:"9px 13px",background:t.bgSecondary }}><div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.1em",marginBottom:3 }}>{k.toUpperCase()}</div><div style={{ fontSize:13,color:t.text }}>{v}</div></div>
+          ))}
+        </div>
+        {issue.files.length>0&&(
+          <div style={{ marginBottom:16 }}>
+            <SectionLabel t={t}>FILES CHANGED</SectionLabel>
+            {issue.files.map(f=>(
+              <div key={f} style={{ padding:"6px 10px",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:4,fontSize:11,color:t.blue,marginBottom:4,fontFamily:"monospace" }}>{f}</div>
+            ))}
+          </div>
         )}
-      </AnimatePresence>
-
-      <form onSubmit={handleSubmit} className="relative">
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleFileUpload} 
-          className="hidden" 
-        />
-        <div className="bg-[#16171d] border border-[#26272e] rounded-xl overflow-hidden focus-within:border-indigo-500 transition-all">
-          <div className="flex items-end gap-1 px-3 py-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-              title="Attach file"
-            >
-              <Plus size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowEmoji(!showEmoji)}
-              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-              title="Emoji"
-            >
-              <Smile size={16} />
-            </button>
-            <button
-              type="button"
-              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-              title="Mention"
-            >
-              <AtSign size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={onVideoClick}
-              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-              title="Start UPS"
-            >
-              <Video size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={onScheduleMeeting}
-              className="p-1.5 text-[#94a3b8] hover:text-white hover:bg-[#26272e] rounded-lg transition-all"
-              title="Schedule meeting"
-            >
-              <CalendarDays size={16} />
-            </button>
-            {isVideoActive && (
-              <button
-                type="button"
-                onClick={onTerminateVideo}
-                className="p-1.5 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-lg transition-all"
-                title="Terminate UPS"
-              >
-                <VideoOff size={16} />
-              </button>
-            )}
-
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-              placeholder={`Message ${conversationKind === 'channel' ? '#' : '@'}${conversationName}`}
-              className="flex-1 bg-transparent text-sm text-white px-2 py-1.5 focus:outline-none placeholder-[#64748b]"
-            />
-
-            <button 
-              type="submit"
-              disabled={!text.trim() || isUploading}
-              className="text-[#94a3b8] hover:text-indigo-400 disabled:opacity-30 p-1.5 transition-all"
-            >
-              <Send size={16} />
-            </button>
+        {issue.pr&&(
+          <div style={{ padding:"10px 14px",background:t.bgTertiary,border:`1px solid ${t.border}`,borderLeft:`3px solid ${t.blue}`,borderRadius:6,marginBottom:16 }}>
+            <div style={{ fontSize:11,color:t.blue,marginBottom:3 }}>[/] PR {issue.pr} . Open</div>
+            <div style={{ display:"flex",gap:8 }}>
+              <span style={{ fontSize:10,padding:"2px 6px",background:t.green+"18",color:t.green,borderRadius:3 }}>CI Passing</span>
+              <span style={{ fontSize:10,padding:"2px 6px",background:t.yellow+"18",color:t.yellow,borderRadius:3 }}>1 Review needed</span>
+            </div>
           </div>
+        )}
+        <SectionLabel t={t}>ACTIVITY</SectionLabel>
+        {[["SL","moved to In Progress","9:22 AM"],["AL","added to Sprint 12","Yesterday"],["SL","created this issue","Mar 1"]].map((a,i)=>(
+          <div key={i} style={{ display:"flex",gap:10,alignItems:"flex-start",marginBottom:10 }}>
+            <Avatar id={a[0]} size={22}/>
+            <div>
+              <span style={{ fontSize:12,color:t.text }}>{MEMBERS.find(m=>m.id===a[0])?.name}</span>
+              <span style={{ fontSize:12,color:t.textMuted }}> {a[1]}</span>
+              <div style={{ fontSize:10,color:t.textMuted,marginTop:1 }}>{a[2]}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:14,borderTop:`1px solid ${t.border}` }}>
+        <div style={{ display:"flex",gap:8,background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:6,padding:"8px 12px",alignItems:"center" }}>
+          <Avatar id="AL" size={22}/>
+          <input placeholder="Comment or @mention..." style={{ flex:1,background:"none",border:"none",outline:"none",fontSize:13,color:t.text,fontFamily:"inherit" }}/>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
+
+// ============================================================
+// MODULE: IDE + CODE & PRs
+// ============================================================
+const CODE_SAMPLE=`// src/api/client.ts
+// RC-001: API client with retry logic
+
+// RateLimiter from ./rate-limiter (inline below)
+
+interface RequestConfig {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  path: string;
+  body?: unknown;
+}
+
+export class ApiClient {
+  private retryCount = 3;
+  private rateLimiter = new RateLimiter(100, 60000);
+
+  constructor(private baseUrl: string) {}
+
+  async request<T>(config: RequestConfig): Promise<T> {
+    for (let i = 0; i < this.retryCount; i++) {
+      await this.rateLimiter.wait();
+      try {
+        const res = await fetch(\`\${this.baseUrl}\${config.path}\`, {
+          method: config.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: config.body ? JSON.stringify(config.body) : undefined,
+        });
+        if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+        return res.json() as Promise<T>;
+      } catch (err) {
+        if (i === this.retryCount - 1) throw err;
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  get<T>(path: string) {
+    return this.request<T>({ method: 'GET', path });
+  }
+
+  post<T>(path: string, body: unknown) {
+    return this.request<T>({ method: 'POST', path, body });
+  }
+}`;
+
+const PRS=[
+  { id:"#42",title:"feat: API client with rate limiting + retry",author:"SL",status:"open",ci:"passing",reviews:1,needed:2,issue:"RC-001",additions:148,deletions:12,files:["src/api/client.ts","src/api/retry.ts","src/api/__tests__/client.test.ts"],comments:[{user:"MK",text:"Love the exponential backoff. One thing -- should we cap the max delay?",line:24}] },
+  { id:"#44",title:"feat: sprint burn-down chart component",author:"MK",status:"open",ci:"passing",reviews:0,needed:2,issue:"RC-006",additions:94,deletions:3,files:["src/analytics/Burndown.tsx"],comments:[] },
+  { id:"#38",title:"fix: Google OAuth redirect after callback",author:"MK",status:"review",ci:"failing",reviews:2,needed:2,issue:"RC-002",additions:22,deletions:8,files:["src/auth/Login.tsx","src/lib/supabase.ts"],comments:[{user:"SL",text:"Cookie SameSite fix looks right. Can you add a test?",line:14}] },
+  { id:"#35",title:"feat: real-time cursor presence in editor",author:"SL",status:"merged",ci:"passing",reviews:2,needed:2,issue:"RC-005",additions:201,deletions:45,files:["src/ide/Editor.tsx"],comments:[] },
+];
+
+function IDE({ t }) {
+  const [tab,setTab]=useState("prs"); // prs | code | ai
+  const [selPR,setSelPR]=useState(PRS[0]);
+  const [aiInput,setAiInput]=useState("");
+  const [aiMessages,setAiMessages]=useState([{role:"assistant",text:"I have RC-001 context loaded. The API client needs rate limiting and retry logic. I've generated a starting implementation -- want me to add tests or explain the backoff strategy?"}]);
+  const [activeFile,setActiveFile]=useState("src/api/client.ts");
+  const [sending,setSending]=useState(false);
+
+  const sendAI=async()=>{
+    if(!aiInput.trim()||sending)return;
+    const msg=aiInput; setAiInput(""); setSending(true);
+    setAiMessages(p=>[...p,{role:"user",text:msg}]);
+    await new Promise(r=>setTimeout(r,900));
+    setAiMessages(p=>[...p,{role:"assistant",text:`Based on RC-001 and the current implementation: ${msg.toLowerCase().includes("test")?"Here's a test for the retry logic:\n\n```ts\nit('retries on 500 error', async () => {\n  const client = new ApiClient('https://api.test');\n  mockFetch.mockRejectedValueOnce(new Error('HTTP 500'));\n  mockFetch.mockResolvedValueOnce({ ok:true, json:()=>({id:1}) });\n  const result = await client.get('/users/1');\n  expect(result).toEqual({ id: 1 });\n  expect(mockFetch).toHaveBeenCalledTimes(2);\n});\n```":"The exponential backoff pattern (1s -> 2s -> 4s) is standard. You could cap it at 30s with `Math.min(30000, 1000 * Math.pow(2, i))` to avoid overly long waits on flaky networks."}`}]);
+    setSending(false);
+  };
+
+  const ciColor=(ci)=>ci==="passing"?t.green:ci==="failing"?t.red:t.yellow;
+
+  return (
+    <div style={{ display:"flex",height:"100%",overflow:"hidden" }}>
+      {/* Left: PR list */}
+      <div style={{ width:260,borderRight:`1px solid ${t.border}`,display:"flex",flexDirection:"column",background:t.bgSecondary }}>
+        <div style={{ padding:"14px 16px 10px",borderBottom:`1px solid ${t.border}` }}>
+          <div style={{ display:"flex",gap:4,marginBottom:10 }}>
+            {["prs","code","ai"].map(id=>(
+              <button key={id} onClick={()=>setTab(id)} style={{ flex:1,background:tab===id?t.accentDim:"none",border:`1px solid ${tab===id?t.accent:t.border}`,color:tab===id?t.accentText:t.textMuted,borderRadius:4,padding:"5px 0",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.08em" }}>
+                {id==="prs"?"PRs":id==="code"?"FILES":"AI"}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {tab==="prs"&&(
+          <div style={{ overflowY:"auto",flex:1 }}>
+            {PRS.map(pr=>(
+              <div key={pr.id} onClick={()=>setSelPR(pr)} style={{ padding:"12px 14px",borderBottom:`1px solid ${t.border}`,cursor:"pointer",background:selPR?.id===pr.id?t.accentDim:"transparent",borderLeft:`2px solid ${selPR?.id===pr.id?t.accent:"transparent"}`,transition:"all 0.12s" }}
+                onMouseEnter={e=>{if(selPR?.id!==pr.id)e.currentTarget.style.background=t.bgHover;}}
+                onMouseLeave={e=>{if(selPR?.id!==pr.id)e.currentTarget.style.background="transparent";}}>
+                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                  <span style={{ fontSize:10,color:t.blue }}>{pr.id}</span>
+                  <span style={{ fontSize:9,padding:"1px 6px",background:pr.status==="merged"?t.purple+"20":pr.status==="open"?t.green+"20":t.yellow+"20",color:pr.status==="merged"?t.purple:pr.status==="open"?t.green:t.yellow,borderRadius:10 }}>{pr.status}</span>
+                </div>
+                <div style={{ fontSize:12,color:t.text,lineHeight:1.35,marginBottom:6 }}>{pr.title}</div>
+                <div style={{ display:"flex",gap:6,alignItems:"center" }}>
+                  <Avatar id={pr.author} size={18}/>
+                  <div style={{ width:6,height:6,borderRadius:"50%",background:ciColor(pr.ci),boxShadow:`0 0 4px ${ciColor(pr.ci)}` }}/>
+                  <span style={{ fontSize:10,color:t.textMuted }}>CI</span>
+                  <span style={{ fontSize:10,color:t.textMuted,marginLeft:"auto" }}>{pr.reviews}/{pr.needed} reviews</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==="code"&&(
+          <div style={{ overflowY:"auto",flex:1,padding:"8px 0" }}>
+            <SectionLabel t={t} style={{ padding:"0 14px" }}>FILE TREE</SectionLabel>
+            {["src/api/client.ts","src/api/retry.ts","src/api/__tests__/client.test.ts","src/auth/Login.tsx","src/lib/supabase.ts","src/ide/Editor.tsx","src/analytics/Burndown.tsx"].map(f=>(
+              <div key={f} onClick={()=>setActiveFile(f)} style={{ padding:"6px 14px",fontSize:11,color:activeFile===f?t.accent:t.textSecondary,background:activeFile===f?t.accentDim:"transparent",cursor:"pointer",fontFamily:"monospace",borderLeft:`2px solid ${activeFile===f?t.accent:"transparent"}`,display:"flex",alignItems:"center",gap:6 }}
+                onMouseEnter={e=>{if(activeFile!==f)e.currentTarget.style.background=t.bgHover;}}
+                onMouseLeave={e=>{if(activeFile!==f)e.currentTarget.style.background="transparent";}}>
+                <span style={{ fontSize:9,opacity:0.5 }}>{f.endsWith(".test.ts")?"":f.endsWith(".tsx")?"":"[/]"}</span>
+                {f.split("/").pop()}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==="ai"&&(
+          <div style={{ flex:1,display:"flex",flexDirection:"column" }}>
+            <div style={{ padding:"8px 14px",background:t.accentDim,borderBottom:`1px solid ${t.border}` }}>
+              <div style={{ fontSize:10,color:t.accent,marginBottom:2 }}>CONTEXT LOADED</div>
+              <div style={{ fontSize:11,color:t.text }}>RC-001 . src/api/client.ts</div>
+            </div>
+            <div style={{ overflowY:"auto",flex:1,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8 }}>
+              {aiMessages.map((m,i)=>(
+                <div key={i} style={{ padding:"8px 10px",background:m.role==="user"?t.accentDim:t.bgTertiary,border:`1px solid ${m.role==="user"?t.accent+"40":t.border}`,borderRadius:6,fontSize:12,color:t.text,lineHeight:1.5,fontFamily:m.text.includes("```")?"monospace":"inherit",whiteSpace:"pre-wrap",wordBreak:"break-word" }}>{m.text}</div>
+              ))}
+              {sending&&<div style={{ fontSize:12,color:t.textMuted,padding:"6px 10px" }}>Thinking...</div>}
+            </div>
+            <div style={{ padding:10,borderTop:`1px solid ${t.border}` }}>
+              <div style={{ display:"flex",gap:6 }}>
+                <input value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendAI()} placeholder="Ask about this code..." style={{ flex:1,background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:5,padding:"6px 10px",fontSize:12,color:t.text,fontFamily:"inherit",outline:"none" }}/>
+                <Btn accent t={t} small onClick={sendAI}>{"->"}</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right: code / PR detail */}
+      <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+        {tab!=="prs"?(
+          /* Code editor view */
+          <div style={{ flex:1,overflow:"hidden",display:"flex",flexDirection:"column" }}>
+            <div style={{ padding:"10px 20px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                <span style={{ fontSize:11,color:t.blue,fontFamily:"monospace" }}>{activeFile}</span>
+                <span style={{ fontSize:9,padding:"2px 6px",background:t.accentDim,color:t.accent,borderRadius:3 }}>RC-001</span>
+              </div>
+              <div style={{ display:"flex",gap:8 }}>
+                <Btn t={t} small>Format</Btn>
+                <Btn t={t} small>Run Tests</Btn>
+                <Btn accent t={t} small>Create PR</Btn>
+              </div>
+            </div>
+            <div style={{ flex:1,overflowY:"auto",padding:"0" }}>
+              <div style={{ fontFamily:"'JetBrains Mono','Fira Code',monospace",fontSize:13,lineHeight:1.8,background:t.bg }}>
+                {CODE_SAMPLE.split("\n").map((line,i)=>(
+                  <div key={i} style={{ display:"flex",gap:0,":hover":{background:t.bgHover} }}
+                    onMouseEnter={e=>e.currentTarget.style.background=t.bgHover}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <span style={{ width:48,textAlign:"right",paddingRight:16,color:t.textMuted,fontSize:11,userSelect:"none",flexShrink:0,paddingTop:0 }}>{i+1}</span>
+                    <span style={{ flex:1,paddingRight:20,color:
+                      line.startsWith("//")?"#6A8A44":
+                      line.includes("class ")||line.includes("interface ")||line.includes("export")?"#C8A0FF":
+                      line.includes("async ")||line.includes("await ")||line.includes("return ")||line.includes("const ")||line.includes("private ")?"#47BFFF":
+                      line.includes("'")||line.includes("`")?"#FF9A47":
+                      t.text,
+                      whiteSpace:"pre",
+                    }}>{line||" "}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ):(
+          /* PR detail */
+          selPR&&<div style={{ flex:1,overflowY:"auto" }}>
+            <div style={{ padding:"16px 24px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary }}>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12 }}>
+                <div>
+                  <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6 }}>
+                    <span style={{ fontSize:11,color:t.blue }}>{selPR.id}</span>
+                    <span style={{ fontSize:10,padding:"2px 7px",background:selPR.status==="merged"?t.purple+"20":selPR.status==="open"?t.green+"20":t.yellow+"20",color:selPR.status==="merged"?t.purple:selPR.status==="open"?t.green:t.yellow,borderRadius:10 }}>{selPR.status.toUpperCase()}</span>
+                    <div style={{ width:7,height:7,borderRadius:"50%",background:ciColor(selPR.ci),boxShadow:`0 0 5px ${ciColor(selPR.ci)}` }}/>
+                    <span style={{ fontSize:10,color:t.textMuted }}>CI {selPR.ci}</span>
+                  </div>
+                  <h2 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:18,color:t.text,marginBottom:6 }}>{selPR.title}</h2>
+                  <div style={{ display:"flex",gap:12,alignItems:"center" }}>
+                    <Avatar id={selPR.author} size={22}/>
+                    <span style={{ fontSize:12,color:t.textSecondary }}>{MEMBERS.find(m=>m.id===selPR.author)?.name}</span>
+                    <span style={{ fontSize:10,padding:"2px 7px",background:t.accentDim,color:t.accent,borderRadius:3 }}>{selPR.issue}</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex",gap:8 }}>
+                  <Btn t={t}>Request Changes</Btn>
+                  <Btn accent t={t}>Approve & Merge</Btn>
+                </div>
+              </div>
+              <div style={{ display:"flex",gap:16 }}>
+                <span style={{ fontSize:12,color:t.green }}>+{selPR.additions}</span>
+                <span style={{ fontSize:12,color:t.red }}>-{selPR.deletions}</span>
+                <span style={{ fontSize:12,color:t.textMuted }}>{selPR.files.length} files</span>
+                <span style={{ fontSize:12,color:t.textMuted }}>{selPR.reviews}/{selPR.needed} reviews</span>
+              </div>
+            </div>
+
+            {/* Files changed */}
+            <div style={{ padding:"16px 24px",borderBottom:`1px solid ${t.border}` }}>
+              <SectionLabel t={t}>FILES CHANGED</SectionLabel>
+              {selPR.files.map(f=>(
+                <div key={f} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 12px",background:t.bgSecondary,border:`1px solid ${t.border}`,borderRadius:4,marginBottom:6 }}>
+                  <span style={{ fontSize:12,color:t.blue,fontFamily:"monospace" }}>{f}</span>
+                  <div style={{ display:"flex",gap:8 }}>
+                    <span style={{ fontSize:10,color:t.green }}>+{Math.floor(Math.random()*80+10)}</span>
+                    <span style={{ fontSize:10,color:t.red }}>-{Math.floor(Math.random()*20)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Diff preview */}
+            <div style={{ padding:"16px 24px",borderBottom:`1px solid ${t.border}` }}>
+              <SectionLabel t={t}>DIFF PREVIEW . {selPR.files[0]}</SectionLabel>
+              <div style={{ fontFamily:"monospace",fontSize:12,background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:6,overflow:"hidden" }}>
+                {[["+ ","export class ApiClient {",t.green+"18",t.green],["+ ","  private retryCount = 3;",t.green+"18",t.green],["+ ","  private rateLimiter = new RateLimiter(100, 60000);",t.green+"18",t.green],["  ","",null,t.textMuted],["+ ","  async request<T>(config: RequestConfig): Promise<T> {",t.green+"18",t.green],["+ ","    for (let i = 0; i < this.retryCount; i++) {",t.green+"18",t.green],["- ","    return fetch(this.baseUrl + config.path);",t.red+"18",t.red],["+ ","      await this.rateLimiter.wait();",t.green+"18",t.green]].map(([prefix,line,bg,color],i)=>(
+                  <div key={i} style={{ display:"flex",gap:0,background:bg||"transparent",borderBottom:`1px solid ${t.border}` }}>
+                    <span style={{ width:24,textAlign:"center",color,flexShrink:0,fontWeight:700 }}>{prefix}</span>
+                    <span style={{ flex:1,padding:"2px 8px",color,whiteSpace:"pre" }}>{line}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Comments */}
+            {selPR.comments.length>0&&(
+              <div style={{ padding:"16px 24px" }}>
+                <SectionLabel t={t}>REVIEW COMMENTS</SectionLabel>
+                {selPR.comments.map((c,i)=>(
+                  <div key={i} style={{ background:t.bgSecondary,border:`1px solid ${t.border}`,borderRadius:6,padding:14,marginBottom:10 }}>
+                    <div style={{ display:"flex",gap:10,marginBottom:8,alignItems:"center" }}>
+                      <Avatar id={c.user} size={24}/>
+                      <span style={{ fontSize:13,color:t.text }}>{MEMBERS.find(m=>m.id===c.user)?.name}</span>
+                      <span style={{ fontSize:10,color:t.textMuted,marginLeft:"auto" }}>Line {c.line}</span>
+                    </div>
+                    <div style={{ fontSize:13,color:t.textSecondary,lineHeight:1.5 }}>{c.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: DOCS
+// ============================================================
+const DOCS=[
+  { id:"d1",title:"API Client Documentation",issue:"RC-001",author:"SL",updated:"2h ago",status:"published",content:`# API Client\n\nThe API client provides rate limiting and automatic retries with exponential backoff.\n\n## Installation\n\`\`\`bash\nnpm install @reach/api-client\n\`\`\`\n\n## Usage\n\`\`\`typescript\nconst client = new ApiClient('https://api.example.com');\nconst users = await client.get('/users');\n\`\`\`` },
+  { id:"d2",title:"Authentication Flow",issue:"RC-002",author:"MK",updated:"Yesterday",status:"draft",content:`# Auth Flow\n\nGoogle OAuth 2.0 with Supabase backend.\n\n## Flow\n1. User clicks "Sign in with Google"\n2. OAuth redirect to Google\n3. Callback to /auth/callback\n4. Exchange code for session` },
+  { id:"d3",title:"Sprint Ceremonies Guide",issue:null,author:"AL",updated:"Mar 5",status:"published",content:`# Sprint Ceremonies\n\nStandardized guides for all Scrum ceremonies.` },
+  { id:"d4",title:"EVM Calculations Reference",issue:"RC-004",author:"AL",updated:"Mar 3",status:"draft",content:`# Earned Value Management\n\nReference for EVM calculations.` },
+];
+
+function Docs({ t }) {
+  const [sel,setSel]=useState(DOCS[0]);
+  const [editing,setEditing]=useState(false);
+  const [content,setContent]=useState(DOCS[0].content);
+
+  return (
+    <div style={{ display:"flex",height:"100%",overflow:"hidden" }}>
+      {/* Doc list */}
+      <div style={{ width:260,borderRight:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",flexDirection:"column" }}>
+        <div style={{ padding:"14px 16px",borderBottom:`1px solid ${t.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+          <SectionLabel t={t}>DOCUMENTS</SectionLabel>
+          <Btn accent t={t} small>+ New</Btn>
+        </div>
+        <div style={{ overflowY:"auto",flex:1 }}>
+          {DOCS.map(doc=>(
+            <div key={doc.id} onClick={()=>{setSel(doc);setContent(doc.content);setEditing(false);}} style={{ padding:"12px 14px",borderBottom:`1px solid ${t.border}`,cursor:"pointer",background:sel?.id===doc.id?t.accentDim:"transparent",borderLeft:`2px solid ${sel?.id===doc.id?t.accent:"transparent"}` }}
+              onMouseEnter={e=>{if(sel?.id!==doc.id)e.currentTarget.style.background=t.bgHover;}}
+              onMouseLeave={e=>{if(sel?.id!==doc.id)e.currentTarget.style.background="transparent";}}>
+              <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <span style={{ fontSize:10,padding:"1px 6px",background:doc.status==="published"?t.green+"18":t.yellow+"18",color:doc.status==="published"?t.green:t.yellow,borderRadius:3 }}>{doc.status}</span>
+                {doc.issue&&<span style={{ fontSize:10,color:t.accent }}>{doc.issue}</span>}
+              </div>
+              <div style={{ fontSize:13,color:t.text,marginBottom:4,lineHeight:1.3 }}>{doc.title}</div>
+              <div style={{ fontSize:10,color:t.textMuted }}>{doc.author} . {doc.updated}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Doc content */}
+      {sel&&(
+        <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+          <div style={{ padding:"12px 24px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+            <div style={{ display:"flex",gap:10,alignItems:"center" }}>
+              <h2 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:16,color:t.text }}>{sel.title}</h2>
+              {sel.issue&&<span style={{ fontSize:10,padding:"2px 7px",background:t.accentDim,color:t.accent,borderRadius:3 }}>{sel.issue}</span>}
+            </div>
+            <div style={{ display:"flex",gap:8 }}>
+              <Btn t={t} small onClick={()=>setEditing(e=>!e)}>{editing?"Preview":"Edit"}</Btn>
+              <Btn t={t} small>Share</Btn>
+              <Btn accent t={t} small>{sel.status==="draft"?"Publish":"Published v"}</Btn>
+            </div>
+          </div>
+          <div style={{ flex:1,overflowY:"auto",padding:"28px 48px" }}>
+            {editing?(
+              <textarea value={content} onChange={e=>setContent(e.target.value)} style={{ width:"100%",height:"100%",background:"none",border:"none",outline:"none",fontSize:14,color:t.text,fontFamily:"'Space Mono',monospace",lineHeight:1.8,resize:"none" }}/>
+            ):(
+              <div style={{ maxWidth:680 }}>
+                {content.split("\n").map((line,i)=>{
+                  if(line.startsWith("# "))return <h1 key={i} style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:28,color:t.text,marginBottom:16,marginTop:24 }}>{line.slice(2)}</h1>;
+                  if(line.startsWith("## "))return <h2 key={i} style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:20,color:t.text,marginBottom:12,marginTop:20 }}>{line.slice(3)}</h2>;
+                  if(line.startsWith("```"))return null;
+                  if(line.startsWith("1.")||line.startsWith("2.")||line.startsWith("3.")||line.startsWith("4."))return <div key={i} style={{ padding:"4px 0 4px 16px",fontSize:14,color:t.textSecondary,lineHeight:1.7 }}>{line}</div>;
+                  if(line==="")return <div key={i} style={{ height:8 }}/>;
+                  return <p key={i} style={{ fontSize:14,color:t.textSecondary,lineHeight:1.8,marginBottom:8 }}>{line}</p>;
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: CHAT
+// ============================================================
+const INIT_MESSAGES={
+  general:[
+    { id:1,user:"SL",time:"9:14 AM",text:"Deploying RC-002 fix to staging now",system:false },
+    { id:2,system:true,time:"9:15 AM",issueId:"RC-002",action:"moved to Review" },
+    { id:3,user:"MK",time:"9:18 AM",text:"LGTM -- checking the auth callback edge case",system:false },
+    { id:4,user:"SL",time:"9:22 AM",text:"Also kicked off RC-001 -- taking the API client work",system:false },
+  ],
+  bugs:[
+    { id:1,system:true,time:"8:02 AM",issueId:"RC-002",action:"flagged as bug . Priority: High" },
+    { id:2,user:"AL",time:"8:10 AM",text:"Reproducing locally. Happens only on Safari.",system:false },
+    { id:3,user:"MK",time:"8:34 AM",text:"Found it -- cookie SameSite attribute missing on callback",system:false },
+  ],
+  handoffs:[
+    { id:1,system:true,time:"Yesterday",issueId:"RC-005",action:"handed off to DevOps" },
+    { id:2,user:"MK",time:"Yesterday",text:"RC-005 accepted . Deployment scheduled 06:00 UTC",system:false },
+  ],
+  engineering:[],done:[],["pr-reviews"]:[],
+};
+
+function Chat({ t }) {
+  const [ch,setCh]=useState("general");
+  const [msgs,setMsgs]=useState(INIT_MESSAGES);
+  const [input,setInput]=useState("");
+  const [over,setOver]=useState(false);
+  const endRef=useRef();
+
+  const send=()=>{
+    if(!input.trim())return;
+    setMsgs(p=>({...p,[ch]:[...(p[ch]||[]),{id:Date.now(),user:"AL",time:"Now",text:input,system:false}]}));
+    setInput("");
+    setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
+  };
+
+  const drop=(e)=>{
+    e.preventDefault(); setOver(false);
+    const id=e.dataTransfer.getData("issueId");
+    const issue=ISSUES.find(i=>i.id===id);
+    if(!issue)return;
+    setMsgs(p=>({...p,[ch]:[...(p[ch]||[]),{id:Date.now(),system:true,time:"Now",issueId:issue.id,action:`dropped into #${ch}`,issueFull:issue}]}));
+  };
+
+  return (
+    <div style={{ display:"flex",height:"100%",overflow:"hidden" }}>
+      {/* Channels */}
+      <div style={{ width:220,borderRight:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",flexDirection:"column" }}>
+        <div style={{ padding:"12px 14px 8px",borderBottom:`1px solid ${t.border}` }}>
+          <SectionLabel t={t}>CHANNELS</SectionLabel>
+          {CHANNELS.map(c=>(
+            <button key={c.id} onClick={()=>setCh(c.id)} style={{ width:"100%",background:ch===c.id?t.accentDim:"none",border:"none",borderLeft:`2px solid ${ch===c.id?t.accent:"transparent"}`,color:ch===c.id?t.accentText:t.textSecondary,padding:"6px 10px",borderRadius:4,cursor:"pointer",fontFamily:"inherit",fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:1,textAlign:"left" }}
+              onMouseEnter={e=>{if(ch!==c.id)e.currentTarget.style.background=t.bgHover;}}
+              onMouseLeave={e=>{if(ch!==c.id)e.currentTarget.style.background="none";}}>
+              <span># {c.name}</span>
+              {c.unread>0&&<span style={{ fontSize:9,fontWeight:700,background:t.accent,color:t.bg,borderRadius:10,padding:"1px 5px" }}>{c.unread}</span>}
+            </button>
+          ))}
+        </div>
+        <div style={{ padding:"8px 14px",borderTop:`1px solid ${t.border}`,marginTop:"auto" }}>
+          <SectionLabel t={t}>DIRECT</SectionLabel>
+          {MEMBERS.map(m=>(
+            <button key={m.id} style={{ width:"100%",background:"none",border:"none",cursor:"pointer",padding:"5px 10px",borderRadius:4,display:"flex",gap:8,alignItems:"center",marginBottom:1,textAlign:"left" }}
+              onMouseEnter={e=>e.currentTarget.style.background=t.bgHover}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{ position:"relative" }}><Avatar id={m.id} size={22}/><div style={{ position:"absolute",bottom:-1,right:-1 }}><Dot status={m.status}/></div></div>
+              <span style={{ fontSize:12,color:t.textSecondary }}>{m.name.split(" ")[0]}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ padding:10,borderTop:`1px solid ${t.border}` }}>
+          <div style={{ border:`2px dashed ${t.border}`,borderRadius:6,padding:"10px",textAlign:"center",fontSize:10,color:t.textMuted,lineHeight:1.6 }}>Drag issue<br/>{"->"} channel</div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex:1,display:"flex",flexDirection:"column",position:"relative" }}
+        onDragOver={e=>{e.preventDefault();setOver(true);}}
+        onDragLeave={()=>setOver(false)}
+        onDrop={drop}>
+        <div style={{ padding:"13px 22px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+            <span style={{ fontSize:18,color:t.textMuted }}>#</span>
+            <span style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:16,color:t.text }}>{ch}</span>
+          </div>
+          <div style={{ display:"flex",gap:6 }}>
+            {["Issues","Files","Search"].map(a=><Btn key={a} t={t} small>{a}</Btn>)}
+          </div>
+        </div>
+
+        {over&&<div style={{ position:"absolute",inset:0,zIndex:10,background:t.accentDim,border:`2px dashed ${t.accent}`,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:4 }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:36,marginBottom:8 }}>[H]</div>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:18,color:t.accent }}>Drop issue into #{ch}</div>
+          </div>
+        </div>}
+
+        <div style={{ flex:1,overflowY:"auto",padding:"16px 22px",display:"flex",flexDirection:"column",gap:2 }}>
+          {(msgs[ch]||[]).length===0&&<div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:t.textMuted,fontSize:13 }}>Drag an issue here to start</div>}
+          {(msgs[ch]||[]).map((m,i)=>{
+            if(m.system){
+              const issue=m.issueFull||ISSUES.find(iss=>iss.id===m.issueId);
+              return (
+                <div key={m.id} style={{ padding:"8px 0",display:"flex",gap:12 }}>
+                  <div style={{ width:28,height:28,borderRadius:"50%",background:t.accentDim,border:`1px solid ${t.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:t.accent,flexShrink:0 }}>[H]</div>
+                  <div>
+                    <div style={{ fontSize:11,color:t.textMuted,marginBottom:6 }}><span style={{ color:t.accent }}>System</span> . {m.time}</div>
+                    {issue&&<div style={{ background:t.bgSecondary,border:`1px solid ${t.border}`,borderLeft:`3px solid ${t.accent}`,borderRadius:6,padding:"10px 14px",maxWidth:400 }}>
+                      <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                        <span style={{ fontSize:10,color:t.accent }}>{issue.id}</span>
+                        <span style={{ fontSize:10,padding:"1px 6px",background:STATUS[issue.status].color+"22",color:STATUS[issue.status].color,borderRadius:3 }}>{STATUS[issue.status].label}</span>
+                      </div>
+                      <div style={{ fontSize:13,color:t.text,marginBottom:6 }}>{issue.title}</div>
+                      <div style={{ fontSize:11,color:t.textMuted,marginBottom:8 }}>{m.action}</div>
+                      <div style={{ display:"flex",gap:6 }}>
+                        {["View","Assign to me","Mark Done"].map(a=><Btn key={a} t={t} small>{a}</Btn>)}
+                      </div>
+                    </div>}
+                  </div>
+                </div>
+              );
+            }
+            const prev=msgs[ch][i-1];
+            const grp=prev&&!prev.system&&prev.user===m.user;
+            return (
+              <div key={m.id} style={{ padding:grp?"1px 0 1px 40px":"6px 0",display:"flex",gap:12 }}>
+                {!grp&&<Avatar id={m.user} size={28}/>}
+                <div>
+                  {!grp&&<div style={{ display:"flex",gap:8,marginBottom:2 }}>
+                    <span style={{ fontSize:13,fontWeight:700,color:t.text }}>{MEMBERS.find(mb=>mb.id===m.user)?.name||m.user}</span>
+                    <span style={{ fontSize:10,color:t.textMuted }}>{m.time}</span>
+                  </div>}
+                  <div style={{ fontSize:14,color:t.textSecondary,lineHeight:1.5 }}>{m.text}</div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={endRef}/>
+        </div>
+
+        <div style={{ padding:"10px 22px",borderTop:`1px solid ${t.border}`,background:t.bgSecondary }}>
+          <div style={{ display:"flex",gap:10,alignItems:"center",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:8,padding:"9px 14px" }}>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message #${ch} . @mention . drag issue here`} style={{ flex:1,background:"none",border:"none",outline:"none",fontSize:14,color:t.text,fontFamily:"inherit" }}/>
+            <div style={{ display:"flex",gap:8 }}>
+              {["@","[H]",""].map(ic=><button key={ic} style={{ background:"none",border:"none",color:t.textMuted,cursor:"pointer",fontSize:16 }}>{ic}</button>)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Issue quick-drag */}
+      <div style={{ width:190,borderLeft:`1px solid ${t.border}`,background:t.bgSecondary,padding:"12px 10px",overflowY:"auto" }}>
+        <SectionLabel t={t}>DRAG TO CHANNEL</SectionLabel>
+        {ISSUES.slice(0,6).map(issue=>(
+          <div key={issue.id} draggable onDragStart={e=>e.dataTransfer.setData("issueId",issue.id)} style={{ padding:"8px 10px",marginBottom:6,background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:5,cursor:"grab",transition:"all 0.15s" }}
+            onMouseEnter={e=>e.currentTarget.style.borderColor=t.accent}
+            onMouseLeave={e=>e.currentTarget.style.borderColor=t.border}>
+            <div style={{ fontSize:9,color:t.accent,letterSpacing:"0.08em",marginBottom:3 }}>{issue.id}</div>
+            <div style={{ fontSize:11,color:t.text,lineHeight:1.3 }}>{issue.title.slice(0,36)}...</div>
+            <div style={{ marginTop:4,display:"flex",justifyContent:"space-between" }}>
+              <div style={{ width:5,height:5,borderRadius:"50%",background:STATUS[issue.status].color,marginTop:3 }}/>
+              {issue.assignee&&<Avatar id={issue.assignee} size={16}/>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: STANDUPS + VIDEO (STUN/TURN simulated)
+// ============================================================
+const MEETINGS=[
+  { id:"m1",title:"Daily Standup . Eng",type:"standup",time:"9:30 AM",date:"Today",members:["SL","MK","JP","AL"],recurring:"Daily",status:"upcoming" },
+  { id:"m2",title:"Sprint Planning . Sprint 13",type:"planning",time:"2:00 PM",date:"Today",members:["SL","MK","JP","AL"],recurring:"Bi-weekly",status:"scheduled" },
+  { id:"m3",title:"Backlog Refinement",type:"refinement",time:"11:00 AM",date:"Tomorrow",members:["AL","JP"],recurring:"Weekly",status:"scheduled" },
+  { id:"m4",title:"Sprint Retrospective",type:"retro",time:"4:00 PM",date:"Mar 17",members:["SL","MK","JP","AL"],recurring:"Bi-weekly",status:"scheduled" },
+];
+
+function Standup({ t }: any) {
+const [inCall,setInCall]=useState(false);
+const [muted,setMuted]=useState(false);
+const [videoOff,setVideoOff]=useState(false);
+const [activeIssue,setActiveIssue]=useState<any>(null);
+const [selMeeting,setSelMeeting]=useState(MEETINGS[0]);
+const [standupNotes,setStandupNotes]=useState<any>({SL:{done:"Completed PR review on RC-002",doing:"Working on RC-001 API client",blockers:"None"},MK:{done:"Fixed OAuth callback bug",doing:"RC-006 burn-down chart",blockers:"Need design review"},JP:{done:"",doing:"RC-003 WIP limits",blockers:"Waiting on RC-001"},AL:{done:"Sprint review prep",doing:"RC-004 EVM dashboard",blockers:"None"}});
+
+const { localStream, remoteStreams } = useWebRTC(
+  null,
+  "AL",
+  "Alex L.",
+  selMeeting.id,
+  "workspace-root",
+  inCall && !videoOff
+);
+
+const typeColor: any={standup:t.red,planning:t.blue,refinement:t.accent,retro:t.purple};
+
+  return (
+    <div style={{ display:"flex",height:"100%",overflow:"hidden" }}>
+      {/* Meeting list */}
+      <div style={{ width:260,borderRight:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",flexDirection:"column" }}>
+        <div style={{ padding:"14px 16px",borderBottom:`1px solid ${t.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+          <SectionLabel t={t}>MEETINGS</SectionLabel>
+          <Btn accent t={t} small>+ Schedule</Btn>
+        </div>
+        <div style={{ overflowY:"auto",flex:1 }}>
+          {MEETINGS.map(m=>(
+            <div key={m.id} onClick={()=>setSelMeeting(m)} style={{ padding:"12px 14px",borderBottom:`1px solid ${t.border}`,cursor:"pointer",background:selMeeting?.id===m.id?t.accentDim:"transparent",borderLeft:`2px solid ${selMeeting?.id===m.id?t.accent:"transparent"}` }}
+              onMouseEnter={e=>{if(selMeeting?.id!==m.id)e.currentTarget.style.background=t.bgHover;}}
+              onMouseLeave={e=>{if(selMeeting?.id!==m.id)e.currentTarget.style.background="transparent";}}>
+              <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <span style={{ fontSize:10,padding:"2px 6px",background:typeColor[m.type]+"18",color:typeColor[m.type],borderRadius:3 }}>{m.type.toUpperCase()}</span>
+                <span style={{ fontSize:10,color:t.textMuted }}>{m.date} . {m.time}</span>
+              </div>
+              <div style={{ fontSize:13,color:t.text,marginBottom:6 }}>{m.title}</div>
+              <div style={{ display:"flex",gap:-4 }}>
+                {m.members.map((id,i)=><div key={id} style={{ marginLeft:i>0?-6:0 }}><Avatar id={id} size={20}/></div>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main area */}
+      <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+        {!inCall?(
+          /* Pre-call view */
+          <div style={{ flex:1,overflowY:"auto",padding:"28px 36px" }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:10,color:typeColor[selMeeting.type],letterSpacing:"0.15em",marginBottom:6 }}>{selMeeting.type.toUpperCase()} . {selMeeting.recurring}</div>
+              <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:28,color:t.text,marginBottom:8 }}>{selMeeting.title}</h1>
+              <div style={{ display:"flex",gap:16,alignItems:"center",marginBottom:20 }}>
+                <span style={{ fontSize:14,color:t.textSecondary }}> {selMeeting.date} at {selMeeting.time}</span>
+                <div style={{ display:"flex" }}>
+                  {selMeeting.members.map((id,i)=><div key={id} style={{ marginLeft:i>0?-8:0 }}><Avatar id={id} size={28}/></div>)}
+                </div>
+              </div>
+              <div style={{ display:"flex",gap:10 }}>
+                <button onClick={()=>setInCall(true)} style={{ background:t.green,border:"none",color:t.bg,borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.05em",boxShadow:`0 4px 16px ${t.green}44` }}>
+                  {">"} Join Meeting
+                </button>
+                <Btn t={t}>Copy Link</Btn>
+                <Btn t={t}>Add to Calendar</Btn>
+              </div>
+            </div>
+
+            {/* Standup notes pre-fill */}
+            {selMeeting.type==="standup"&&(
+              <div>
+                <Card t={t} style={{ marginBottom:16 }}>
+                  <SectionLabel t={t}>PRE-FILL STANDUP NOTES</SectionLabel>
+                  <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+                    {["SL","AL"].map(uid=>(
+                      <div key={uid}>
+                        <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:8 }}>
+                          <Avatar id={uid} size={24}/>
+                          <span style={{ fontSize:13,fontWeight:700,color:t.text }}>{MEMBERS.find(m=>m.id===uid)?.name}</span>
+                        </div>
+                        {["done","doing","blockers"].map(field=>(
+                          <div key={field} style={{ marginBottom:6 }}>
+                            <div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.12em",marginBottom:3 }}>{field==="done"?"[v] DONE":field==="doing"?" DOING":" BLOCKERS"}</div>
+                            <input value={standupNotes[uid][field]} onChange={e=>setStandupNotes(p=>({...p,[uid]:{...p[uid],[field]:e.target.value}}))} style={{ width:"100%",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:4,padding:"6px 10px",fontSize:12,color:t.text,fontFamily:"inherit",outline:"none" }}/>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card t={t}>
+                  <SectionLabel t={t}>LINKED ISSUES . SPRINT 12</SectionLabel>
+                  {ISSUES.filter(i=>i.status!=="done").slice(0,4).map(i=>(
+                    <div key={i.id} style={{ display:"flex",gap:10,alignItems:"center",marginBottom:8 }}>
+                      <div style={{ width:6,height:6,borderRadius:"50%",background:STATUS[i.status].color,flexShrink:0 }}/>
+                      <span style={{ fontSize:11,color:t.accent,width:60,flexShrink:0 }}>{i.id}</span>
+                      <span style={{ fontSize:12,color:t.text,flex:1 }}>{i.title.slice(0,50)}...</span>
+                      {i.assignee&&<Avatar id={i.assignee} size={20}/>}
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+          </div>
+        ):(
+          /* In-call view */
+          <div style={{ flex:1,display:"flex",flexDirection:"column",background:t.bg,overflow:"hidden" }}>
+            {/* Video grid */}
+            <div style={{ flex:1,padding:16,display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr 1fr",gap:8,overflow:"hidden" }}>
+              {MEMBERS.map((m,i)=>(
+                <div key={m.id} style={{ borderRadius:10,overflow:"hidden",position:"relative",background:t.bgTertiary,border:`1px solid ${t.border}`,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                    {/* Real Video Stream from STUN or Simulated avatar */}
+                    {m.id === "AL" && localStream ? (
+                      <VideoPlayer stream={localStream} muted={true} style={{ transform: "scaleX(-1)" }} />
+                    ) : remoteStreams.has(m.id) ? (
+                      <VideoPlayer stream={remoteStreams.get(m.id)} />
+                    ) : (
+                      <>
+                        <div style={{ position:"absolute",inset:0,background:`linear-gradient(135deg, ${m.color}10 0%, ${t.bgTertiary} 100%)` }}/>
+                        <Avatar id={m.id} size={56}/>
+                      </>
+                    )}
+                  {/* Active speaker indicator */}
+                  {i===0&&<div style={{ position:"absolute",inset:0,border:`2px solid ${t.accent}`,borderRadius:10,pointerEvents:"none" }}/>}
+                  <div style={{ position:"absolute",bottom:10,left:12,display:"flex",alignItems:"center",gap:6 }}>
+                    <div style={{ width:6,height:6,borderRadius:"50%",background:t.green,boxShadow:`0 0 6px ${t.green}` }}/>
+                    <span style={{ fontSize:12,color:"#FFF",fontWeight:600,textShadow:"0 1px 3px #000" }}>{m.name}</span>
+                    {i===1&&muted&&<span style={{ fontSize:10,background:"#CC000088",color:"#FFF",borderRadius:3,padding:"1px 5px" }}>MUTED</span>}
+                  </div>
+                  {/* Screen share simulation for self */}
+                  {i===0&&!videoOff&&(
+                    <div style={{ position:"absolute",top:8,right:8 }}>
+                      <div style={{ width:40,height:26,background:t.bgSecondary,border:`1px solid ${t.borderStrong}`,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:t.textMuted }}>SHARE</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Standup panel overlay */}
+            <div style={{ background:t.bgSecondary,borderTop:`1px solid ${t.border}`,padding:"12px 20px",display:"flex",gap:16,alignItems:"flex-start",maxHeight:160,overflowY:"auto" }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10,color:t.accent,letterSpacing:"0.12em",marginBottom:8 }}>NOW SPEAKING . Sarah L.</div>
+                <div style={{ display:"flex",gap:12 }}>
+                  {["done","doing","blockers"].map(field=>(
+                    <div key={field} style={{ flex:1,background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:6,padding:"8px 10px" }}>
+                      <div style={{ fontSize:9,color:t.textMuted,letterSpacing:"0.1em",marginBottom:4 }}>{field==="done"?"[v] DONE":field==="doing"?" DOING":" BLOCKER"}</div>
+                      <div style={{ fontSize:12,color:t.text,lineHeight:1.4 }}>{standupNotes["SL"][field]||<span style={{ color:t.textMuted }}>--</span>}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {activeIssue&&(
+                <div style={{ width:200,background:t.bgTertiary,border:`1px solid ${t.accent}40`,borderRadius:6,padding:10 }}>
+                  <div style={{ fontSize:10,color:t.accent,marginBottom:4 }}>{activeIssue.id}</div>
+                  <div style={{ fontSize:12,color:t.text }}>{activeIssue.title.slice(0,60)}...</div>
+                </div>
+              )}
+            </div>
+
+            {/* Call controls */}
+            <div style={{ background:t.bgTertiary,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${t.border}` }}>
+              <div style={{ fontSize:12,color:t.textMuted }}> Encrypted . STUN/TURN . 4 participants</div>
+              <div style={{ display:"flex",gap:10 }}>
+                {[
+                  { label:muted?"":"",action:()=>setMuted(p=>!p),active:muted },
+                  { label:videoOff?"":"",action:()=>setVideoOff(p=>!p),active:videoOff },
+                  { label:"",action:()=>{},active:false },
+                  { label:"[H]",action:()=>setActiveIssue(ISSUES[0]),active:!!activeIssue },
+                ].map((c,i)=>(
+                  <button key={i} onClick={c.action} style={{ width:44,height:44,borderRadius:"50%",background:c.active?t.orange+"22":t.bgSecondary,border:`1px solid ${c.active?t.orange:t.border}`,color:c.active?t.orange:t.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>{c.label}</button>
+                ))}
+                <button onClick={()=>setInCall(false)} style={{ background:t.red,border:"none",color:"#FFF",borderRadius:24,padding:"0 24px",height:44,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700 }}>End</button>
+              </div>
+              <div style={{ fontSize:12,color:t.textMuted }}>1:24:07</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: DASHBOARD
+// ============================================================
+function Dashboard({ t }) {
+  const done=ISSUES.filter(i=>i.status==="done").length;
+  const inProg=ISSUES.filter(i=>i.status==="in_progress").length;
+  const velHistory=[28,34,30,38,40,42];
+  const cycleData=[{v:3.8,l:"S9"},{v:4.2,l:"S10"},{v:3.5,l:"S11"},{v:3.2,l:"S12"}];
+
+  return (
+    <div style={{ padding:"24px 32px",overflowY:"auto",height:"100%" }}>
+      <div style={{ marginBottom:20 }}>
+        <SectionLabel t={t}>SPRINT 12 . PORTFOLIO</SectionLabel>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:26,color:t.text }}>Dashboard</h1>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16 }}>
+        <KPICard t={t} label="VELOCITY" value="42" sub="pts this sprint" trend="^ +12% vs last" up={true}/>
+        <KPICard t={t} label="CPI" value="1.04" sub="cost performance" trend="^ under budget" up={true}/>
+        <KPICard t={t} label="CYCLE TIME" value="3.2d" sub="avg per issue" trend="v -0.4d improved" up={true}/>
+        <KPICard t={t} label="AT RISK" value="2" sub="issues flagged" trend="^ from 0 watch" up={false}/>
+      </div>
+
+      <div style={{ display:"grid",gridTemplateColumns:"2fr 1fr",gap:12,marginBottom:12 }}>
+        {/* Burn-down */}
+        <Card t={t}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16 }}>
+            <div>
+              <SectionLabel t={t}>BURN-DOWN . SPRINT 12</SectionLabel>
+              <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:22,color:t.text }}>14 pts remaining</div>
+            </div>
+            <div style={{ display:"flex",gap:12,fontSize:11 }}>
+              <span style={{ color:t.borderStrong }}>-- Ideal</span>
+              <span style={{ color:t.accent }}>-- Actual</span>
+            </div>
+          </div>
+          <svg width="100%" height={100} viewBox="0 0 400 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="accentFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={t.accent} stopOpacity="0.2"/>
+                <stop offset="100%" stopColor={t.accent} stopOpacity="0"/>
+              </linearGradient>
+            </defs>
+            {/* Grid */}
+            {[0,25,50,75,100].map(y=><line key={y} x1={0} y1={y} x2={400} y2={y} stroke={t.border} strokeWidth={0.5}/>)}
+            {/* Ideal */}
+            <polyline points="0,0 400,100" fill="none" stroke={t.borderStrong} strokeWidth={1.5} strokeDasharray="6,3"/>
+            {/* Actual */}
+            <polyline points="0,0 57,10 114,22 171,34 228,40" fill="none" stroke={t.accent} strokeWidth={2.5} strokeLinecap="round"/>
+            <polygon points="0,0 57,10 114,22 171,34 228,40 228,100 0,100" fill="url(#accentFill)"/>
+          </svg>
+        </Card>
+
+        {/* Donut breakdown */}
+        <Card t={t}>
+          <SectionLabel t={t}>ISSUE BREAKDOWN</SectionLabel>
+          <div style={{ display:"flex",alignItems:"center",gap:16 }}>
+            <DonutChart size={80} segments={[
+              { pct:Math.round(done/ISSUES.length*100), color:t.green },
+              { pct:Math.round(inProg/ISSUES.length*100), color:t.accent },
+              { pct:100-Math.round(done/ISSUES.length*100)-Math.round(inProg/ISSUES.length*100), color:t.borderStrong },
+            ]}/>
+            <div>
+              {Object.entries(STATUS).map(([k,v])=>{
+                const cnt=ISSUES.filter(i=>i.status===k).length;
+                return <div key={k} style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
+                  <div style={{ width:8,height:8,borderRadius:"50%",background:v.color }}/>
+                  <span style={{ fontSize:12,color:t.text }}>{v.label}</span>
+                  <span style={{ fontSize:12,color:t.textMuted,marginLeft:"auto" }}>{cnt}</span>
+                </div>;
+              })}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}>
+        {/* Velocity trend */}
+        <Card t={t}>
+          <SectionLabel t={t}>VELOCITY TREND</SectionLabel>
+          <BarChart t={t} color={t.accent} width={180} height={60} data={velHistory.map((v,i)=>({v,l:`S${7+i}`}))}/>
+        </Card>
+
+        {/* Cycle time */}
+        <Card t={t}>
+          <SectionLabel t={t}>CYCLE TIME (DAYS)</SectionLabel>
+          <BarChart t={t} color={t.blue} width={140} height={60} data={cycleData}/>
+        </Card>
+
+        {/* EVM */}
+        <Card t={t}>
+          <SectionLabel t={t}>EARNED VALUE</SectionLabel>
+          {[["PV","$1,400",t.borderStrong,100],["EV","$1,456",t.accent,104],["AC","$1,400",t.blue,100]].map(([k,v,c,w])=>(
+            <div key={k} style={{ marginBottom:10 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",marginBottom:3 }}>
+                <span style={{ fontSize:11,color:t.textMuted }}>{k}</span>
+                <span style={{ fontSize:12,fontWeight:700,color:c }}>{v}</span>
+              </div>
+              <div style={{ height:3,background:t.bgTertiary,borderRadius:2 }}>
+                <div style={{ width:`${Math.min(w,104)}%`,maxWidth:"100%",height:"100%",background:c,borderRadius:2 }}/>
+              </div>
+            </div>
+          ))}
+          <div style={{ display:"flex",gap:12,marginTop:12,paddingTop:10,borderTop:`1px solid ${t.border}` }}>
+            {[["CV","+$56",true],["SPI","1.04",true]].map(([k,v,up])=>(
+              <div key={k}><div style={{ fontSize:10,color:t.textMuted }}>{k}</div><div style={{ fontSize:18,fontWeight:800,color:up?t.green:t.red,fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif" }}>{v}</div></div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: BACKLOG
+// ============================================================
+function Backlog({ t }) {
+  const [filter,setFilter]=useState("all");
+  const [sel,setSel]=useState(null);
+  const filtered=filter==="all"?ISSUES:ISSUES.filter(i=>i.pillar===filter);
+  const pillarC={work:t.accent,insights:t.blue,structure:t.orange};
+
+  return (
+    <div style={{ display:"flex",flexDirection:"column",height:"100%",overflow:"hidden" }}>
+      <div style={{ padding:"13px 22px",borderBottom:`1px solid ${t.border}`,background:t.bgSecondary,display:"flex",gap:8,alignItems:"center",justifyContent:"space-between",flexShrink:0 }}>
+        <div style={{ display:"flex",gap:4 }}>
+          {["all","work","insights","structure"].map(f=>(
+            <button key={f} onClick={()=>setFilter(f)} style={{ background:filter===f?t.accentDim:"none",border:`1px solid ${filter===f?t.accent:t.border}`,color:filter===f?t.accentText:t.textSecondary,borderRadius:4,padding:"5px 12px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.08em",textTransform:"uppercase" }}>{f}</button>
+          ))}
+        </div>
+        <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+          <span style={{ fontSize:12,color:t.textMuted }}>{filtered.length} issues</span>
+          <Btn accent t={t} small>+ Issue</Btn>
+        </div>
+      </div>
+      <div style={{ flex:1,overflowY:"auto",position:"relative" }}>
+        <table style={{ width:"100%",borderCollapse:"collapse" }}>
+          <thead>
+            <tr style={{ background:t.bgSecondary,position:"sticky",top:0,zIndex:1 }}>
+              {["","ID","Title","Status","Priority","Assignee","Points","Pillar","PR","Time"].map(h=>(
+                <th key={h} style={{ padding:"9px 14px",textAlign:"left",fontSize:9,color:t.textMuted,letterSpacing:"0.12em",borderBottom:`1px solid ${t.border}`,fontWeight:600,whiteSpace:"nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(issue=>{
+              const s=STATUS[issue.status];
+              return (
+                <tr key={issue.id} style={{ borderBottom:`1px solid ${t.border}`,cursor:"pointer",transition:"background 0.1s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=t.bgHover}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  onClick={()=>setSel(issue)}>
+                  <td style={{ padding:"9px 14px",width:20 }}><div style={{ width:6,height:6,borderRadius:"50%",background:s.color }}/></td>
+                  <td style={{ padding:"9px 14px",fontSize:11,color:t.accent,letterSpacing:"0.06em",whiteSpace:"nowrap" }}>{issue.id}</td>
+                  <td style={{ padding:"9px 14px",fontSize:13,color:t.text,maxWidth:300 }}>{issue.title}</td>
+                  <td style={{ padding:"9px 14px" }}><span style={{ fontSize:10,padding:"2px 7px",background:s.color+"1A",color:s.color,borderRadius:3 }}>{s.label}</span></td>
+                  <td style={{ padding:"9px 14px",fontSize:12,color:PRIORITY[issue.priority].color }}>{PRIORITY[issue.priority].sym}</td>
+                  <td style={{ padding:"9px 14px" }}>{issue.assignee?<Avatar id={issue.assignee} size={22}/>:<span style={{ fontSize:11,color:t.textMuted }}>--</span>}</td>
+                  <td style={{ padding:"9px 14px",fontSize:12,color:t.textMuted }}>{issue.points}pt</td>
+                  <td style={{ padding:"9px 14px" }}><span style={{ fontSize:10,color:pillarC[issue.pillar]||t.textMuted,letterSpacing:"0.06em" }}>{issue.pillar?.toUpperCase()}</span></td>
+                  <td style={{ padding:"9px 14px",fontSize:11,color:t.blue }}>{issue.pr||"--"}</td>
+                  <td style={{ padding:"9px 14px",fontSize:11,color:t.textMuted }}>{issue.time}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {sel&&<IssueDetail issue={sel} t={t} onClose={()=>setSel(null)}/>}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: MY TASKS
+// ============================================================
+function MyTasks({ t }) {
+  const mine=ISSUES.filter(i=>i.assignee==="AL");
+  const groups={today:mine.filter(i=>i.status==="in_progress"),upcoming:mine.filter(i=>i.status==="todo"),completed:mine.filter(i=>i.status==="done")};
+
+  return (
+    <div style={{ padding:"24px 32px",overflowY:"auto",height:"100%" }}>
+      <div style={{ marginBottom:24 }}>
+        <SectionLabel t={t}>WORK . PERSONAL</SectionLabel>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:26,color:t.text }}>My Tasks</h1>
+      </div>
+      <div style={{ display:"grid",gridTemplateColumns:"2fr 1fr",gap:16 }}>
+        <div>
+          {[["IN PROGRESS",groups.today,t.blue],["TODO",groups.upcoming,t.textMuted],["DONE",groups.completed,t.green]].map(([label,items,color])=>(
+            <div key={label} style={{ marginBottom:24 }}>
+              <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+                <div style={{ width:8,height:8,borderRadius:"50%",background:color }}/>
+                <SectionLabel t={t}>{label}</SectionLabel>
+                <span style={{ fontSize:10,color:t.textMuted }}>({items.length})</span>
+              </div>
+              {items.map(i=>(
+                <div key={i.id} style={{ display:"flex",gap:12,alignItems:"flex-start",padding:"10px 14px",background:t.bgSecondary,border:`1px solid ${t.border}`,borderRadius:7,marginBottom:6,transition:"all 0.15s",cursor:"pointer" }}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=t.borderStrong;e.currentTarget.style.transform="translateX(3px)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=t.border;e.currentTarget.style.transform="translateX(0)";}}>
+                  <div style={{ width:14,height:14,borderRadius:"50%",border:`2px solid ${color}`,marginTop:2,flexShrink:0,background:i.status==="done"?color:"transparent" }}/>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:13,color:i.status==="done"?t.textMuted:t.text,textDecoration:i.status==="done"?"line-through":"none",marginBottom:4 }}>{i.title}</div>
+                    <div style={{ display:"flex",gap:8 }}>
+                      <span style={{ fontSize:10,color:t.accent }}>{i.id}</span>
+                      {i.tags.slice(0,2).map(tag=><Tag key={tag} label={tag} t={t}/>)}
+                      {i.time!=="0m"&&<span style={{ fontSize:10,color:t.textMuted }}> {i.time}</span>}
+                    </div>
+                  </div>
+                  <span style={{ fontSize:11,color:t.textMuted }}>{i.points}pt</span>
+                </div>
+              ))}
+              {items.length===0&&<div style={{ fontSize:12,color:t.textMuted,padding:"10px 14px" }}>Nothing here</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* Focus block */}
+        <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+          <Card t={t}>
+            <SectionLabel t={t}>THIS WEEK</SectionLabel>
+            {[["Mon","RC-004 EVM dashboard",t.blue],["Tue","RC-004 continued",t.blue],["Wed","Sprint review prep",t.accent],["Thu","Standup + backlog",t.textMuted],["Fri","Sprint demo",t.orange]].map(([day,task,c])=>(
+              <div key={day} style={{ display:"flex",gap:10,marginBottom:8,alignItems:"center" }}>
+                <span style={{ fontSize:10,color:t.textMuted,width:28,flexShrink:0 }}>{day}</span>
+                <div style={{ flex:1,height:28,background:c+"18",border:`1px solid ${c}30`,borderRadius:4,display:"flex",alignItems:"center",padding:"0 8px",fontSize:11,color:c }}>{task}</div>
+              </div>
+            ))}
+          </Card>
+          <Card t={t}>
+            <SectionLabel t={t}>TIME TRACKED TODAY</SectionLabel>
+            <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:32,color:t.text }}>3h 42m</div>
+            <div style={{ fontSize:12,color:t.textMuted,marginBottom:12 }}>Goal: 6h . 62%</div>
+            <div style={{ height:4,background:t.bgTertiary,borderRadius:2 }}>
+              <div style={{ width:"62%",height:"100%",background:t.accent,borderRadius:2 }}/>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: ROADMAP
+// ============================================================
+function Roadmap({ t }) {
+  const now=[ISSUES[0],ISSUES[1],ISSUES[5]];
+  const next=[ISSUES[2],ISSUES[3]];
+  const later=[ISSUES[6],ISSUES[7]];
+  const pillarC={work:t.accent,insights:t.blue,structure:t.orange};
+
+  return (
+    <div style={{ padding:"24px 32px",overflowY:"auto",height:"100%" }}>
+      <div style={{ marginBottom:24 }}>
+        <SectionLabel t={t}>WORK . PLANNING</SectionLabel>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:26,color:t.text }}>Roadmap</h1>
+      </div>
+
+      {/* Timeline vis */}
+      <Card t={t} style={{ marginBottom:20 }}>
+        <SectionLabel t={t}>TIMELINE . Q1 2025</SectionLabel>
+        <div style={{ position:"relative",paddingTop:30 }}>
+          {/* Month markers */}
+          {["Jan","Feb","Mar","Apr"].map((m,i)=>(
+            <div key={m} style={{ position:"absolute",top:0,left:`${i*25}%`,fontSize:9,color:t.textMuted,letterSpacing:"0.1em" }}>{m}</div>
+          ))}
+          <div style={{ height:1,background:t.border,marginBottom:12 }}/>
+          {ISSUES.slice(0,6).map((issue,i)=>{
+            const left=5+i*6;
+            const width=8+issue.points*1.5;
+            const top=i%3*22;
+            return (
+              <div key={issue.id} style={{ position:"relative",height:22,marginBottom:2 }}>
+                <div title={`${issue.id}: ${issue.title}`} style={{ position:"absolute",left:`${left}%`,width:`${width}%`,height:18,background:pillarC[issue.pillar]||t.accent,borderRadius:9,opacity:0.85,cursor:"pointer",display:"flex",alignItems:"center",padding:"0 8px",transition:"all 0.15s",overflow:"hidden" }}
+                  onMouseEnter={e=>e.currentTarget.style.opacity="1"}
+                  onMouseLeave={e=>e.currentTarget.style.opacity="0.85"}>
+                  <span style={{ fontSize:9,color:t.bg,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{issue.id} {issue.title.slice(0,20)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Now/Next/Later swimlanes */}
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}>
+        {[["NOW",now,t.accent,"Active sprint work"],["NEXT",next,t.blue,"Planned for next sprint"],["LATER",later,t.textMuted,"Backlog -- not yet sized"]].map(([label,items,color,desc])=>(
+          <div key={label} style={{ background:t.bgSecondary,border:`1px solid ${t.border}`,borderTop:`2px solid ${color}`,borderRadius:8,padding:16 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+              <span style={{ fontSize:12,fontWeight:700,color,letterSpacing:"0.08em" }}>{label}</span>
+              <span style={{ fontSize:10,color:t.textMuted }}>{items.length}</span>
+            </div>
+            <div style={{ fontSize:11,color:t.textMuted,marginBottom:14 }}>{desc}</div>
+            {items.map(i=>(
+              <div key={i.id} style={{ marginBottom:8,padding:"9px 11px",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:6,cursor:"pointer" }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=color}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=t.border}>
+                <div style={{ fontSize:10,color,marginBottom:3 }}>{i.id}</div>
+                <div style={{ fontSize:12,color:t.text,lineHeight:1.3 }}>{i.title.slice(0,50)}...</div>
+                <div style={{ display:"flex",justifyContent:"space-between",marginTop:6 }}>
+                  <Tag label={i.pillar.toUpperCase()} color={pillarC[i.pillar]} t={t}/>
+                  {i.assignee?<Avatar id={i.assignee} size={18}/>:<span style={{ fontSize:10,color:t.textMuted }}>Unassigned</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: ANALYTICS
+// ============================================================
+function Analytics({ t }) {
+  return (
+    <div style={{ padding:"24px 32px",overflowY:"auto",height:"100%" }}>
+      <div style={{ marginBottom:20 }}>
+        <SectionLabel t={t}>INSIGHTS . DATA</SectionLabel>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:26,color:t.text }}>Analytics</h1>
+      </div>
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12 }}>
+        <Card t={t}>
+          <SectionLabel t={t}>CUMULATIVE FLOW . 4 WEEKS</SectionLabel>
+          <svg width="100%" height={120} viewBox="0 0 400 120" preserveAspectRatio="none">
+            {[
+              {pts:"0,100 100,90 200,85 300,80 400,76",color:t.green+"88"},
+              {pts:"0,100 100,95 200,88 300,85 400,80",color:t.accent+"88"},
+              {pts:"0,105 100,100 200,96 300,90 400,88",color:t.blue+"88"},
+              {pts:"0,115 100,110 200,108 300,105 400,100",color:t.borderStrong+"88"},
+            ].map((l,i)=><polyline key={i} points={l.pts} fill="none" stroke={l.color} strokeWidth={2} strokeLinecap="round"/>)}
+            {["Todo","In Prog","Review","Done"].map((l,i)=><text key={l} x={360} y={[100,80,88,76][i]} fontSize={9} fill={[t.borderStrong,t.blue,t.accent,t.green][i]} fontFamily="inherit">{l}</text>)}
+          </svg>
+        </Card>
+        <Card t={t}>
+          <SectionLabel t={t}>THROUGHPUT . ISSUES / WEEK</SectionLabel>
+          <BarChart t={t} color={t.purple} width={300} height={80} data={[{v:4,l:"W1"},{v:6,l:"W2"},{v:5,l:"W3"},{v:8,l:"W4"},{v:7,l:"W5"},{v:9,l:"W6"}]}/>
+        </Card>
+        <Card t={t}>
+          <SectionLabel t={t}>LEAD TIME DISTRIBUTION</SectionLabel>
+          <svg width="100%" height={100} viewBox="0 0 300 100" preserveAspectRatio="none">
+            {[{x:20,h:20},{x:50,h:35},{x:80,h:55},{x:110,h:80},{x:140,h:95},{x:170,h:70},{x:200,h:45},{x:230,h:25},{x:260,h:10}].map((b,i)=>(
+              <rect key={i} x={b.x} y={100-b.h} width={22} height={b.h} fill={t.blue} rx={2} opacity={0.8}/>
+            ))}
+          </svg>
+          <div style={{ fontSize:11,color:t.textMuted }}>Avg: 3.2d . P95: 8.4d</div>
+        </Card>
+        <Card t={t}>
+          <SectionLabel t={t}>MEMBER CONTRIBUTION</SectionLabel>
+          {MEMBERS.map(m=>{
+            const pts=ISSUES.filter(i=>i.assignee===m.id).reduce((s,i)=>s+i.points,0);
+            const pct=Math.round(pts/42*100);
+            return (
+              <div key={m.id} style={{ display:"flex",gap:10,alignItems:"center",marginBottom:10 }}>
+                <Avatar id={m.id} size={24}/>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",marginBottom:3 }}>
+                    <span style={{ fontSize:12,color:t.text }}>{m.name}</span>
+                    <span style={{ fontSize:11,color:m.color }}>{pts}pt</span>
+                  </div>
+                  <div style={{ height:3,background:t.bgTertiary,borderRadius:2 }}>
+                    <div style={{ width:`${pct}%`,height:"100%",background:m.color,borderRadius:2 }}/>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MODULE: MEMBERS
+// ============================================================
+function Members({ t }) {
+  return (
+    <div style={{ padding:"24px 32px",overflowY:"auto",height:"100%" }}>
+      <div style={{ marginBottom:20 }}>
+        <SectionLabel t={t}>STRUCTURE . TEAM</SectionLabel>
+        <h1 style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:26,color:t.text }}>Members</h1>
+      </div>
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+        {MEMBERS.map(m=>{
+          const myIssues=ISSUES.filter(i=>i.assignee===m.id);
+          return (
+            <Card key={m.id} t={t} style={{ display:"flex",gap:16 }}>
+              <div style={{ position:"relative" }}>
+                <Avatar id={m.id} size={52}/>
+                <div style={{ position:"absolute",bottom:1,right:1 }}><Dot status={m.status}/></div>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:16,color:t.text }}>{m.name}</div>
+                <div style={{ fontSize:12,color:t.textMuted,marginBottom:12 }}>{m.role} . {m.status}</div>
+                <div style={{ display:"flex",gap:16,marginBottom:12 }}>
+                  {[["Issues",myIssues.length],["Points",myIssues.reduce((s,i)=>s+i.points,0)],["Done",myIssues.filter(i=>i.status==="done").length]].map(([k,v])=>(
+                    <div key={k}><div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:18,color:t.text }}>{v}</div><div style={{ fontSize:10,color:t.textMuted }}>{k}</div></div>
+                  ))}
+                </div>
+                <SparkLine data={[2,4,3,5,4,6,5]} color={m.color} width={100} height={24}/>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// STUB
+// ============================================================
+function Stub({ label, t }) {
+  return (
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:12,opacity:0.4 }}>
+      <div style={{ fontSize:52,color:t.textMuted }}>[H]</div>
+      <div style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:22,color:t.text }}>{label}</div>
+      <div style={{ fontSize:13,color:t.textMuted }}>Module in progress</div>
+    </div>
+  );
+}
+
+// ============================================================
+// ROOT APP
+// ============================================================
+export default function MainApp({ session }: any) {
+const initStore = useReachStore(state => state.initStore);
+
+useEffect(() => {
+  if (session) {
+    // Get the tenant_id and role from JWT claims
+    const tenantId = session.user.app_metadata?.tenant_id || session.user.user_metadata?.tenant_id;
+    const role = session.user.app_metadata?.user_role || session.user.user_metadata?.user_role || 'member';
+    if (tenantId) {
+      initStore(tenantId, session.user.id, role);
+    }
+  }
+}, [session, initStore]);
+
+const isIdeRoute = window.location.pathname === "/ide";
+
+// Check if store is hydrating, but only block UI if we genuinely need tenant info first
+const tenantId = useReachStore(state => state.tenantId);
+if (!tenantId) {
+  return <div style={{ height: "100vh", background: "#07070A", display: "flex", alignItems: "center", justifyContent: "center", color: "#8080A0" }}>Loading Workspace...</div>;
+}
+  
+if (isIdeRoute) {
+  return <IdeApp />;
+}
+
+useEffect(()=>{
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap';
+    document.head.appendChild(link);
+    return () => document.head.removeChild(link);
+  },[]);
+
+  const [theme,setTheme]=useState("dark");
+  const [mod,setMod]=useState("home");
+  const [collapsed,setCollapsed]=useState(false);
+  const [cmd,setCmd]=useState(false);
+  const [showShortcuts,setShowShortcuts]=useState(false);
+  const t=THEMES[theme];
+
+  useEffect(()=>{
+    const h=e=>{
+      const isMeta = e.metaKey || e.ctrlKey;
+      if(isMeta && e.key === "/") { e.preventDefault(); setShowShortcuts(p=>!p); return; }
+      if(isMeta && e.key === "1") { e.preventDefault(); setMod("home"); return; }
+      if(isMeta && e.key === "2") { e.preventDefault(); setMod("board"); return; }
+      if(isMeta && e.key === "3") { e.preventDefault(); setMod("ide"); return; }
+      if(isMeta && e.key === "4") { e.preventDefault(); setMod("chat"); return; }
+      if(isMeta && e.key === "5") { e.preventDefault(); setMod("docs"); return; }
+      if(isMeta && e.key === "6") { e.preventDefault(); setMod("dashboard"); return; }
+      if(isMeta && e.key === "7") { e.preventDefault(); setMod("analytics"); return; }
+      if(isMeta && e.key.toLowerCase() === "b") { e.preventDefault(); setCollapsed(p=>!p); return; }
+      if(isMeta && e.key === "`") { e.preventDefault(); window.location.assign("/ide?tab=terminal"); return; }
+      if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(p=>!p);}
+      if(e.key==="Escape"){
+        setCmd(false);
+        setShowShortcuts(false);
+      }
+    };
+
+    if(mod==="ideapp") {
+      window.location.assign("/ide");
+    }
+
+    window.addEventListener("keydown",h);
+    return()=>window.removeEventListener("keydown",h);
+  },[mod]);
+
+  const pillarKey={accent:t.accent,blue:t.blue,orange:t.orange};
+
+  const MODULES={
+    home:<Home t={t} setModule={setMod}/>,
+    board:<Board t={t}/>,
+    backlog:<Backlog t={t}/>,
+    mytasks:<MyTasks t={t}/>,
+    roadmap:<Roadmap t={t}/>,
+    ide:<IDE t={t}/>,
+    docs:<Docs t={t}/>,
+    chat:<Chat t={t}/>,
+    standup:<Standup t={t}/>,
+    dashboard:<Dashboard t={t}/>,
+    analytics:<Analytics t={t}/>,
+    reports:<Stub label="Reports" t={t}/>,
+    projects:<Stub label="Projects" t={t}/>,
+    members:<Members t={t}/>,
+    clients:<Stub label="Clients" t={t}/>,
+    settings:<Stub label="Settings" t={t}/>,
+  };
+
+  const allItems=NAV.flatMap(s=>s.items);
+  const activeItem=allItems.find(i=>i.id===mod);
+
+  return (
+    <div style={{ display:"flex",height:"100vh",overflow:"hidden",background:t.bg,color:t.text,fontFamily:"'Space Mono',ui-monospace,'Cascadia Code','Source Code Pro',Menlo,Consolas,monospace",transition:"background 0.25s,color 0.25s" }}>
+      <style>{`
+        /* fonts loaded via link tag */
+        *{box-sizing:border-box;margin:0;padding:0;}
+        ::-webkit-scrollbar{width:3px;height:3px;}
+        ::-webkit-scrollbar-thumb{background:${t.borderStrong};border-radius:2px;}
+        input::placeholder{color:${t.textMuted};}
+        textarea::placeholder{color:${t.textMuted};}
+      `}</style>
+
+      {/* SIDEBAR */}
+      <div style={{ width:collapsed?48:216,background:t.bgSecondary,borderRight:`1px solid ${t.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s cubic-bezier(0.16,1,0.3,1)",overflow:"hidden",flexShrink:0 }}>
+        {/* Logo */}
+        <div style={{ height:50,display:"flex",alignItems:"center",padding:collapsed?"0 12px":"0 14px",borderBottom:`1px solid ${t.border}`,justifyContent:"space-between",flexShrink:0 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:9 }}>
+            <div style={{ width:26,height:26,background:t.accent,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:t.bg,fontWeight:700,flexShrink:0 }}>R</div>
+            {!collapsed&&<span style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:800,fontSize:15,letterSpacing:"0.03em" }}>REACH</span>}
+          </div>
+          {!collapsed&&<button onClick={()=>setCollapsed(true)} style={{ background:"none",border:"none",color:t.textMuted,cursor:"pointer",fontSize:13,padding:"0 2px" }}></button>}
+        </div>
+        {collapsed&&<button onClick={()=>setCollapsed(false)} style={{ background:"none",border:"none",color:t.textMuted,cursor:"pointer",padding:"8px 0",fontSize:13,borderBottom:`1px solid ${t.border}`,textAlign:"center" }}></button>}
+
+        {/* Search */}
+        {!collapsed&&(
+          <button onClick={()=>setCmd(true)} style={{ margin:"8px 8px 2px",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:5,padding:"6px 10px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",color:t.textMuted,fontSize:11,flexShrink:0 }}>
+            <span style={{ flex:1,textAlign:"left" }}>Search...</span>
+            <span style={{ fontSize:9,background:t.bgHover,borderRadius:3,padding:"1px 4px" }}>K</span>
+          </button>
+        )}
+
+        {/* Nav */}
+        <nav style={{ flex:1,overflowY:"auto",padding:"4px 0" }}>
+          {NAV.map(section=>(
+            <div key={section.pillar} style={{ marginBottom:2 }}>
+              {!collapsed&&<div style={{ padding:"8px 14px 3px",fontSize:8,letterSpacing:"0.2em",color:pillarKey[section.pillarKey],fontWeight:700 }}>{section.pillar}</div>}
+              {section.items.map(item=>(
+                <button key={item.id} onClick={()=>setMod(item.id)} title={collapsed?item.label:undefined} style={{ width:"100%",textAlign:"left",background:mod===item.id?t.accentDim:"none",border:"none",borderLeft:`2px solid ${mod===item.id?t.accent:"transparent"}`,cursor:"pointer",fontFamily:"inherit",padding:collapsed?"8px 0":"7px 14px",display:"flex",alignItems:"center",gap:collapsed?0:8,color:mod===item.id?t.accentText:t.textSecondary,fontSize:12,transition:"all 0.1s",justifyContent:collapsed?"center":"flex-start" }}
+                  onMouseEnter={e=>{if(mod!==item.id)e.currentTarget.style.background=t.bgHover;}}
+                  onMouseLeave={e=>{if(mod!==item.id)e.currentTarget.style.background="none";}}>
+                  <span style={{ fontSize:collapsed?15:12,flexShrink:0 }}>{item.icon}</span>
+                  {!collapsed&&<><span style={{ flex:1 }}>{item.label}</span>{item.badge&&<span style={{ fontSize:8,background:t.orange,color:"#fff",borderRadius:10,padding:"1px 4px",minWidth:16,textAlign:"center" }}>{item.badge}</span>}</>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+          {/* Bottom */}
+          <div style={{ borderTop:`1px solid ${t.border}`,padding:"8px" }}>
+            <button onClick={()=>setTheme(p=>p==="dark"?"light":"dark")} style={{ width:"100%",background:t.bgTertiary,border:`1px solid ${t.border}`,borderRadius:5,padding:"6px",cursor:"pointer",color:t.textSecondary,fontSize:collapsed?15:11,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5, marginBottom: 8 }}>
+              {theme==="dark"?"*":"O"}
+              {!collapsed&&<span>{theme==="dark"?"Light":"Dark"}</span>}
+            </button>
+            <button onClick={() => supabase.auth.signOut()} style={{ width:"100%",background:'none',border:'none',cursor:"pointer",color:t.textSecondary,fontSize:collapsed?15:11,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5 }}>
+              [!]{!collapsed&&<span>Log Out</span>}
+            </button>
+            {!collapsed&&<div style={{ display:"flex",gap:8,alignItems:"center",padding:"8px 2px 0" }}>
+              <Avatar id="AL" size={26}/>
+              <div><div style={{ fontSize:11,color:t.text }}>{session?.user?.user_metadata?.display_name || 'Alex L.'}</div><div style={{ fontSize:9,color:t.textMuted }}>{useReachStore.getState().role.toUpperCase()} . RC-CORE</div></div>
+            </div>}
+          </div>
+      </div>
+
+      {/* MAIN */}
+      <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative" }}>
+        {/* Topbar */}
+        <div style={{ height:50,borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",padding:"0 22px",justifyContent:"space-between",background:t.bgSecondary,flexShrink:0 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+            {activeItem&&<span style={{ fontFamily:"-apple-system,'Segoe UI',system-ui,BlinkMacSystemFont,sans-serif",fontWeight:700,fontSize:16,color:t.text }}>{activeItem.label}</span>}
+          </div>
+          <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+            <Btn accent t={t} small onClick={()=>setMod("board")}>+ New Issue</Btn>
+            <div style={{ display:"flex" }}>
+              {MEMBERS.slice(0,4).map((m,i)=><div key={m.id} style={{ marginLeft:i>0?-6:0 }}><Avatar id={m.id} size={26}/></div>)}
+            </div>
+          </div>
+        </div>
+
+        {/* Module */}
+        <div style={{ flex:1,overflow:"hidden",position:"relative" }}>
+          {MODULES[mod]||<Stub label={mod} t={t}/>}
+        </div>
+      </div>
+
+      {/* CMD PALETTE */}
+      {cmd&&(
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:"18vh",zIndex:1000 }} onClick={()=>setCmd(false)}>
+          <div style={{ background:t.bgSecondary,border:`1px solid ${t.borderStrong}`,borderRadius:10,width:540,overflow:"hidden",boxShadow:t.shadowLg }} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:"11px 14px",borderBottom:`1px solid ${t.border}`,display:"flex",gap:8,alignItems:"center" }}>
+              <span style={{ color:t.textMuted }}></span>
+              <input autoFocus placeholder="Search issues, pages, members..." style={{ flex:1,background:"none",border:"none",outline:"none",fontSize:14,color:t.text,fontFamily:"inherit" }}/>
+              <span style={{ fontSize:10,color:t.textMuted,background:t.bgTertiary,borderRadius:3,padding:"2px 5px" }}>ESC</span>
+            </div>
+            <div style={{ maxHeight:340,overflowY:"auto" }}>
+              <div style={{ padding:"7px 14px",fontSize:9,color:t.textMuted,letterSpacing:"0.15em" }}>RECENT ISSUES</div>
+              {ISSUES.slice(0,4).map(i=>(
+                <div key={i.id} style={{ padding:"9px 14px",display:"flex",gap:10,alignItems:"center",cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=t.bgHover}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  onClick={()=>{setMod("board");setCmd(false);}}>
+                  <span style={{ fontSize:10,color:t.accent,width:58,flexShrink:0 }}>{i.id}</span>
+                  <span style={{ fontSize:13,color:t.text,flex:1 }}>{i.title}</span>
+                  <div style={{ width:6,height:6,borderRadius:"50%",background:STATUS[i.status].color }}/>
+                </div>
+              ))}
+              <div style={{ padding:"7px 14px",fontSize:9,color:t.textMuted,letterSpacing:"0.15em",borderTop:`1px solid ${t.border}` }}>PAGES</div>
+              {allItems.map(item=>(
+                <div key={item.id} style={{ padding:"8px 14px",display:"flex",gap:10,alignItems:"center",cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=t.bgHover}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  onClick={()=>{setMod(item.id);setCmd(false);}}>
+                  <span style={{ color:t.textMuted,fontSize:12 }}>{item.icon}</span>
+                  <span style={{ fontSize:13,color:t.text }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SHORTCUTS */}
+      {showShortcuts&&(
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100 }} onClick={()=>setShowShortcuts(false)}>
+          <div style={{ width:520, background:t.bgSecondary, border:`1px solid ${t.borderStrong}`, borderRadius:10, boxShadow:t.shadowLg, overflow:"hidden" }} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:"12px 14px", borderBottom:`1px solid ${t.border}`, fontSize:13, fontWeight:700, color:t.text }}>Keyboard Shortcuts</div>
+            <div style={{ padding:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              {[
+                ["Ctrl/Cmd+1","Home"],
+                ["Ctrl/Cmd+2","Sprint Board"],
+                ["Ctrl/Cmd+3","Code & PRs"],
+                ["Ctrl/Cmd+4","Chat"],
+                ["Ctrl/Cmd+5","Docs"],
+                ["Ctrl/Cmd+6","Dashboard"],
+                ["Ctrl/Cmd+7","Analytics"],
+                ["Ctrl/Cmd+B","Toggle Sidebar"],
+                ["Ctrl/Cmd+K","Command Palette"],
+                ["Ctrl/Cmd+`","IDE Terminal"],
+                ["Ctrl/Cmd+/","Toggle Shortcuts"],
+                ["Esc","Close overlays"],
+              ].map(([k,v])=>(
+                <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:t.bgTertiary, border:`1px solid ${t.border}`, borderRadius:6, padding:"8px 10px" }}>
+                  <span style={{ color:t.textSub, fontSize:12 }}>{v}</span>
+                  <span style={{ color:t.accent, fontSize:11 }}>{k}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -67,18 +67,19 @@ export const useReachStore = create<ReachState>((set, get) => ({
     const channel = supabase.channel(`tenant:${tenantId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, payload => {
         set(produce((state: ReachState) => {
-          if (payload.eventType === 'DELETE') delete state.issues[payload.old.id];
-          else state.issues[payload.new.id] = payload.new;
+          if (payload.eventType === 'DELETE') delete state.issues[(payload.old as any).id];
+          else state.issues[(payload.new as any).id] = payload.new;
         }));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, payload => {
         // Chat messages are handled by TenantRuntimeWorker locally for speed,
         // but we receive remote peer messages here.
+        const newMsg = payload.new as any;
         getTenantRuntime(tenantId).saveMessage(
-          payload.new.channel_id,
-          payload.new.sender_id,
-          payload.new.body,
-          payload.new.id
+          newMsg.channel_id,
+          newMsg.sender_id,
+          newMsg.body,
+          newMsg.id
         );
       })
       .subscribe();
