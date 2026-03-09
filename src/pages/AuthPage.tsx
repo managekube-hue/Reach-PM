@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,24 +37,18 @@ export default function AuthPage() {
         const userId = authData.user?.id;
         if (!userId) throw new Error("No user ID returned");
 
-        // 2. Create the Tenant (Organization)
+        // 2. Create the Tenant and Admin Profile atomically using an RPC function
+        // This ensures Row Level Security doesn't block the frontend from provisioning itself
         const slug = tenantName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        const { data: tenantData, error: tenantError } = await supabase.from('tenants').insert({
-          name: tenantName,
-          slug: slug
-        }).select().single();
         
-        if (tenantError) throw tenantError;
-
-        // 3. Create the exact Profile making them an admin
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: userId,
-          tenant_id: tenantData.id,
-          display_name: username,
-          role: 'admin'
+        const { error: rpcError } = await supabase.rpc('register_tenant_admin', {
+          p_user_id: userId,
+          p_tenant_name: tenantName,
+          p_slug: slug,
+          p_display_name: username
         });
-
-        if (profileError) throw profileError;
+        
+        if (rpcError) throw rpcError;
 
         navigate('/onboarding');
       }
