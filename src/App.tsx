@@ -1657,40 +1657,84 @@ function Stub({ label, t }) {
 export default function MainApp({ session }: any) {
 const initStore = useReachStore(state => state.initStore);
 
-  useEffect(() => {
-    if (session) {
-      const fetchTenant = async () => {
-        try {
-          const tokenTenant = session.user.app_metadata?.tenant_id || session.user.user_metadata?.tenant_id;
-          const tokenRole = session.user.app_metadata?.user_role || session.user.user_metadata?.user_role || 'member';
-
-          if (tokenTenant) {
-            await initStore(tokenTenant, session.user.id, tokenRole);
-          } else {
-            // Fallback if custom JWT hook hasn't fired yet
-            const { data, error } = await supabase.from('profiles').select('tenant_id, role').eq('id', session.user.id).single();
-            if (data && data.tenant_id) {
-              await initStore(data.tenant_id, session.user.id, data.role);
-            } else {
-              console.error("No tenant profile found!", error);
-              // Instead of logging out, just set dummy data so UI doesn't hang!
-              await initStore('demo-tenant-id', session.user.id, 'admin');
-            }
-          }
-        } catch (err) {
-          console.error("Error hydrating tenant", err);
-          await initStore('demo-tenant-id', session.user.id, 'admin');
-        }
-      };
-      
-      fetchTenant();
-    }
-  }, [session, initStore]);
-
 const isIdeRoute = window.location.pathname === "/ide";
 
 // Check if store is hydrating, but only block UI if we genuinely need tenant info first
 const tenantId = useReachStore(state => state.tenantId);
+
+const [theme,setTheme]=useState("dark");
+const [mod,setMod]=useState("home");
+const [collapsed,setCollapsed]=useState(false);
+const [cmd,setCmd]=useState(false);
+const [showShortcuts,setShowShortcuts]=useState(false);
+const t=THEMES[theme as keyof typeof THEMES] || THEMES.dark;
+
+useEffect(() => {
+  if (session) {
+    const fetchTenant = async () => {
+      try {
+        const tokenTenant = session.user.app_metadata?.tenant_id || session.user.user_metadata?.tenant_id;
+        const tokenRole = session.user.app_metadata?.user_role || session.user.user_metadata?.user_role || 'member';
+
+        if (tokenTenant) {
+          await initStore(tokenTenant, session.user.id, tokenRole);
+        } else {
+          // Fallback if custom JWT hook hasn't fired yet
+          const { data, error } = await supabase.from('profiles').select('tenant_id, role').eq('id', session.user.id).single();
+          if (data && data.tenant_id) {
+            await initStore(data.tenant_id, session.user.id, data.role);
+          } else {
+            console.error("No tenant profile found!", error);
+            // Instead of logging out, just set dummy data so UI doesn't hang!
+            await initStore('demo-tenant-id', session.user.id, 'admin');
+          }
+        }
+      } catch (err) {
+        console.error("Error hydrating tenant", err);
+        await initStore('demo-tenant-id', session.user.id, 'admin');
+      }
+    };
+      
+    fetchTenant();
+  }
+}, [session, initStore]);
+
+useEffect(()=>{
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap';
+  document.head.appendChild(link);
+  return () => document.head.removeChild(link);
+},[]);
+
+useEffect(()=>{
+  const h=(e: any)=>{
+    const isMeta = e.metaKey || e.ctrlKey;
+    if(isMeta && e.key === "/") { e.preventDefault(); setShowShortcuts(p=>!p); return; }
+    if(isMeta && e.key === "1") { e.preventDefault(); setMod("home"); return; }
+    if(isMeta && e.key === "2") { e.preventDefault(); setMod("board"); return; }
+    if(isMeta && e.key === "3") { e.preventDefault(); setMod("ide"); return; }
+    if(isMeta && e.key === "4") { e.preventDefault(); setMod("chat"); return; }
+    if(isMeta && e.key === "5") { e.preventDefault(); setMod("docs"); return; }
+    if(isMeta && e.key === "6") { e.preventDefault(); setMod("dashboard"); return; }
+    if(isMeta && e.key === "7") { e.preventDefault(); setMod("analytics"); return; }
+    if(isMeta && e.key.toLowerCase() === "b") { e.preventDefault(); setCollapsed(p=>!p); return; }
+    if(isMeta && e.key === "`") { e.preventDefault(); window.location.assign("/ide?tab=terminal"); return; }
+    if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(p=>!p);}
+    if(e.key==="Escape"){
+      setCmd(false);
+      setShowShortcuts(false);
+    }
+  };
+
+  if(mod==="ideapp") {
+    window.location.assign("/ide");
+  }
+
+  window.addEventListener("keydown",h);
+  return()=>window.removeEventListener("keydown",h);
+},[mod]);
+
 if (!tenantId) {
   return <div style={{ height: "100vh", background: "#07070A", display: "flex", alignItems: "center", justifyContent: "center", color: "#8080A0" }}>Loading Workspace...</div>;
 }
@@ -1699,50 +1743,7 @@ if (isIdeRoute) {
   return <IdeApp />;
 }
 
-useEffect(()=>{
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap';
-    document.head.appendChild(link);
-    return () => document.head.removeChild(link);
-  },[]);
-
-  const [theme,setTheme]=useState("dark");
-  const [mod,setMod]=useState("home");
-  const [collapsed,setCollapsed]=useState(false);
-  const [cmd,setCmd]=useState(false);
-  const [showShortcuts,setShowShortcuts]=useState(false);
-  const t=THEMES[theme];
-
-  useEffect(()=>{
-    const h=e=>{
-      const isMeta = e.metaKey || e.ctrlKey;
-      if(isMeta && e.key === "/") { e.preventDefault(); setShowShortcuts(p=>!p); return; }
-      if(isMeta && e.key === "1") { e.preventDefault(); setMod("home"); return; }
-      if(isMeta && e.key === "2") { e.preventDefault(); setMod("board"); return; }
-      if(isMeta && e.key === "3") { e.preventDefault(); setMod("ide"); return; }
-      if(isMeta && e.key === "4") { e.preventDefault(); setMod("chat"); return; }
-      if(isMeta && e.key === "5") { e.preventDefault(); setMod("docs"); return; }
-      if(isMeta && e.key === "6") { e.preventDefault(); setMod("dashboard"); return; }
-      if(isMeta && e.key === "7") { e.preventDefault(); setMod("analytics"); return; }
-      if(isMeta && e.key.toLowerCase() === "b") { e.preventDefault(); setCollapsed(p=>!p); return; }
-      if(isMeta && e.key === "`") { e.preventDefault(); window.location.assign("/ide?tab=terminal"); return; }
-      if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(p=>!p);}
-      if(e.key==="Escape"){
-        setCmd(false);
-        setShowShortcuts(false);
-      }
-    };
-
-    if(mod==="ideapp") {
-      window.location.assign("/ide");
-    }
-
-    window.addEventListener("keydown",h);
-    return()=>window.removeEventListener("keydown",h);
-  },[mod]);
-
-  const pillarKey={accent:t.accent,blue:t.blue,orange:t.orange};
+const pillarKey={accent:t.accent,blue:t.blue,orange:t.orange};
 
   const MODULES={
     home:<Home t={t} setModule={setMod}/>,
