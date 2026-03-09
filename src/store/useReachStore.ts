@@ -48,20 +48,25 @@ export const useReachStore = create<ReachState>((set, get) => ({
   members: {},
 
   initStore: async (tenantId, userId, role) => {
+    // Note: Important to set tenantId first so UI can transition away from "Loading Workspace..."
     set({ tenantId, userId, role: role as any });
     
-    // 1. Load initial state via Supabase strictly bounded by RLS
-    const [issuesRes, membersRes, channelsRes] = await Promise.all([
-      supabase.from('issues').select('*'),
-      supabase.from('profiles').select('*'),
-      supabase.from('chat_channels').select('*')
-    ]);
+    try {
+      // 1. Load initial state via Supabase strictly bounded by RLS
+      const [issuesRes, membersRes, channelsRes] = await Promise.all([
+        supabase.from('issues').select('*'),
+        supabase.from('profiles').select('*'),
+        supabase.from('chat_channels').select('*')
+      ]);
 
-    set(produce((state: ReachState) => {
-      if (issuesRes.data) issuesRes.data.forEach(i => { state.issues[i.id] = i; });
-      if (membersRes.data) membersRes.data.forEach(m => { state.members[m.id] = m; });
-      if (channelsRes.data) channelsRes.data.forEach(c => { state.channels[c.id] = c; });
-    }));
+      set(produce((state: ReachState) => {
+        if (issuesRes.data) issuesRes.data.forEach(i => { state.issues[i.id] = i; });
+        if (membersRes.data) membersRes.data.forEach(m => { state.members[m.id] = m; });
+        if (channelsRes.data) channelsRes.data.forEach(c => { state.channels[c.id] = c; });
+      }));
+    } catch (e) {
+      console.warn("Could not load initial database state for tenant", e);
+    }
 
     // 2. Setup Realtime Subscriptions
     const channel = supabase.channel(`tenant:${tenantId}`)

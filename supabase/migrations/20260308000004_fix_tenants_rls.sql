@@ -1,0 +1,1 @@
+CREATE POLICY tenants_insert ON tenants FOR INSERT WITH CHECK (true); CREATE POLICY tenants_select ON tenants FOR SELECT USING (true);

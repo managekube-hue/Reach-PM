@@ -1,0 +1,1 @@
+CREATE POLICY profiles_self_read ON profiles FOR SELECT USING (id = auth.uid());
