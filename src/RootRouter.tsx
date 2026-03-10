@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import LandingPage from './pages/LandingPage';
-import MainApp from './App';
+import ReachApp from './App';
 import { supabase } from './lib/supabase';
 
 export default function RootRouter() {
@@ -45,13 +45,13 @@ export default function RootRouter() {
           element={session ? <OnboardingPage session={session} /> : <Navigate to="/auth" />} 
         />
         <Route 
-          path="/app/*" 
-          element={session ? <MainApp session={session} /> : <Navigate to="/auth" />} 
-        />
+            path="/app/*" 
+          element={session ? <ReachApp session={session} /> : <Navigate to="/auth" />} 
+          />
         <Route 
-          path="/ide" 
-          element={session ? <MainApp session={session} /> : <Navigate to="/auth" />} 
-        />
+            path="/ide" 
+          element={session ? <ReachApp session={session} /> : <Navigate to="/auth" />} 
+          />
       </Routes>
     </BrowserRouter>
   );
