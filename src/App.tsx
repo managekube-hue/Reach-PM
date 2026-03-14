@@ -272,6 +272,29 @@ const ICON_PATHS = {
   at:"M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
   mic:"M12 1a3 3 0 013 3v8a3 3 0 01-6 0V4a3 3 0 013-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
   maximize:"M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3",
+  mail:"M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
+  phone:"M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .9h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
+  calendar:"M3 4h18v18H3zM16 2v4M8 2v4M3 10h18",
+  userPlus:"M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M23 11h-6",
+  star:"M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  diamond:"M12 2l10 10-10 10L2 12 12 2z",
+  inbox:"M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
+  cpu:"M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18",
+  database:"M12 2a9 3 0 019 3 9 3 0 01-9 3 9 3 0 01-9-3 9 3 0 019-3zM3 5v4a9 3 0 0018 0V5M3 9v4a9 3 0 0018 0V9M3 13v4a9 3 0 0018 0v-4",
+  creditCard:"M1 4h22v16H1zM1 10h22",
+  box:"M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12",
+  download:"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+  upload:"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  gift:"M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z",
+  trending:"M23 6l-9.5 9.5-5-5L1 18M17 6h6v6",
+  percent:"M19 5L5 19M6.5 6.5h.01M17.5 17.5h.01",
+  scale:"M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1zM2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1zM7 21h10M12 3v18M3 7h2.5M18.5 7H21",
+  penTool:"M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586M11 13a2 2 0 100-4 2 2 0 000 4z",
+  history:"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  command:"M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3h12a3 3 0 003-3 3 3 0 00-3-3z",
+  user:"M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z",
+  logout:"M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  briefcase:"M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2",
 };
 
 const Ico = ({ n, s=14, c="currentColor", style={} }) => (
@@ -914,14 +937,17 @@ const Topbar = ({ T, route, theme, setTheme, onSearch, onIssue }) => {
 
 /* ─── SIDEBAR ─────────────────────────────────────────────── */
 const Sidebar = ({ T, route, nav, slim }) => {
-  const [workspaceOpen, setWorkspaceOpen] = useState(true);
-  const [teamsOpen, setTeamsOpen] = useState(true);
-  const [kubricOpen, setKubricOpen] = useState(true);
-  const [tryOpen, setTryOpen] = useState(true);
+  const [open, setOpen] = useState({
+    home: true, pm: true, methods: false, workspace: false,
+    tasks: true, eng: true, comms: true, crm: false,
+    cap: false, capEquity: false, capPlans: false, capFund: false, capIR: false, capCo: false, capRec: false,
+    analytics: false, automations: false, docs: true, settings: false,
+  });
+  const tog = (k) => setOpen(p => ({ ...p, [k]: !p[k] }));
 
   const NavItem = ({ item, depth = 0 }) => (
     <div className={`nav-item${route === item.id ? " active" : ""}`}
-      style={{ paddingLeft: slim ? 14 : 10 + depth * 10 }}
+      style={{ paddingLeft: slim ? 14 : 8 + depth * 11 }}
       onClick={() => nav(item.id)} title={slim ? item.label : undefined}>
       <Ico n={item.icon} s={13} />
       {!slim && <span className="trunc flex-1">{item.label}</span>}
@@ -930,136 +956,280 @@ const Sidebar = ({ T, route, nav, slim }) => {
     </div>
   );
 
-  const SectionHeader = ({ label, open, onToggle }) => !slim ? (
+  const Sec = ({ label, k, color }) => !slim ? (
     <div className="flex items-c gap-4 cur-p select-none"
-      style={{ padding: "8px 10px 3px", fontSize: 11, color: T.textSub, fontWeight: 600 }}
-      onClick={onToggle}>
-      <Ico n={open ? "chevD" : "chevR"} s={10} c={T.textMuted} />
+      style={{ padding: "6px 10px 2px", fontSize: 9.5, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", color: color || T.textMuted }}
+      onClick={() => tog(k)}>
+      <Ico n={open[k] ? "chevD" : "chevR"} s={9} c={color || T.textMuted} />
       <span>{label}</span>
     </div>
   ) : null;
 
+  const Sub = ({ label, k, depth = 1 }) => !slim ? (
+    <div className="flex items-c gap-4 cur-p select-none"
+      style={{ padding: "4px 10px 2px", paddingLeft: 8 + depth * 11, fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: T.textMuted }}
+      onClick={() => tog(k)}>
+      <Ico n={open[k] ? "chevD" : "chevR"} s={8} c={T.textMuted} />
+      <span>{label}</span>
+    </div>
+  ) : null;
+
+  const D = () => <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />;
+
   return (
     <div className={`sidebar${slim ? " slim" : ""}`}>
-      {/* Wordmark */}
-      <div style={{ height: 48, display: "flex", alignItems: "center", padding: slim ? "0 14px" : "0 16px", borderBottom: `1px solid ${T.border}`, flexShrink: 0, gap: 10 }}>
+
+      {/* ── Wordmark ── */}
+      <div style={{ height: 48, display: "flex", alignItems: "center", padding: slim ? "0 14px" : "0 14px", borderBottom: `1px solid ${T.border}`, flexShrink: 0, gap: 8 }}>
         <div style={{ width: 22, height: 22, background: T.accent, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", fontFamily: "'Bricolage Grotesque', sans-serif" }}>R</span>
         </div>
-        {!slim && (
-          <div className="flex items-c gap-6">
-            <span className="brg fw-8" style={{ fontSize: 15, color: T.text, letterSpacing: "-0.02em" }}>REACH</span>
-            <span style={{ fontSize: 9, color: T.textMuted, background: T.surface3, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>BETA</span>
-          </div>
-        )}
-        {!slim && <div style={{ flex: 1 }} />}
-        {!slim && <button className="btn-ico" style={{ padding: 3 }} onClick={() => nav("settings")}><Ico n="cog" s={12} c={T.textMuted} /></button>}
+        {!slim && <>
+          <span className="brg fw-8" style={{ fontSize: 15, color: T.text, letterSpacing: "-0.02em" }}>REACH</span>
+          <span style={{ fontSize: 9, color: T.textMuted, background: T.surface3, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>BETA</span>
+          <div style={{ flex: 1 }} />
+          <button className="btn-ico" style={{ padding: 3 }} onClick={() => nav("settings")}><Ico n="cog" s={12} c={T.textMuted} /></button>
+        </>}
       </div>
 
-      {/* Nav scroll area */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
-
-        {/* Search bar */}
-        {!slim && (
-          <div style={{ padding: "6px 10px 4px" }}>
-            <div style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
-              onClick={() => nav("search")}>
-              <Ico n="search" s={11} c={T.textMuted} />
-              <span style={{ fontSize: 11, color: T.textMuted, flex: 1 }}>Search...</span>
-              <span style={{ fontSize: 9, color: T.textMuted, background: T.surface3, padding: "1px 5px", borderRadius: 3 }}>⌘K</span>
-            </div>
-            <div style={{ fontSize: 9, color: T.textMuted, marginTop: 3, paddingLeft: 2 }}>@mention &nbsp;#issue</div>
-          </div>
-        )}
-
-        {/* Top Section — User & Issue Management */}
-        <div style={{ padding: "4px 8px 2px" }}>
-          <NavItem item={{ id: "dashboard",   icon: "home",     label: "Home dashboard" }} />
-          <NavItem item={{ id: "issues",      icon: "activity", label: "My Issues" }} />
-          <NavItem item={{ id: "inbox",       icon: "bell",     label: "Inbox",   badge: 3 }} />
-          <NavItem item={{ id: "drafts",      icon: "file",     label: "Drafts" }} />
-        </div>
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* Workspace Section */}
-        <SectionHeader label="Workspace" open={workspaceOpen} onToggle={() => setWorkspaceOpen(p => !p)} />
-        {workspaceOpen && (
-          <div style={{ padding: "2px 8px 4px" }}>
-            <NavItem item={{ id: "members",      icon: "users",   label: "Members" }}   depth={1} />
-            <NavItem item={{ id: "sprint-board", icon: "folder",  label: "Projects" }}  depth={1} />
-            <NavItem item={{ id: "standups",     icon: "users",   label: "Teams" }}     depth={1} />
-            <NavItem item={{ id: "views",        icon: "layers",  label: "Views" }}     depth={1} />
-          </div>
-        )}
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* Your Teams Section */}
-        <SectionHeader label="Your teams" open={teamsOpen} onToggle={() => setTeamsOpen(p => !p)} />
-        {teamsOpen && (
-          <div style={{ padding: "2px 8px 4px" }}>
-            <NavItem item={{ id: "issues",      icon: "activity", label: "Issues" }}   depth={1} />
-            <NavItem item={{ id: "sprint-board",icon: "folder",   label: "Projects" }} depth={1} />
-            <NavItem item={{ id: "views",       icon: "layers",   label: "Views" }}    depth={1} />
-          </div>
-        )}
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* Try Section */}
-        <SectionHeader label="Try" open={tryOpen} onToggle={() => setTryOpen(p => !p)} />
-        {tryOpen && (
-          <div style={{ padding: "2px 8px 4px" }}>
-            <NavItem item={{ id: "backlog",  icon: "layers", label: "Import issues" }} depth={1} />
-            <NavItem item={{ id: "settings", icon: "plus",   label: "Invite people" }} depth={1} />
-            <NavItem item={{ id: "prs",      icon: "git",    label: "Link GitHub" }}   depth={1} />
-          </div>
-        )}
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* Main nav items */}
-        <div style={{ padding: "4px 8px 2px" }}>
-          <NavItem item={{ id: "views",    icon: "diamond",  label: "Shape Up" }} />
-          <NavItem item={{ id: "backlog",  icon: "layers",   label: "Backlog" }} />
-          <NavItem item={{ id: "dashboard",icon: "home",     label: "My Tasks" }} />
-          <NavItem item={{ id: "roadmap",  icon: "chevR",    label: "Roadmap" }} />
-          <NavItem item={{ id: "ide",      icon: "terminal", label: "Code & PRs", badge: 3 }} />
-          <NavItem item={{ id: "docs",     icon: "book",     label: "[] Docs" }} />
-          <NavItem item={{ id: "chat",     icon: "chat",     label: "Chat", badge: 14 }} />
-          <NavItem item={{ id: "standups", icon: "video",    label: "Standups", badge: 1 }} />
-        </div>
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* INSIGHTS section */}
-        {!slim && <div className="nav-lbl" style={{ color: T.accent, paddingTop: 6 }}>INSIGHTS</div>}
-        <div style={{ padding: "2px 8px 4px" }}>
-          <NavItem item={{ id: "analytics",   icon: "bar",      label: "Dashboard" }} />
-          <NavItem item={{ id: "analytics",   icon: "activity", label: "Analytics" }} />
-          <NavItem item={{ id: "analytics",   icon: "zap",      label: "Dev Charts" }} />
-          <NavItem item={{ id: "analytics",   icon: "brief",    label: "Reports" }} />
-        </div>
-
-        <div style={{ height: 1, background: T.border, margin: "4px 10px" }} />
-
-        {/* STRUCTURE section */}
-        {!slim && <div className="nav-lbl" style={{ color: T.accentWarm, paddingTop: 6 }}>STRUCTURE</div>}
-        <div style={{ padding: "2px 8px 6px" }}>
-          <NavItem item={{ id: "sprint-board", icon: "folder",   label: "Projects" }} />
-          <NavItem item={{ id: "crm",          icon: "brief",    label: "CRM" }} />
-          <NavItem item={{ id: "cap-table",    icon: "dollar",   label: "Cap Table" }} />
-          <NavItem item={{ id: "time",         icon: "clock",    label: "Time Tracking" }} />
-          <NavItem item={{ id: "marketing",    icon: "zap",      label: "Marketing" }} />
-          <NavItem item={{ id: "members",      icon: "users",    label: "Members" }} />
-          <NavItem item={{ id: "settings",     icon: "cog",      label: "Settings" }} />
-        </div>
-
-      </div>
-      {/* User footer */}
+      {/* ── Search ── */}
       {!slim && (
-        <div style={{ padding: "10px 8px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
+        <div style={{ padding: "6px 10px 4px" }}>
+          <div style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 10px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+            onClick={() => nav("search")}>
+            <Ico n="search" s={11} c={T.textMuted} />
+            <span style={{ fontSize: 11, color: T.textMuted, flex: 1 }}>Search…</span>
+            <span style={{ fontSize: 9, color: T.textMuted, background: T.surface3, padding: "1px 5px", borderRadius: 3 }}>⌘K</span>
+          </div>
+          <div style={{ fontSize: 9, color: T.textMuted, marginTop: 3, paddingLeft: 2 }}>@mention &nbsp;#issue</div>
+        </div>
+      )}
+
+      {/* ── Scrollable nav ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 0 16px" }}>
+
+        {/* ═══ HOME ═══ */}
+        <Sec label="Home" k="home" color={T.accent} />
+        {open.home && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "dashboard",   icon: "home",    label: "Dashboard" }} depth={1} />
+          <NavItem item={{ id: "inbox",        icon: "bell",    label: "Inbox", badge: 7 }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "activity",label: "My Issues" }} depth={1} />
+          <NavItem item={{ id: "drafts",       icon: "edit",    label: "Sketchpad" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ PROJECT MANAGEMENT ═══ */}
+        <Sec label="Project Management" k="pm" color={T.accentPurple} />
+        {open.pm && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "projects",     icon: "folder",  label: "Switch Project" }} depth={1} />
+          <NavItem item={{ id: "sprint-board", icon: "layers",  label: "Project Issues" }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "activity",label: "Assigned" }} depth={2} />
+          <NavItem item={{ id: "backlog",      icon: "inbox",   label: "Unassigned Pool" }} depth={2} />
+          <NavItem item={{ id: "backlog",      icon: "layers",  label: "Project Backlog" }} depth={1} />
+          <NavItem item={{ id: "roadmap",      icon: "map",     label: "Roadmap Builder" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "bar",     label: "Visualizations" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "activity",label: "Hill Chart" }} depth={2} />
+          <NavItem item={{ id: "views",        icon: "layers",  label: "Split Board" }} depth={2} />
+          <NavItem item={{ id: "views",        icon: "zap",     label: "Pipeline Flow" }} depth={2} />
+          <NavItem item={{ id: "views",        icon: "git",     label: "Value Stream Map" }} depth={2} />
+          <NavItem item={{ id: "views",        icon: "diamond", label: "Dependency Matrix" }} depth={2} />
+        </div>}
+
+        <D />
+
+        {/* ═══ METHODOLOGY VIEWS ═══ */}
+        <Sec label="Methodology Views" k="methods" />
+        {open.methods && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "views",        icon: "chevR",   label: "Sequential" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "diamond", label: "Agile" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "activity",label: "Lean" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "zap",     label: "Shape Up" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ WORKSPACE ═══ */}
+        <Sec label="Workspace" k="workspace" />
+        {open.workspace && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "members",      icon: "users",   label: "Team Members" }} depth={1} />
+          <NavItem item={{ id: "members",      icon: "brief",   label: "Assignments / Roles" }} depth={1} />
+          <NavItem item={{ id: "dashboard",    icon: "star",    label: "Favorites" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "userPlus",label: "Invites & Referrals" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ TASKS & PRODUCTIVITY ═══ */}
+        <Sec label="Tasks & Productivity" k="tasks" color={T.success} />
+        {open.tasks && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "time",         icon: "clock",   label: "Time Clock" }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "activity",label: "My Issues" }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "target",  label: "Next Due" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "file",    label: "Notes" }} depth={1} />
+          <NavItem item={{ id: "inbox",        icon: "mail",    label: "Emails" }} depth={1} />
+          <NavItem item={{ id: "drafts",       icon: "penTool", label: "Sketchpad" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ ENGINEERING & CODE ═══ */}
+        <Sec label="Engineering & Code" k="eng" color={T.accent} />
+        {open.eng && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "ide",          icon: "terminal",label: "IDE" }} depth={1} />
+          <NavItem item={{ id: "code",         icon: "code",    label: "PRs & Commits" }} depth={1} />
+          <NavItem item={{ id: "prs",          icon: "gitpr",   label: "Pull Requests", badge: 3 }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "activity",label: "Bug Tracker" }} depth={1} />
+          <NavItem item={{ id: "views",        icon: "checkCircle", label: "QA Tests" }} depth={1} />
+          <NavItem item={{ id: "issues",       icon: "zap",     label: "Feature Requests" }} depth={1} />
+          <NavItem item={{ id: "dashboard",    icon: "command", label: "Quick Access" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "history", label: "Logs & History" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "book",    label: "Engineering Library" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ COMMUNICATION & ACTIVITY ═══ */}
+        <Sec label="Communication & Activity" k="comms" color={T.accentWarm} />
+        {open.comms && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "chat",         icon: "chat",    label: "Chat", badge: 14 }} depth={1} />
+          <NavItem item={{ id: "inbox",        icon: "mail",    label: "Email" }} depth={1} />
+          <NavItem item={{ id: "standups",     icon: "video",   label: "Video Standups", badge: 1 }} depth={1} />
+          <NavItem item={{ id: "standups",     icon: "calendar",label: "Meetings & Calls" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "history", label: "Logs & History" }} depth={1} />
+          <NavItem item={{ id: "standups",     icon: "phone",   label: "Calls" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "userPlus",label: "Invite" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ CRM & RECORDS ═══ */}
+        <Sec label="CRM & Records" k="crm" color={T.accentWarm} />
+        {open.crm && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "crm",          icon: "brief",   label: "Companies" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "users",   label: "People" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "dollar",  label: "Deals" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "zap",     label: "Subscriptions" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "box",     label: "Vendors" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "creditCard", label: "Billing & Payments" }} depth={1} />
+          <NavItem item={{ id: "crm",          icon: "layers",  label: "Custom Lists" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ CAP TABLE & OWNERSHIP ═══ */}
+        <Sec label="Cap Table & Ownership" k="cap" color={T.accentPurple} />
+        {open.cap && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "cap-table",    icon: "bar",     label: "Overview" }} depth={1} />
+          <NavItem item={{ id: "cap-table",    icon: "dollar",  label: "Cap Table" }} depth={1} />
+
+          <Sub label="Equity Management" k="capEquity" depth={1} />
+          {open.capEquity && <>
+            <NavItem item={{ id: "cap-table",  icon: "users",   label: "Stakeholders" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "activity",label: "Transactions" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "layers",  label: "Share Classes" }} depth={2} />
+          </>}
+
+          <Sub label="Equity Plans" k="capPlans" depth={1} />
+          {open.capPlans && <>
+            <NavItem item={{ id: "cap-table",  icon: "box",     label: "Option Pools" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "gift",    label: "Grants" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "clock",   label: "Vesting" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "zap",     label: "Exercising" }} depth={2} />
+          </>}
+
+          <Sub label="Fundraising" k="capFund" depth={1} />
+          {open.capFund && <>
+            <NavItem item={{ id: "cap-table",  icon: "trending", label: "Rounds & Simulations" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "file",    label: "SAFEs & Notes" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "users",   label: "Investors" }} depth={2} />
+          </>}
+
+          <Sub label="Investor Relations" k="capIR" depth={1} />
+          {open.capIR && <>
+            <NavItem item={{ id: "cap-table",  icon: "bell",    label: "Updates" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "calendar",label: "Meetings" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "file",    label: "Documents" }} depth={2} />
+          </>}
+
+          <Sub label="Company" k="capCo" depth={1} />
+          {open.capCo && <>
+            <NavItem item={{ id: "cap-table",  icon: "cog",     label: "Settings" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "checkCircle", label: "Compliance" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "users",   label: "Collaborators" }} depth={2} />
+          </>}
+
+          <Sub label="Records / Reports" k="capRec" depth={1} />
+          {open.capRec && <>
+            <NavItem item={{ id: "cap-table",  icon: "trending",label: "Fundraising Benchmarking" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "file",    label: "Ownership Summaries" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "percent", label: "Dilution Reporting" }} depth={2} />
+            <NavItem item={{ id: "cap-table",  icon: "scale",   label: "Pro Rata Rights" }} depth={2} />
+          </>}
+        </div>}
+
+        <D />
+
+        {/* ═══ ANALYTICS & REPORTS ═══ */}
+        <Sec label="Analytics & Reports" k="analytics" color={T.accentPurple} />
+        {open.analytics && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "analytics",    icon: "bar",     label: "Dashboard" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "activity",label: "Insight Report" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "history", label: "Historical Values" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "layers",  label: "Funnel Report" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "clock",   label: "Time In Stage" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "zap",     label: "Stage Changed" }} depth={1} />
+          <NavItem item={{ id: "analytics",    icon: "checkCircle", label: "Win Rate Analysis" }} depth={1} />
+          <NavItem item={{ id: "dev-charts",   icon: "code",    label: "Dev Charts" }} depth={1} />
+          <NavItem item={{ id: "reports",      icon: "file",    label: "Reports" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ AUTOMATIONS ═══ */}
+        <Sec label="Automations" k="automations" />
+        {open.automations && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "settings",     icon: "zap",     label: "Workflows & Sequences" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "link",    label: "Webhooks & API Keys" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "cpu",     label: "AI Automation" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "git",     label: "Connectors" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ DOCS EDITOR ═══ */}
+        <Sec label="Docs Editor" k="docs" />
+        {open.docs && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "docs",         icon: "briefcase",label: "Business Plan" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "bar",     label: "Pitch Deck" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "book",    label: "Product Reference" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "users",   label: "User Guides" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "code",    label: "Technical / API Docs" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "file",    label: "Docs" }} depth={1} />
+          <NavItem item={{ id: "docs",         icon: "globe",   label: "Drafts / Publish" }} depth={1} />
+        </div>}
+
+        <D />
+
+        {/* ═══ SETTINGS ═══ */}
+        <Sec label="Settings" k="settings" />
+        {open.settings && <div style={{ padding: "2px 6px" }}>
+          <NavItem item={{ id: "settings",     icon: "user",    label: "Account Preferences" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "sun",     label: "Light / Dark Mode" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "download",label: "Import Migrations" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "upload",  label: "Export Migration" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "cog",     label: "Workspace Config" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "creditCard", label: "Billing & Subscriptions" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "database",label: "Database" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "cpu",     label: "AI Models" }} depth={1} />
+          <NavItem item={{ id: "settings",     icon: "link",    label: "External Integrations" }} depth={1} />
+        </div>}
+
+      </div>
+
+      {/* ── User footer ── */}
+      {!slim && (
+        <div style={{ padding: "8px 8px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
           <div className="flex items-c gap-8" style={{ padding: "7px 10px", borderRadius: 6, cursor: "pointer" }}
             onMouseEnter={e => e.currentTarget.style.background = T.surface2}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -1070,11 +1240,17 @@ const Sidebar = ({ T, route, nav, slim }) => {
             </div>
             <Ico n="more" s={12} c={T.textMuted} />
           </div>
+          <button style={{ width: "100%", padding: "6px 10px", marginTop: 2, background: "transparent", border: "none", borderRadius: 6, color: T.textMuted, fontSize: 11, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
+            onMouseEnter={e => e.currentTarget.style.background = T.surface2}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            <Ico n="logout" s={12} c={T.textMuted} /> Sign out
+          </button>
         </div>
       )}
     </div>
   );
 };
+
 
 /* ─── PAGES ──────────────────────────────────────────────── */
 
@@ -2496,7 +2672,7 @@ const IDE = ({ T, setIssue }) => {
     { n: 2, label: "Supabase schema",             domain: "DB", tags: ["Issues table + RLS","Profiles + auth","Projects table"],           status: "done" },
     { n: 3, label: "API client + rate limiting",  domain: "BE", tags: ["Rate limiter util","Retry with backoff","Error boundary"],          status: "active" },
     { n: 4, label: "Issue board UI",              domain: "FE", tags: ["Kanban columns","Drag-and-drop","WIP limits"],                      status: "pending" },
-    { n: 5, label: "AI chat + context",           domain: "AI", tags: ["OpenRouter wiring","PRD injection","Code snippet handler"],         status: "pending" },
+    { n: 5, label: "AI chat + context",           domain: "AI", tags: ["Qwen FIM + Claude Code","PRD injection","Code snippet handler"],         status: "pending" },
     { n: 6, label: "Real-time sync",              domain: "API",tags: ["Supabase realtime","Optimistic updates","Conflict resolution"],     status: "pending" },
   ]);
   const [dragPlanIssue, setDragPlanIssue] = useState(null);
@@ -3509,91 +3685,353 @@ const Chat = ({ T, setIssue }) => {
 
 /* ══ DOCS ═══════════════════════════════════════════════════ */
 const Docs = ({ T }) => {
-  const docs = [
-    { id: "d1", title: "REACH Platform PRD", pinned: true, aiRef: true, status: "published", author: "u1", updated: "Mar 6", words: 4200 },
-    { id: "d2", title: "Auth Token Refresh — Design Spec", pinned: false, aiRef: false, status: "published", author: "u2", updated: "Mar 5", words: 820, issue: "RC-001" },
-    { id: "d3", title: "Cap Table Module Spec", pinned: false, aiRef: false, status: "draft", author: "u1", updated: "Mar 4", words: 3100 },
-    { id: "d4", title: "Sprint 12 Retrospective", pinned: false, aiRef: false, status: "published", author: "u3", updated: "Mar 1", words: 560 },
-  ];
-  const [sel, setSel] = useState(docs[0]);
+  const [tree, setTree] = useState([
+    { id:"p1", title:"REACH Platform PRD", icon:"📋", parent:null, type:"doc", status:"published", slug:"reach-prd", public:true, children:[
+      { id:"p1a", title:"Architecture", icon:"🏗️", parent:"p1", type:"page", status:"published" },
+      { id:"p1b", title:"The @ System", icon:"@", parent:"p1", type:"page", status:"draft" },
+    ]},
+    { id:"p2", title:"Engineering", icon:"⚙️", parent:null, type:"folder", status:"published", children:[
+      { id:"p2a", title:"Auth Token Refresh — Design Spec", icon:"🔐", parent:"p2", type:"doc", status:"published", issue:"RC-001" },
+      { id:"p2b", title:"API Rate Limiting", icon:"⚡", parent:"p2", type:"doc", status:"draft" },
+    ]},
+    { id:"p3", title:"User Guide", icon:"📖", parent:null, type:"folder", status:"published", public:true, children:[
+      { id:"p3a", title:"Getting Started", icon:"🚀", parent:"p3", type:"page", status:"published", public:true },
+      { id:"p3b", title:"Issue Tracking", icon:"📌", parent:"p3", type:"page", status:"published", public:true },
+      { id:"p3c", title:"IDE & Code Review", icon:"💻", parent:"p3", type:"page", status:"draft" },
+    ]},
+    { id:"p4", title:"Sprint 12 Retro", icon:"🔄", parent:null, type:"doc", status:"published", children:[] },
+  ]);
+  const [sel, setSel] = useState("p1");
+  const [blocks, setBlocks] = useState({
+    p1:[
+      { id:"b1", type:"h1",    content:"REACH Platform PRD" },
+      { id:"b2", type:"callout", content:"The issue is not a row. It is the thread that runs through every surface.", icon:"💡" },
+      { id:"b3", type:"h2",    content:"Architecture" },
+      { id:"b4", type:"text",  content:"REACH is a browser-runtime, local-first SaaS with multi-tenant isolation via Supabase RLS. The browser holds full working state; Supabase is the sync layer." },
+      { id:"b5", type:"h2",    content:"Core Modules" },
+      { id:"b6", type:"bullet", content:"Issues — thread-based, not row-based" },
+      { id:"b7", type:"bullet", content:"IDE — write code with full issue context" },
+      { id:"b8", type:"bullet", content:"CRM — deals linked to engineering issues" },
+      { id:"b9", type:"h2",    content:"The @ System" },
+      { id:"b10", type:"text", content:"Every @mention creates a cross-surface link. @RC-001 in chat threads into the issue, surfaces in the IDE, appears in standups, and updates the linked CRM account." },
+    ],
+    p2a:[
+      { id:"b1", type:"h1",   content:"Auth Token Refresh — Design Spec" },
+      { id:"b2", type:"badge", content:"RC-001", color:"teal" },
+      { id:"b3", type:"h2",   content:"Problem" },
+      { id:"b4", type:"text", content:"Simultaneous 401 responses cause duplicate token refresh calls, leading to race conditions and user logouts." },
+      { id:"b5", type:"h2",   content:"Solution" },
+      { id:"b6", type:"code", content:"let refreshPromise: Promise<void> | null = null;\n\nif (!refreshPromise) {\n  refreshPromise = refreshToken().finally(() => {\n    refreshPromise = null;\n  });\n}\nawait refreshPromise;" },
+    ],
+    p3a:[
+      { id:"b1", type:"h1",  content:"Getting Started with REACH" },
+      { id:"b2", type:"text",content:"REACH is the unified development platform where issues, code, chat, and CRM live in one place." },
+      { id:"b3", type:"h2",  content:"1. Create your first issue" },
+      { id:"b4", type:"text",content:"Every piece of work starts as an issue. Issues are not rows in a spreadsheet — they are living threads that connect to code, docs, chat, and customer context." },
+      { id:"b5", type:"h2",  content:"2. Write code in the IDE" },
+      { id:"b6", type:"text",content:"The IDE knows which issue you're working on. Every file you open, every commit you push is linked to the issue thread automatically." },
+    ],
+  });
   const [editing, setEditing] = useState(false);
+  const [focusBlock, setFocusBlock] = useState(null);
+  const [showPublish, setShowPublish] = useState(false);
+  const [showAddPage, setShowAddPage] = useState(false);
+  const [expanded, setExpanded] = useState({ p1:true, p2:true, p3:true });
+  const [newPageTitle, setNewPageTitle] = useState("");
+  const [newPageParent, setNewPageParent] = useState(null);
+
+  const allPages = [];
+  const flattenTree = (nodes) => nodes.forEach(n => { allPages.push(n); if(n.children) flattenTree(n.children); });
+  flattenTree(tree);
+  const page = allPages.find(p => p.id === sel);
+  const pageBlocks = blocks[sel] || [{ id:"b1", type:"h1", content: page?.title || "New Page" }, { id:"b2", type:"text", content:"" }];
+
+  const addBlock = (afterId, type = "text") => {
+    const newBlock = { id: "b" + Date.now(), type, content: "" };
+    setBlocks(prev => {
+      const arr = [...(prev[sel] || pageBlocks)];
+      const idx = arr.findIndex(b => b.id === afterId);
+      arr.splice(idx + 1, 0, newBlock);
+      return { ...prev, [sel]: arr };
+    });
+    setFocusBlock(newBlock.id);
+  };
+
+  const updateBlock = (id, content) => {
+    setBlocks(prev => ({ ...prev, [sel]: (prev[sel] || pageBlocks).map(b => b.id === id ? { ...b, content } : b) }));
+  };
+
+  const deleteBlock = (id) => {
+    setBlocks(prev => ({ ...prev, [sel]: (prev[sel] || pageBlocks).filter(b => b.id !== id) }));
+  };
+
+  const changeBlockType = (id, type) => {
+    setBlocks(prev => ({ ...prev, [sel]: (prev[sel] || pageBlocks).map(b => b.id === id ? { ...b, type } : b) }));
+  };
+
+  const BLOCK_TYPES = [
+    { id:"text",    label:"Text",     icon:"T" },
+    { id:"h1",      label:"Heading 1",icon:"H1" },
+    { id:"h2",      label:"Heading 2",icon:"H2" },
+    { id:"h3",      label:"Heading 3",icon:"H3" },
+    { id:"bullet",  label:"Bullet",   icon:"•" },
+    { id:"numbered",label:"Numbered", icon:"1." },
+    { id:"todo",    label:"To-do",    icon:"☐" },
+    { id:"code",    label:"Code",     icon:"<>" },
+    { id:"callout", label:"Callout",  icon:"💡" },
+    { id:"divider", label:"Divider",  icon:"—" },
+    { id:"quote",   label:"Quote",    icon:"❝" },
+  ];
+
+  const renderBlock = (b, i) => {
+    const isSelected = focusBlock === b.id;
+    const baseStyle = { position:"relative", width:"100%", outline:"none", background:"transparent", border:"none", color:T.text, fontFamily:"'DM Mono',monospace", resize:"none" };
+
+    const BlockMenu = () => (
+      <div style={{ position:"absolute", left:-28, top:"50%", transform:"translateY(-50%)", opacity:0, transition:".1s", display:"flex", gap:2 }}
+        className="block-menu">
+        <button style={{ width:22, height:22, border:`1px solid ${T.border}`, borderRadius:4, background:T.surface2, color:T.textMuted, fontSize:9, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+          onClick={() => addBlock(b.id)}>+</button>
+        <button style={{ width:22, height:22, border:`1px solid ${T.border}`, borderRadius:4, background:T.surface2, color:T.textMuted, fontSize:9, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+          onClick={() => deleteBlock(b.id)}>⋮⋮</button>
+      </div>
+    );
+
+    const wrapBlock = (content) => (
+      <div key={b.id} style={{ position:"relative", marginBottom:2 }}
+        onMouseEnter={e => { const m = e.currentTarget.querySelector(".block-menu"); if(m) m.style.opacity="1"; }}
+        onMouseLeave={e => { const m = e.currentTarget.querySelector(".block-menu"); if(m) m.style.opacity="0"; }}>
+        <BlockMenu />
+        {content}
+      </div>
+    );
+
+    if (b.type === "h1") return wrapBlock(
+      <div contentEditable={editing} suppressContentEditableWarning
+        className="brg" style={{ fontSize:26, fontWeight:800, color:T.text, lineHeight:1.2, marginTop:24, marginBottom:8, outline:"none" }}
+        onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+    );
+    if (b.type === "h2") return wrapBlock(
+      <div contentEditable={editing} suppressContentEditableWarning
+        className="brg" style={{ fontSize:20, fontWeight:700, color:T.text, lineHeight:1.3, marginTop:20, marginBottom:6, outline:"none" }}
+        onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+    );
+    if (b.type === "h3") return wrapBlock(
+      <div contentEditable={editing} suppressContentEditableWarning
+        className="brg" style={{ fontSize:15, fontWeight:600, color:T.text, lineHeight:1.4, marginTop:14, marginBottom:4, outline:"none" }}
+        onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+    );
+    if (b.type === "bullet") return wrapBlock(
+      <div style={{ display:"flex", gap:10, marginBottom:3 }}>
+        <span style={{ color:T.textMuted, flexShrink:0, marginTop:2 }}>•</span>
+        <div contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:13.5, lineHeight:1.7, flex:1 }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+      </div>
+    );
+    if (b.type === "numbered") return wrapBlock(
+      <div style={{ display:"flex", gap:10, marginBottom:3 }}>
+        <span style={{ color:T.textMuted, flexShrink:0, marginTop:2, fontSize:12 }}>{i+1}.</span>
+        <div contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:13.5, lineHeight:1.7, flex:1 }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+      </div>
+    );
+    if (b.type === "todo") return wrapBlock(
+      <div style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:3 }}>
+        <input type="checkbox" style={{ marginTop:4, flexShrink:0 }} />
+        <div contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:13.5, lineHeight:1.7, flex:1 }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+      </div>
+    );
+    if (b.type === "code") return wrapBlock(
+      <div style={{ background:T.surface2, border:`1px solid ${T.border}`, borderRadius:8, padding:"14px 18px", margin:"8px 0" }}>
+        <div style={{ fontSize:9, color:T.textMuted, marginBottom:8, fontWeight:700, letterSpacing:"0.1em" }}>CODE</div>
+        <pre contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:12, lineHeight:1.75, color:T.accent, whiteSpace:"pre-wrap", wordBreak:"break-all" }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</pre>
+      </div>
+    );
+    if (b.type === "callout") return wrapBlock(
+      <div style={{ background:T.accentPurple+"10", border:`1px solid ${T.accentPurple}30`, borderLeft:`3px solid ${T.accentPurple}`, borderRadius:8, padding:"12px 16px", margin:"8px 0", display:"flex", gap:12 }}>
+        <span style={{ fontSize:16 }}>{b.icon || "💡"}</span>
+        <div contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:13, lineHeight:1.7 }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+      </div>
+    );
+    if (b.type === "quote") return wrapBlock(
+      <div style={{ borderLeft:`3px solid ${T.borderStrong}`, paddingLeft:16, margin:"8px 0", color:T.textSub }}>
+        <div contentEditable={editing} suppressContentEditableWarning
+          style={{ ...baseStyle, fontSize:14, fontStyle:"italic", lineHeight:1.7 }}
+          onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}>{b.content}</div>
+      </div>
+    );
+    if (b.type === "divider") return wrapBlock(
+      <hr style={{ border:"none", borderTop:`1px solid ${T.border}`, margin:"16px 0" }} />
+    );
+    if (b.type === "badge") return wrapBlock(
+      <span className="chip chip-teal" style={{ margin:"4px 0", display:"inline-flex" }}>{b.content}</span>
+    );
+    // default text
+    return wrapBlock(
+      <div contentEditable={editing} suppressContentEditableWarning
+        style={{ ...baseStyle, fontSize:13.5, lineHeight:1.8, minHeight:24, marginBottom:2 }}
+        onBlur={e => updateBlock(b.id, e.currentTarget.textContent)}
+        onKeyDown={e => {
+          if (e.key === "Enter" && !e.shiftKey && editing) { e.preventDefault(); addBlock(b.id); }
+        }}>
+        {b.content}
+      </div>
+    );
+  };
+
+  const TreeNode = ({ node, depth=0 }) => {
+    const isExpanded = expanded[node.id];
+    const hasChildren = node.children && node.children.length > 0;
+    return (
+      <>
+        <div style={{ display:"flex", alignItems:"center", gap:6, padding:`4px ${8 + depth*14}px`, borderRadius:5, cursor:"pointer",
+          background: sel===node.id ? T.glow : "transparent", color: sel===node.id ? T.accent : T.textSub, fontSize:12 }}
+          onMouseEnter={e => { if(sel!==node.id) e.currentTarget.style.background=T.surface2; }}
+          onMouseLeave={e => { if(sel!==node.id) e.currentTarget.style.background="transparent"; }}
+          onClick={() => { setSel(node.id); setEditing(false); }}>
+          {hasChildren
+            ? <span style={{ cursor:"pointer", fontSize:9, color:T.textMuted, flexShrink:0 }} onClick={e => { e.stopPropagation(); setExpanded(p => ({...p, [node.id]:!p[node.id]})); }}>{isExpanded ? "▾" : "▸"}</span>
+            : <span style={{ width:11, flexShrink:0 }} />
+          }
+          <span style={{ fontSize:13 }}>{node.icon}</span>
+          <span className="trunc flex-1">{node.title}</span>
+          {node.public && <span style={{ fontSize:8, color:T.success, fontWeight:800 }}>PUB</span>}
+          {node.status === "draft" && <span style={{ fontSize:8, color:T.textMuted, fontWeight:700 }}>DRAFT</span>}
+        </div>
+        {isExpanded && node.children?.map(child => <TreeNode key={child.id} node={child} depth={depth+1} />)}
+      </>
+    );
+  };
 
   return (
-    <div style={{ display: "flex", height: "100%" }} className="fade-in">
-      {/* Sidebar */}
-      <div style={{ width: 260, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", background: T.surface, flexShrink: 0 }}>
-        <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 8 }}>
-          <input className="inp flex-1" style={{ fontSize: 11 }} placeholder="Search docs…" />
-          <button className="btn btn-p btn-sm"><Ico n="plus" s={12}/></button>
-        </div>
-        {docs.map(doc => (
-          <div key={doc.id} style={{ padding: "11px 14px", borderBottom: `1px solid ${T.border}`, cursor: "pointer",
-            background: sel?.id === doc.id ? T.glow : "transparent", transition: ".1s" }}
-            onClick={() => setSel(doc)}>
-            <div className="flex gap-6 items-start mb-4">
-              {doc.aiRef && <Ico n="pin" s={11} c={T.accent} style={{ flexShrink: 0, marginTop: 2 }} />}
-              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, color: sel?.id === doc.id ? T.accent : T.text }}>{doc.title}</span>
-            </div>
-            <div className="flex gap-6 items-c flex-wrap">
-              <span className={`chip ${doc.status === "published" ? "chip-grn" : "chip-dim"} fs-9`}>{doc.status}</span>
-              {doc.aiRef && <span className="chip chip-teal fs-9">AI ref</span>}
-              {doc.issue && <span className="chip chip-teal fs-9">{doc.issue}</span>}
-              <span style={{ fontSize: 10, color: T.textMuted }}>{doc.words}w · {doc.updated}</span>
-            </div>
+    <div style={{ display:"flex", height:"100%" }} className="fade-in">
+      {/* ── Tree sidebar ── */}
+      <div style={{ width:240, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", background:T.surface, flexShrink:0 }}>
+        <div style={{ padding:"10px 12px 8px", borderBottom:`1px solid ${T.border}` }}>
+          <div className="flex items-c jc-sb mb-8">
+            <span className="brg fw-7" style={{ fontSize:13 }}>Docs</span>
+            <button className="btn btn-p btn-sm" style={{ padding:"3px 8px", fontSize:10 }}
+              onClick={() => setShowAddPage(true)}><Ico n="plus" s={10}/> New</button>
           </div>
-        ))}
+          <input className="inp" style={{ fontSize:11, height:28 }} placeholder="Search docs…" />
+        </div>
+        <div style={{ flex:1, overflowY:"auto", padding:"6px 8px" }}>
+          {tree.map(node => <TreeNode key={node.id} node={node} />)}
+          {showAddPage && (
+            <div style={{ padding:"8px 4px", marginTop:8 }}>
+              <input className="inp" autoFocus style={{ fontSize:11, marginBottom:6 }} placeholder="Page title…"
+                value={newPageTitle} onChange={e => setNewPageTitle(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && newPageTitle.trim()) {
+                    const id = "p" + Date.now();
+                    setTree(prev => [...prev, { id, title:newPageTitle, icon:"📄", parent:null, type:"page", status:"draft", children:[] }]);
+                    setBlocks(prev => ({ ...prev, [id]: [{ id:"b1", type:"h1", content:newPageTitle }, { id:"b2", type:"text", content:"" }] }));
+                    setSel(id); setEditing(true); setNewPageTitle(""); setShowAddPage(false);
+                  }
+                  if (e.key === "Escape") setShowAddPage(false);
+                }} />
+              <div style={{ fontSize:10, color:T.textMuted }}>Press Enter to create · Esc to cancel</div>
+            </div>
+          )}
+        </div>
+        {/* Publish indicator */}
+        <div style={{ padding:"10px 12px", borderTop:`1px solid ${T.border}` }}>
+          <div style={{ background:T.success+"10", border:`1px solid ${T.success}30`, borderRadius:6, padding:"7px 10px" }}>
+            <div style={{ fontSize:10, color:T.success, fontWeight:700, marginBottom:2 }}>3 pages published</div>
+            <div style={{ fontSize:10, color:T.textMuted }}>User Guide · Getting Started · Issue Tracking</div>
+          </div>
+        </div>
       </div>
 
-      {/* Content */}
-      {sel && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "10px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10, background: T.surface, flexShrink: 0 }}>
-            <span className="brg fw-6" style={{ fontSize: 14, flex: 1 }}>{sel.title}</span>
-            <div className="flex items-c gap-8" style={{ fontSize: 11, color: T.textSub }}>
-              <Av uid={sel.author} size="xs" />
-              {USERS[sel.author]?.name}
-              <span style={{ color: T.textMuted }}>· {sel.updated}</span>
+      {/* ── Editor ── */}
+      {page && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          {/* Toolbar */}
+          <div style={{ padding:"8px 24px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:8, background:T.surface, flexShrink:0 }}>
+            <span style={{ fontSize:18 }}>{page.icon}</span>
+            <span className="brg fw-6" style={{ fontSize:13, flex:1 }}>{page.title}</span>
+            <div className="flex items-c gap-6" style={{ fontSize:11, color:T.textSub }}>
+              {page.issue && <span className="chip chip-teal" style={{ fontSize:10 }}>{page.issue}</span>}
+              {page.public
+                ? <span className="chip chip-grn" style={{ fontSize:10 }}><Ico n="globe" s={9}/> Published</span>
+                : <span className="chip chip-dim" style={{ fontSize:10 }}>Private</span>}
             </div>
-            <div style={{ width: 1, height: 20, background: T.border, margin: "0 4px" }} />
-            <Tip text="Pin as AI reference">
-              <button className="btn-ico"><Ico n="pin" s={13} c={sel.aiRef ? T.accent : T.textSub} /></button>
-            </Tip>
-            <button className="btn btn-g btn-sm" onClick={() => setEditing(!editing)}>
-              <Ico n={editing ? "checkCircle" : "edit"} s={12} /> {editing ? "Preview" : "Edit"}
+            <div style={{ width:1, height:20, background:T.border }} />
+            {editing && (
+              <div className="flex gap-4">
+                {BLOCK_TYPES.slice(0,6).map(bt => (
+                  <button key={bt.id} className="btn btn-g btn-xs" style={{ fontSize:9, padding:"2px 6px" }}
+                    title={bt.label}>{bt.icon}</button>
+                ))}
+              </div>
+            )}
+            <button className={`btn btn-sm ${editing ? "btn-p" : "btn-g"}`} onClick={() => setEditing(!editing)}>
+              <Ico n={editing ? "checkCircle" : "edit"} s={11}/>{editing ? "Done" : "Edit"}
+            </button>
+            <button className="btn btn-g btn-sm" onClick={() => setShowPublish(true)}>
+              <Ico n="globe" s={11}/> Publish
             </button>
           </div>
-          <div style={{ flex: 1, overflowY: "auto", padding: "40px 56px", maxWidth: 860, margin: "0 auto", width: "100%" }}>
-            {editing ? (
-              <textarea className="inp w-full" style={{ height: 500, resize: "vertical", fontSize: 13, lineHeight: 1.8, fontFamily: "'DM Mono', monospace" }}
-                defaultValue={`# ${sel.title}\n\nStart writing…`} />
-            ) : (
-              <>
-                <h1 className="brg fw-8" style={{ fontSize: 28, marginBottom: 16, lineHeight: 1.1, letterSpacing: "-0.02em" }}>{sel.title}</h1>
-                <div className="flex gap-8 mb-24">
-                  <span className={`chip ${sel.status === "published" ? "chip-grn" : "chip-dim"}`}>{sel.status}</span>
-                  <span className="chip chip-dim">{sel.words} words</span>
-                  {sel.aiRef && <span className="chip chip-teal"><Ico n="pin" s={9}/> AI Reference</span>}
-                  {sel.issue && <span className="chip chip-teal">{sel.issue}</span>}
+
+          {/* Publish modal */}
+          {showPublish && (
+            <div style={{ background:T.surface2, borderBottom:`1px solid ${T.border}`, padding:"16px 24px" }}>
+              <div className="flex items-c jc-sb mb-12">
+                <div className="brg fw-6" style={{ fontSize:14 }}>Publish Page</div>
+                <button className="btn-ico" onClick={() => setShowPublish(false)}><Ico n="x" s={13}/></button>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+                <div>
+                  <label className="lbl">Visibility</label>
+                  <select className="inp" style={{ fontSize:12 }}>
+                    <option value="private">Private — workspace only</option>
+                    <option value="link">Link — anyone with URL</option>
+                    <option value="public">Public — indexed & searchable</option>
+                  </select>
                 </div>
-                {sel.id === "d1" ? (
-                  <div style={{ lineHeight: 1.85, color: T.textSub, fontSize: 13 }}>
-                    <div style={{ background: T.surface2, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.accent}`, borderRadius: 8, padding: "14px 20px", marginBottom: 24 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>Core Principle</div>
-                      The issue is not a database row. It is the thread that runs through every surface.
-                      Open a PR — the issue is there. Open chat — the issue is there.
-                      Write a doc — the issue is there. Open the IDE — the issue opened the file.
-                    </div>
-                    <h2 className="brg fw-6" style={{ fontSize: 18, marginBottom: 12, marginTop: 28, color: T.text }}>Architecture</h2>
-                    <p style={{ marginBottom: 16 }}>REACH is a browser-runtime, local-first SaaS with multi-tenant isolation enforced at the database level via Supabase Row Level Security. There is no per-tenant server. The browser holds the full working state; Supabase is the sync layer.</p>
-                    <h2 className="brg fw-6" style={{ fontSize: 18, marginBottom: 12, marginTop: 28, color: T.text }}>The @ System</h2>
-                    <p>Every @mention creates a cross-surface link. @RC-001 in chat threads into the issue, surfaces in the IDE context, appears in the standup agenda, and updates the linked CRM account if one exists. This is the orchestration layer that separates REACH from a bundle of tools.</p>
+                <div>
+                  <label className="lbl">Public URL slug</label>
+                  <div className="flex gap-6 items-c">
+                    <span style={{ fontSize:11, color:T.textMuted, whiteSpace:"nowrap" }}>reach.app/docs/</span>
+                    <input className="inp flex-1" style={{ fontSize:11 }} defaultValue={page.slug || page.title.toLowerCase().replace(/\s+/g,"-")} />
                   </div>
-                ) : (
-                  <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.85 }}>
-                    Document content renders here with full Markdown — headings, code blocks, tables, and inline <span style={{ color: T.accent }}>@RC-001</span> issue references that cross-link on hover.
-                  </div>
-                )}
-              </>
+                </div>
+              </div>
+              <div style={{ background:T.glow, border:`1px solid ${T.accent}30`, borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
+                <div style={{ fontSize:11, color:T.accent, fontWeight:600, marginBottom:3 }}>Your own Docusaurus</div>
+                <div style={{ fontSize:11, color:T.textSub, lineHeight:1.6 }}>Public pages are served from your workspace domain. Tech docs and user-facing how-tos are public. Internal specs stay private. No separate hosting required.</div>
+              </div>
+              <div className="flex gap-8">
+                <button className="btn btn-p btn-sm"><Ico n="globe" s={11}/> Publish now</button>
+                <button className="btn btn-g btn-sm" onClick={() => setShowPublish(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Block editor */}
+          <div style={{ flex:1, overflowY:"auto", padding:"40px 60px", maxWidth:820, margin:"0 auto", width:"100%" }}>
+            {editing && (
+              <div style={{ background:T.surface2, border:`1px solid ${T.border}`, borderRadius:6, padding:"8px 14px", marginBottom:20, fontSize:11, color:T.textSub, display:"flex", gap:8, alignItems:"center" }}>
+                <Ico n="edit" s={11} c={T.accent}/>
+                <span><strong style={{ color:T.accent }}>Editing mode.</strong> Click any block to edit. Press Enter to add a new block.</span>
+              </div>
+            )}
+            {pageBlocks.map((b, i) => renderBlock(b, i))}
+            {editing && (
+              <button style={{ marginTop:16, padding:"6px 12px", borderRadius:6, border:`1px dashed ${T.border}`, background:"transparent", color:T.textMuted, fontSize:11, cursor:"pointer", width:"100%", textAlign:"left" }}
+                onMouseEnter={e => e.currentTarget.style.borderColor=T.accent}
+                onMouseLeave={e => e.currentTarget.style.borderColor=T.border}
+                onClick={() => addBlock(pageBlocks[pageBlocks.length-1]?.id, "text")}>
+                <Ico n="plus" s={11}/> Add block
+              </button>
             )}
           </div>
         </div>
@@ -4519,11 +4957,10 @@ const CRM = ({ T, setIssue }) => {
       )}
 
       {view === "cap-table" && <CapTable T={T} inline />}
+
     </div>
   );
 };
-
-/* ══ TIME TRACKING ══════════════════════════════════════════ */
 const Time = ({ T, setIssue }) => {
   const logs = [
     { issue: "RC-001", title: "Auth token refresh", h: 3.5, day: "Mon", color: T.accent },
@@ -4657,7 +5094,7 @@ const CapTable = ({ T, inline = false }) => {
         <span style={{ fontSize: 11, color: T.textMuted }}>Acme Corp · C-Corp · Delaware</span>
         <div style={{ background: T.glowWarm, border: `1px solid ${T.accentWarm}30`, borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
           <Ico n="zap" s={11} c={T.accentWarm} />
-          <span style={{ fontSize: 10, color: T.accentWarm, fontWeight: 600 }}>Replaces Carta for REACH workspaces</span>
+          <span style={{ fontSize: 10, color: T.accentWarm, fontWeight: 600 }}>Equity & Cap Table</span>
         </div>
         <div style={{ flex: 1 }} />
         {["dashboard", "stakeholders", "transactions", "simulate"].map(v => (
@@ -4812,6 +5249,736 @@ const CapTable = ({ T, inline = false }) => {
               <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.7 }}>
                 Anti-dilution protection, liquidation preferences, and conversion ratios computed automatically when you add real round terms. Connect to your CRM to link investor contacts.
               </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ══ INBOX — Alert Hub ══════════════════════════════════════ */
+const Inbox = ({ T, setRoute, setIssue }) => {
+  const [filter, setFilter] = useState("all");
+  const [read, setRead] = useState(new Set());
+
+  const items = [
+    { id:"i1", type:"mention",  icon:"at",       color:"accentPurple", title:"Sam Kim mentioned you",        body:"@AC one edge case: network error during refresh still clears the lock.", ts:"2m ago",  issue:"RC-001", unread:true },
+    { id:"i2", type:"meeting",  icon:"video",     color:"accent",       title:"Sprint Planning — tomorrow",   body:"Mar 14 · 10:00 AM · 45 min · Sprint planning for S13", ts:"18m ago", unread:true },
+    { id:"i3", type:"assigned", icon:"activity",  color:"success",      title:"RC-004 assigned to you",       body:"CRM pipeline drag-and-drop · High priority · Sprint 12", ts:"1h ago",  issue:"RC-004", unread:true },
+    { id:"i4", type:"channel",  icon:"chat",      color:"accent",       title:"#general — 3 new messages",    body:"Jordan Dale: RC-003 closes today… Sam Kim: @AC @JD — Northstar escalating…", ts:"1h ago",  unread:true },
+    { id:"i5", type:"standup",  icon:"users",     color:"accentWarm",   title:"Standup assigned: Daily 9:30", body:"You are the facilitator for today's standup. Notes due by 9:25.", ts:"3h ago",  unread:false },
+    { id:"i6", type:"pr",       icon:"gitpr",     color:"success",      title:"PR #42 approved by Jordan",    body:"fix: auth token refresh race condition · Ready to merge", ts:"5h ago",  issue:"RC-001", unread:false },
+    { id:"i7", type:"dm",       icon:"chat",      color:"accentPurple", title:"DM from Jordan Dale",          body:"Can you look at the CRDT PR when you get a sec?", ts:"Yesterday", unread:false },
+    { id:"i8", type:"assigned", icon:"activity",  color:"warn",         title:"RC-008 — you were co-assigned",body:"CRDT offline queue implementation · Critical · Sprint 12", ts:"Yesterday", issue:"RC-008", unread:false },
+    { id:"i9", type:"mention",  icon:"at",        color:"accentPurple", title:"Jordan mentioned you in #reach-core", body:"Sprint target: 24pts. We're at 18 done. RC-001 + RC-003 close us out.", ts:"2d ago",  unread:false },
+    { id:"i10",type:"channel",  icon:"bell",      color:"danger",       title:"#general — urgent from Sam",   body:"@AC @JD — Northstar escalating. They're seeing 8 logouts today. RC-001 needs to ship.", ts:"2d ago",  unread:false },
+  ];
+
+  const filters = [
+    { id:"all",      label:"All",       count: items.filter(i=>i.unread).length },
+    { id:"mention",  label:"Mentions",  count: items.filter(i=>i.type==="mention"&&i.unread).length },
+    { id:"assigned", label:"Assigned",  count: items.filter(i=>i.type==="assigned"&&i.unread).length },
+    { id:"meeting",  label:"Meetings",  count: items.filter(i=>i.type==="meeting"&&i.unread).length },
+    { id:"dm",       label:"DMs",       count: items.filter(i=>i.type==="dm"&&i.unread).length },
+    { id:"channel",  label:"Channels",  count: items.filter(i=>i.type==="channel"&&i.unread).length },
+  ];
+
+  const visible = filter === "all" ? items : items.filter(i => i.type === filter);
+
+  const markRead = (id) => setRead(prev => { const n = new Set(prev); n.add(id); return n; });
+  const markAllRead = () => setRead(new Set(items.map(i => i.id)));
+
+  const unreadCount = items.filter(i => i.unread && !read.has(i.id)).length;
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%" }} className="fade-in">
+      <div style={{ padding:"14px 24px 10px", borderBottom:`1px solid ${T.border}`, background:T.surface, flexShrink:0 }}>
+        <div className="flex items-c jc-sb mb-12">
+          <div>
+            <div className="brg fw-7" style={{ fontSize:20 }}>Inbox</div>
+            <div style={{ fontSize:11, color:T.textSub, marginTop:2 }}>Your alert hub — mentions, meetings, assignments, channels</div>
+          </div>
+          <div className="flex gap-8">
+            {unreadCount > 0 && <button className="btn btn-g btn-sm" onClick={markAllRead}>Mark all read</button>}
+          </div>
+        </div>
+        <div className="flex gap-6">
+          {filters.map(f => (
+            <button key={f.id} className={`btn btn-sm ${filter===f.id?"btn-p":"btn-g"}`} onClick={() => setFilter(f.id)}>
+              {f.label}{f.count > 0 && <span style={{ marginLeft:5, background:"rgba(255,255,255,0.2)", borderRadius:8, padding:"0 5px", fontSize:9, fontWeight:800 }}>{f.count}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflowY:"auto" }}>
+        {visible.map(item => {
+          const isRead = read.has(item.id) || !item.unread;
+          return (
+            <div key={item.id} style={{ display:"flex", gap:14, padding:"14px 24px", borderBottom:`1px solid ${T.border}`, cursor:"pointer", background:isRead ? "transparent" : T[item.color]+"06", transition:".1s" }}
+              onMouseEnter={e => e.currentTarget.style.background=T.surface2}
+              onMouseLeave={e => e.currentTarget.style.background=isRead ? "transparent" : T[item.color]+"06"}
+              onClick={() => { markRead(item.id); if(item.issue) setIssue(ISSUES.find(i=>i.id===item.issue)); }}>
+              <div style={{ width:34, height:34, borderRadius:"50%", background:T[item.color]+"18", border:`1px solid ${T[item.color]}33`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:2 }}>
+                <Ico n={item.icon} s={14} c={T[item.color]} />
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div className="flex items-c gap-8 mb-3">
+                  <span style={{ fontSize:12, fontWeight: isRead ? 500 : 700, color:T.text }}>{item.title}</span>
+                  {!isRead && <div style={{ width:6, height:6, borderRadius:"50%", background:T[item.color], flexShrink:0 }} />}
+                  <span style={{ fontSize:10, color:T.textMuted, marginLeft:"auto", flexShrink:0 }}>{item.ts}</span>
+                </div>
+                <div style={{ fontSize:12, color:T.textSub, lineHeight:1.5 }} className="trunc">{item.body}</div>
+                {item.issue && <span style={{ fontSize:10, color:T.accent, fontWeight:600, marginTop:4, display:"inline-block" }}>{item.issue}</span>}
+              </div>
+            </div>
+          );
+        })}
+        {visible.length === 0 && (
+          <div style={{ textAlign:"center", padding:56, color:T.textMuted }}>
+            <Ico n="checkCircle" s={32} c={T.success} style={{ display:"block", margin:"0 auto 12px" }} />
+            <div style={{ fontSize:14, fontWeight:600, color:T.textSub }}>All caught up</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ══ DRAFTS / SCRATCHPAD ════════════════════════════════════ */
+const Drafts = ({ T }) => {
+  const [nodes, setNodes] = useState([
+    { id:"n1", type:"task",     x:80,  y:60,  w:220, text:"RC-001 fix — lock promise on 401", color:"accent",       assigned:"u1", done:false },
+    { id:"n2", type:"idea",     x:360, y:40,  w:200, text:"What if we cached the refresh token in a service worker?", color:"accentPurple", done:false },
+    { id:"n3", type:"reminder", x:620, y:80,  w:190, text:"Check in with Northstar — logouts still happening?", color:"accentWarm", done:false },
+    { id:"n4", type:"task",     x:100, y:220, w:210, text:"Review Jordan's CRDT PR before standup", color:"success",  assigned:"u1", done:true  },
+    { id:"n5", type:"note",     x:380, y:200, w:240, text:"Sprint 12 goal: auth overhaul + CRDT + CRM v1\n24pts total · 18 done · closes Mar 14", color:"warn",   done:false },
+    { id:"n6", type:"task",     x:650, y:220, w:200, text:"Write retro notes for S12", color:"textSub",  assigned:"u1", done:false },
+  ]);
+  const [dragging, setDragging] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x:0, y:0 });
+  const [editing, setEditing] = useState(null);
+  const [editText, setEditText] = useState("");
+  const boardRef = useRef(null);
+
+  const NODE_COLORS = { accent:"#3ECFCF", accentPurple:"#8B7CF8", accentWarm:"#E8965A", success:"#3EC98E", warn:"#E8C25A", danger:"#F26B6B", textSub:"#9898A8" };
+  const NODE_ICONS = { task:"check", idea:"zap", reminder:"bell", note:"file" };
+
+  const startDrag = (e, id) => {
+    const node = nodes.find(n => n.id===id);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragging(id);
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    e.preventDefault();
+  };
+
+  const onMouseMove = (e) => {
+    if (!dragging || !boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - dragOffset.x;
+    const y = e.clientY - rect.top - dragOffset.y;
+    setNodes(prev => prev.map(n => n.id===dragging ? { ...n, x:Math.max(0,x), y:Math.max(0,y) } : n));
+  };
+
+  const addNode = (type) => {
+    const id = "n" + Date.now();
+    setNodes(prev => [...prev, { id, type, x:80+Math.random()*400, y:80+Math.random()*200, w:200, text:"", color:"accent", done:false }]);
+    setEditing(id); setEditText("");
+  };
+
+  const TYPE_COLORS = { task:"accent", idea:"accentPurple", reminder:"accentWarm", note:"warn" };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%" }} className="fade-in">
+      {/* Toolbar */}
+      <div style={{ padding:"10px 20px", borderBottom:`1px solid ${T.border}`, background:T.surface, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+        <div className="brg fw-7" style={{ fontSize:16 }}>Scratchpad</div>
+        <div style={{ fontSize:11, color:T.textSub }}>Your personal whiteboard — tasks, ideas, reminders, notes</div>
+        <div style={{ flex:1 }} />
+        {[
+          { type:"task",     label:"+ Task",     icon:"check" },
+          { type:"idea",     label:"+ Idea",     icon:"zap" },
+          { type:"reminder", label:"+ Reminder", icon:"bell" },
+          { type:"note",     label:"+ Note",     icon:"file" },
+        ].map(btn => (
+          <button key={btn.type} className="btn btn-g btn-sm" onClick={() => addNode(btn.type)}>
+            <Ico n={btn.icon} s={11}/> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Board */}
+      <div ref={boardRef} style={{ flex:1, position:"relative", overflow:"hidden", background:T.bg,
+        backgroundImage:`radial-gradient(${T.border} 1px, transparent 0)`, backgroundSize:"20px 20px" }}
+        onMouseMove={onMouseMove}
+        onMouseUp={() => setDragging(null)}
+        onMouseLeave={() => setDragging(null)}>
+
+        {nodes.map(node => {
+          const c = NODE_COLORS[node.color] || T.accent;
+          const isEditing = editing === node.id;
+          return (
+            <div key={node.id} style={{ position:"absolute", left:node.x, top:node.y, width:node.w,
+              background:T.surface, border:`1px solid ${c}44`, borderTop:`3px solid ${c}`,
+              borderRadius:10, boxShadow:"0 4px 16px rgba(0,0,0,0.10)", cursor:dragging===node.id?"grabbing":"grab",
+              userSelect:"none", padding:"10px 14px", transition:"box-shadow .15s" }}
+              onMouseDown={e => { if(e.target.tagName!=="TEXTAREA") startDrag(e, node.id); }}
+              onDoubleClick={() => { setEditing(node.id); setEditText(node.text); }}>
+              <div className="flex items-c gap-6 mb-6">
+                <Ico n={NODE_ICONS[node.type] || "file"} s={11} c={c} />
+                <span style={{ fontSize:9, color:c, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em" }}>{node.type}</span>
+                <div style={{ flex:1 }} />
+                {node.assigned && <Av uid={node.assigned} size="xs" />}
+                {node.type === "task" && (
+                  <div style={{ width:14, height:14, borderRadius:3, border:`1.5px solid ${c}`, background:node.done ? c : "transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); setNodes(prev => prev.map(n => n.id===node.id ? { ...n, done:!n.done } : n)); }}>
+                    {node.done && <Ico n="check" s={9} c="#fff" />}
+                  </div>
+                )}
+                <button style={{ background:"transparent", border:"none", cursor:"pointer", color:T.textMuted, padding:0 }}
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={() => setNodes(prev => prev.filter(n => n.id !== node.id))}>
+                  <Ico n="x" s={10} />
+                </button>
+              </div>
+              {isEditing ? (
+                <textarea autoFocus className="inp" style={{ fontSize:12, lineHeight:1.6, resize:"none", width:"100%", minHeight:60 }}
+                  value={editText} onChange={e => setEditText(e.target.value)}
+                  onBlur={() => { setNodes(prev => prev.map(n => n.id===node.id ? { ...n, text:editText } : n)); setEditing(null); }}
+                  onMouseDown={e => e.stopPropagation()} />
+              ) : (
+                <div style={{ fontSize:12, lineHeight:1.65, color:node.done ? T.textMuted : T.textSub, textDecoration:node.done ? "line-through" : "none", whiteSpace:"pre-wrap" }}>{node.text || <span style={{ color:T.textMuted, fontStyle:"italic" }}>Double-click to edit…</span>}</div>
+              )}
+            </div>
+          );
+        })}
+
+        {nodes.length === 0 && (
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:T.textMuted }}>
+            <Ico n="edit" s={40} c={T.border} style={{ marginBottom:16 }} />
+            <div style={{ fontSize:15, fontWeight:600, color:T.textSub, marginBottom:6 }}>Your scratchpad is empty</div>
+            <div style={{ fontSize:12, color:T.textMuted }}>Add a task, idea, reminder, or note above</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ══ MEMBERS — Workspace Roster ═════════════════════════════ */
+const Members = ({ T }) => {
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  const members = [
+    { ...USERS.u1, email:"alex@acmecorp.io",   lastActive:"Now",           teams:["Engineering","Leadership"], joined:"Jan 2026" },
+    { ...USERS.u2, email:"jordan@acmecorp.io",  lastActive:"2 minutes ago", teams:["Engineering"],              joined:"Jan 2026" },
+    { ...USERS.u3, email:"sam@acmecorp.io",     lastActive:"Away · 1h ago", teams:["Engineering","Design"],     joined:"Feb 2026" },
+    { ...USERS.u4, email:"priya@northstar.io",  lastActive:"Offline",       teams:[],                           joined:"Mar 2026", external:true },
+  ];
+
+  const filtered = members.filter(m => {
+    const matchSearch = !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole = roleFilter === "all" || m.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  const statusColor = (s) => s === "active" ? T.success : s === "away" ? T.warn : T.textMuted;
+
+  return (
+    <div style={{ padding:28 }} className="fade-in">
+      <div className="flex items-c jc-sb mb-20">
+        <div>
+          <div className="brg fw-7" style={{ fontSize:22 }}>Members</div>
+          <div style={{ fontSize:11, color:T.textSub, marginTop:2 }}>People who share this workspace · {members.length} total</div>
+        </div>
+      </div>
+
+      <div className="flex gap-10 mb-20">
+        <input className="inp" style={{ maxWidth:300 }} placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex gap-6">
+          {["all","admin","member","guest"].map(r => (
+            <button key={r} className={`btn btn-sm ${roleFilter===r?"btn-p":"btn-g"}`} onClick={() => setRoleFilter(r)} style={{ textTransform:"capitalize" }}>{r}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding:0 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:0 }}>
+          {filtered.map((m, i) => (
+            <div key={m.id} style={{ display:"flex", gap:14, alignItems:"center", padding:"14px 20px", borderBottom: i < filtered.length-1 ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ position:"relative" }}>
+                <Av uid={m.id} size="md" />
+                <div style={{ position:"absolute", bottom:0, right:0, width:9, height:9, borderRadius:"50%", background:statusColor(m.status), border:`2px solid ${T.surface}` }} />
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div className="flex items-c gap-8 mb-2">
+                  <span style={{ fontSize:13, fontWeight:700 }}>{m.name}</span>
+                  <span className={`chip ${m.role==="admin" ? "chip-teal" : m.role==="guest" ? "chip-ylw" : "chip-dim"}`}>{m.role}</span>
+                  {m.external && <span className="chip chip-ylw" style={{ fontSize:9 }}>external</span>}
+                </div>
+                <div style={{ fontSize:11, color:T.textMuted }}>{m.email} · Joined {m.joined}</div>
+              </div>
+              <div style={{ fontSize:11, color:T.textMuted, minWidth:120 }}>{m.lastActive}</div>
+              <div className="flex gap-4">
+                {m.teams.map(team => <span key={team} className="chip chip-dim" style={{ fontSize:10 }}>{team}</span>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop:20, background:T.surface2, border:`1px solid ${T.border}`, borderRadius:10, padding:"14px 20px" }}>
+        <div style={{ fontSize:11, color:T.textSub, lineHeight:1.65 }}>
+          <strong style={{ color:T.text }}>Invite team members</strong> via your workspace settings. Guests are external collaborators with limited access.
+          Members join by accepting an invite link — no manual user creation.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══ PROJECTS — Independent Project Surface ═════════════════ */
+const Projects = ({ T, setIssue }) => {
+  const [showNew, setShowNew] = useState(false);
+  const [projects, setProjects] = useState([
+    { id:"proj1", name:"Auth Overhaul", description:"Token refresh, session management, 2FA", status:"active", lead:"u1", members:["u1","u2"], issueCount:8, doneCount:5, startDate:"Mar 1, 2026", endDate:"Mar 14, 2026", linkedDeal:null, budget:null },
+    { id:"proj2", name:"CRM v1 Launch", description:"Pipeline, accounts, contacts, deal rooms", status:"active", lead:"u2", members:["u1","u2","u3"], issueCount:12, doneCount:3, startDate:"Mar 1, 2026", endDate:"Apr 1, 2026", linkedDeal:"BlueField $120k", budget:null },
+    { id:"proj3", name:"CRDT Offline Mode", description:"Local-first architecture with Automerge", status:"active", lead:"u2", members:["u1","u2"], issueCount:6, doneCount:2, startDate:"Feb 25, 2026", endDate:"Mar 20, 2026", linkedDeal:null, budget:null },
+    { id:"proj4", name:"Customer Portal", description:"Public issue tracker and status page for customers", status:"planned", lead:"u1", members:["u1"], issueCount:0, doneCount:0, startDate:"Apr 1, 2026", endDate:"May 1, 2026", linkedDeal:"Northstar $24k", budget:null },
+  ]);
+  const [newProj, setNewProj] = useState({ name:"", description:"", lead:"u1", endDate:"" });
+
+  const statusColors = { active:T.success, planned:T.accent, paused:T.warn, done:T.textMuted };
+
+  return (
+    <div style={{ padding:28 }} className="fade-in">
+      <div className="flex items-c jc-sb mb-20">
+        <div>
+          <div className="brg fw-7" style={{ fontSize:22 }}>Projects</div>
+          <div style={{ fontSize:11, color:T.textSub, marginTop:2 }}>Independent projects — separate from sprint-assigned issues</div>
+        </div>
+        <button className="btn btn-p btn-sm" onClick={() => setShowNew(true)}><Ico n="plus" s={12}/> New Project</button>
+      </div>
+
+      {showNew && (
+        <div className="card mb-20">
+          <div className="flex items-c jc-sb mb-14">
+            <div className="brg fw-6" style={{ fontSize:14 }}>Create Project</div>
+            <button className="btn-ico" onClick={() => setShowNew(false)}><Ico n="x" s={13}/></button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+            <div><label className="lbl">Project name</label><input className="inp" placeholder="e.g. Customer Portal" value={newProj.name} onChange={e => setNewProj(p=>({...p,name:e.target.value}))} /></div>
+            <div><label className="lbl">Lead</label>
+              <select className="inp" value={newProj.lead} onChange={e => setNewProj(p=>({...p,lead:e.target.value}))}>
+                {Object.values(USERS).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div style={{ gridColumn:"1/-1" }}><label className="lbl">Description</label><input className="inp" placeholder="What is this project?" value={newProj.description} onChange={e => setNewProj(p=>({...p,description:e.target.value}))} /></div>
+            <div><label className="lbl">Target end date</label><input className="inp" type="date" value={newProj.endDate} onChange={e => setNewProj(p=>({...p,endDate:e.target.value}))} /></div>
+          </div>
+          <div className="flex gap-8">
+            <button className="btn btn-p btn-sm" onClick={() => {
+              setProjects(prev => [...prev, { id:"proj"+Date.now(), ...newProj, status:"planned", members:[newProj.lead], issueCount:0, doneCount:0, startDate:"Mar 10, 2026", linkedDeal:null }]);
+              setShowNew(false); setNewProj({ name:"", description:"", lead:"u1", endDate:"" });
+            }}>Create</button>
+            <button className="btn btn-g btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(360px, 1fr))", gap:16 }}>
+        {projects.map(proj => {
+          const pct = proj.issueCount > 0 ? Math.round((proj.doneCount / proj.issueCount) * 100) : 0;
+          return (
+            <div key={proj.id} className="card" style={{ cursor:"pointer" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor=T.accent+"66"}
+              onMouseLeave={e => e.currentTarget.style.borderColor=T.border}>
+              <div className="flex items-c gap-8 mb-8">
+                <div style={{ width:32, height:32, borderRadius:8, background:T.accent+"18", border:`1px solid ${T.accent}33`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <span className="brg fw-8" style={{ fontSize:14, color:T.accent }}>{proj.name.charAt(0)}</span>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700 }}>{proj.name}</div>
+                  <div style={{ fontSize:10, color:T.textMuted }}>{proj.startDate} → {proj.endDate}</div>
+                </div>
+                <span style={{ fontSize:10, color:statusColors[proj.status] || T.textMuted, fontWeight:700, textTransform:"uppercase" }}>{proj.status}</span>
+              </div>
+              <div style={{ fontSize:12, color:T.textSub, lineHeight:1.5, marginBottom:12 }}>{proj.description}</div>
+              <ProgBar v={pct} max={100} c={T.success} h={4} />
+              <div className="flex items-c jc-sb mt-8">
+                <div style={{ fontSize:11, color:T.textMuted }}>{proj.doneCount} / {proj.issueCount} issues · {pct}%</div>
+                <div className="flex gap-4">
+                  {proj.members.map(m => <Av key={m} uid={m} size="xs" />)}
+                </div>
+              </div>
+              {proj.linkedDeal && (
+                <div style={{ marginTop:10, background:T.accentWarm+"10", border:`1px solid ${T.accentWarm}25`, borderRadius:6, padding:"5px 10px", fontSize:10, color:T.accentWarm }}>
+                  <Ico n="brief" s={10} c={T.accentWarm}/> {proj.linkedDeal}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ══ DEV CHARTS ══════════════════════════════════════════════ */
+const DevCharts = ({ T }) => {
+  const [period, setPeriod] = useState("sprint");
+
+  const velocity = [14, 18, 21, 16, 24, 19];
+  const cycleTime = [4.2, 3.8, 5.1, 3.2, 2.9, 3.5];
+  const reviewTime = [18, 24, 14, 20, 12, 16];
+  const prsMerged = [3, 5, 4, 6, 8, 7];
+
+  const MiniBar = ({ data, color, unit="" }) => {
+    const max = Math.max(...data);
+    return (
+      <div style={{ display:"flex", gap:3, alignItems:"flex-end", height:60 }}>
+        {data.map((v, i) => (
+          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+            <div style={{ width:"100%", background:color+"22", borderRadius:"3px 3px 0 0", height:`${(v/max)*52}px`, border:`1px solid ${color}44`, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
+              <div style={{ width:"100%", height:`${(v/max)*52}px`, background:color+"55", borderRadius:"3px 3px 0 0" }} />
+            </div>
+            <span style={{ fontSize:9, color:T.textMuted }}>{v}{unit}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const chartCards = [
+    { title:"Velocity", desc:"Story points per sprint", data:velocity, color:T.accent, unit:"pts",
+      current:24, prev:19, trend:"+26%", meta:"Sprint S12 · 6-sprint avg: 18.7pts" },
+    { title:"Cycle Time", desc:"Avg hours from started → done", data:cycleTime, color:T.success, unit:"d",
+      current:2.9, prev:3.2, trend:"-9%", meta:"Sprint S12 · 6-sprint avg: 3.8d" },
+    { title:"PR Review Time", desc:"Avg hours open before merge", data:reviewTime, color:T.warn, unit:"h",
+      current:12, prev:20, trend:"-40%", meta:"Sprint S12 · 6-sprint avg: 17.3h" },
+    { title:"PRs Merged", desc:"Pull requests merged per sprint", data:prsMerged, color:T.accentPurple, unit:"",
+      current:7, prev:8, trend:"-13%", meta:"Sprint S12 · 6-sprint avg: 5.5" },
+  ];
+
+  const members = Object.values(USERS).slice(0,3).map(u => ({
+    ...u,
+    issuesClosed: u.id==="u1" ? 8 : u.id==="u2" ? 6 : 4,
+    prsReviewed: u.id==="u1" ? 5 : u.id==="u2" ? 7 : 3,
+    avgCycle: u.id==="u1" ? "2.8d" : u.id==="u2" ? "3.1d" : "4.2d",
+    commits: u.id==="u1" ? 24 : u.id==="u2" ? 31 : 12,
+  }));
+
+  return (
+    <div style={{ padding:28 }} className="fade-in">
+      <div className="flex items-c jc-sb mb-20">
+        <div>
+          <div className="brg fw-7" style={{ fontSize:22 }}>Dev Charts</div>
+          <div style={{ fontSize:11, color:T.textSub, marginTop:2 }}>Engineering performance metrics · Sprint-level and historical</div>
+        </div>
+        <div className="flex gap-6">
+          {["sprint","quarter","year"].map(p => (
+            <button key={p} className={`btn btn-sm ${period===p?"btn-p":"btn-g"}`} onClick={() => setPeriod(p)} style={{ textTransform:"capitalize" }}>{p}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:14, marginBottom:24 }}>
+        {chartCards.map(card => (
+          <div key={card.title} className="card">
+            <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{card.title}</div>
+            <div className="flex items-c gap-8 mb-2">
+              <span className="brg fw-8" style={{ fontSize:24, color:card.color }}>{card.current}</span>
+              <span className={`chip ${card.trend.startsWith("+") ? "chip-grn" : "chip-red"}`}>{card.trend}</span>
+            </div>
+            <div style={{ fontSize:10, color:T.textMuted, marginBottom:12 }}>{card.desc}</div>
+            <MiniBar data={card.data} color={card.color} unit={card.unit} />
+            <div style={{ fontSize:9, color:T.textMuted, marginTop:6 }}>{card.meta}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
+        {/* Per-member table */}
+        <div className="card" style={{ padding:0 }}>
+          <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}` }}>
+            <div className="brg fw-6" style={{ fontSize:13 }}>Contributor Breakdown · Sprint 12</div>
+          </div>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Issues closed</th>
+                <th>PRs reviewed</th>
+                <th>Avg cycle</th>
+                <th>Commits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map(m => (
+                <tr key={m.id}>
+                  <td><div className="flex items-c gap-8"><Av uid={m.id} size="xs"/><span style={{ fontSize:12, fontWeight:600 }}>{m.name}</span></div></td>
+                  <td><span style={{ color:T.success, fontWeight:700 }}>{m.issuesClosed}</span></td>
+                  <td>{m.prsReviewed}</td>
+                  <td style={{ color:T.accent }}>{m.avgCycle}</td>
+                  <td style={{ color:T.textMuted }}>{m.commits}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Burndown mini */}
+        <div className="card">
+          <div className="brg fw-6" style={{ fontSize:13, marginBottom:12 }}>Sprint Burndown</div>
+          <Burndown h={120} />
+          <div className="flex gap-12 mt-8" style={{ fontSize:10, color:T.textMuted }}>
+            <span style={{ color:T.border }}>— Ideal</span>
+            <span style={{ color:T.accent }}>— Actual</span>
+          </div>
+          <div style={{ marginTop:12, fontSize:11, color:T.textSub }}>
+            <strong style={{ color:T.warn }}>6pts remaining</strong> · 4 days left in sprint
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══ REPORTS ══════════════════════════════════════════════════ */
+const Reports = ({ T }) => {
+  const [selected, setSelected] = useState(null);
+  const [generating, setGenerating] = useState(false);
+
+  const templates = [
+    { id:"sprint-summary",  icon:"📋", title:"Sprint Summary",      desc:"Velocity, completion rate, blockers, and team performance for a sprint", category:"Engineering" },
+    { id:"dev-performance", icon:"📊", title:"Dev Performance",     desc:"Individual contributor metrics, cycle time, PR review stats", category:"Engineering" },
+    { id:"issue-aging",     icon:"⏱️", title:"Issue Aging",         desc:"Issues open > N days, stale PRs, and unreviewed work", category:"Engineering" },
+    { id:"time-report",     icon:"🕐", title:"Time & Billing",      desc:"Logged hours by member, project, and issue. Export for billing.", category:"Time" },
+    { id:"crm-pipeline",    icon:"💼", title:"Pipeline Health",     desc:"Deal stages, weighted revenue, avg close time, win/loss rate", category:"CRM" },
+    { id:"crm-activity",    icon:"📈", title:"CRM Activity",        desc:"Emails sent, meetings booked, follow-ups due, deal velocity", category:"CRM" },
+    { id:"account-health",  icon:"🏥", title:"Account Health",      desc:"ARR by account, open issues, churn risk, renewal dates", category:"CRM" },
+    { id:"roadmap-status",  icon:"🗺️", title:"Roadmap Status",      desc:"Feature delivery timeline vs plan, completed milestones", category:"Product" },
+  ];
+
+  const categories = [...new Set(templates.map(t => t.category))];
+
+  const generate = (t) => {
+    setSelected(t); setGenerating(true);
+    setTimeout(() => setGenerating(false), 1400);
+  };
+
+  return (
+    <div style={{ padding:28 }} className="fade-in">
+      <div className="flex items-c jc-sb mb-20">
+        <div>
+          <div className="brg fw-7" style={{ fontSize:22 }}>Reports</div>
+          <div style={{ fontSize:11, color:T.textSub, marginTop:2 }}>Generate reports from live data · Export to PDF or CSV</div>
+        </div>
+      </div>
+
+      {selected && (
+        <div className="card mb-20" style={{ borderColor:T.accent+"44" }}>
+          <div className="flex items-c gap-10 mb-12">
+            <span style={{ fontSize:24 }}>{selected.icon}</span>
+            <div>
+              <div className="brg fw-7" style={{ fontSize:16 }}>{selected.title}</div>
+              <div style={{ fontSize:11, color:T.textSub }}>{selected.desc}</div>
+            </div>
+            <div style={{ flex:1 }} />
+            <button className="btn btn-g btn-sm"><Ico n="copy" s={11}/> Copy link</button>
+            <button className="btn btn-g btn-sm"><Ico n="external" s={11}/> Export PDF</button>
+            <button className="btn-ico" onClick={() => setSelected(null)}><Ico n="x" s={13}/></button>
+          </div>
+          {generating ? (
+            <div style={{ textAlign:"center", padding:"24px 0", color:T.textMuted }}>
+              <div style={{ fontSize:12 }}>Generating report from live data…</div>
+            </div>
+          ) : (
+            <div style={{ background:T.surface2, border:`1px solid ${T.border}`, borderRadius:8, padding:20 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:T.accent, marginBottom:8 }}>REPORT PREVIEW — Sprint 12 Summary</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+                {[["Velocity","24 pts","↑26%","success"],["Issues closed","18","↑20%","success"],["PRs merged","7","↑17%","accent"],["Avg cycle","2.9d","↓9%","success"]].map(([l,v,d,c]) => (
+                  <div key={l} style={{ textAlign:"center", background:T.surface, borderRadius:6, padding:12, border:`1px solid ${T.border}` }}>
+                    <div style={{ fontSize:9, color:T.textMuted, marginBottom:4 }}>{l}</div>
+                    <div style={{ fontSize:18, fontWeight:800, color:T[c] }}>{v}</div>
+                    <div style={{ fontSize:10, color:T.success }}>{d}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:11, color:T.textSub }}>Full report includes per-member breakdown, blocker analysis, and comparison to prior sprints. Export to share with stakeholders.</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {categories.map(cat => (
+        <div key={cat} style={{ marginBottom:24 }}>
+          <div style={{ fontSize:10, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.12em", color:T.textMuted, marginBottom:10 }}>{cat}</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:12 }}>
+            {templates.filter(t => t.category===cat).map(t => (
+              <div key={t.id} className="card" style={{ cursor:"pointer", display:"flex", gap:14, alignItems:"flex-start" }}
+                onMouseEnter={e => e.currentTarget.style.borderColor=T.accent+"55"}
+                onMouseLeave={e => e.currentTarget.style.borderColor=T.border}
+                onClick={() => generate(t)}>
+                <span style={{ fontSize:22, flexShrink:0 }}>{t.icon}</span>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>{t.title}</div>
+                  <div style={{ fontSize:11, color:T.textSub, lineHeight:1.5 }}>{t.desc}</div>
+                </div>
+                <Ico n="chevR" s={12} c={T.textMuted} style={{ flexShrink:0, marginTop:4 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ══ CODE — GitHub read-only browser ════════════════════════ */
+const Code = ({ T, setIssue }) => {
+  const [branch, setBranch] = useState("main");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [expanded, setExpanded] = useState({ src:true, "src/api":true });
+
+  const branches = ["main","fix/auth-refresh","perf/time-trigger","feat/offline-crdt"];
+
+  const repoTree = [
+    { type:"folder", name:"src", children:[
+      { type:"folder", name:"api", children:[
+        { type:"file", name:"interceptor.ts", lines:68, changed:branch!=="main" },
+        { type:"file", name:"auth.ts", lines:24 },
+        { type:"file", name:"client.ts", lines:42 },
+      ]},
+      { type:"folder", name:"components", children:[
+        { type:"file", name:"Modal.tsx", lines:88 },
+      ]},
+      { type:"folder", name:"hooks", children:[
+        { type:"file", name:"useSubscription.ts", lines:38, added:branch!=="main" },
+      ]},
+    ]},
+    { type:"file", name:"package.json", lines:34 },
+    { type:"file", name:"tsconfig.json", lines:18 },
+  ];
+
+  const FILE_PREVIEW = {
+    "interceptor.ts": [
+      { n:1,  c:"// interceptor.ts" },
+      { n:2,  c:"// HTTP client with token refresh logic" },
+      { n:3,  c:"" },
+      { n:4,  c:"let refreshPromise = null;", add:branch!=="main" },
+      { n:5,  c:"" },
+      { n:6,  c:"export const apiClient = httpClient.create({" },
+      { n:7,  c:"  baseURL: process.env.NEXT_PUBLIC_API_URL," },
+      { n:8,  c:"});" },
+      { n:9,  c:"" },
+      { n:10, c:"apiClient.interceptors.response.use(null, async (error) => {" },
+      { n:11, c:"  if (error.response?.status === 401) {" },
+      { n:12, c:"    if (!refreshPromise) {", add:branch!=="main" },
+      { n:13, c:"      refreshPromise = refreshToken().finally(() => {", add:branch!=="main" },
+      { n:14, c:"        refreshPromise = null;", add:branch!=="main" },
+      { n:15, c:"      });", add:branch!=="main" },
+      { n:16, c:"    }", add:branch!=="main" },
+      { n:17, c:"    await refreshPromise;", add:branch!=="main" },
+      { n:18, c:"    return apiClient(error.config);" },
+      { n:19, c:"  }" },
+      { n:20, c:"  return Promise.reject(error);" },
+      { n:21, c:"});" },
+    ],
+  };
+
+  const commits = [
+    { sha:"a3f9c2e", msg:"feat: add refreshPromise lock", author:"u1", ts:"Mar 5, 14:30", issue:"RC-001" },
+    { sha:"b7d1e4a", msg:"perf: add status guard to trigger", author:"u1", ts:"Mar 7, 16:00", issue:"RC-003" },
+    { sha:"d4e2b9c", msg:"chore: upgrade deps", author:"u2", ts:"Mar 3, 09:15", issue:null },
+  ];
+
+  const renderTree = (nodes, prefix="", depth=0) =>
+    nodes.map(node => {
+      const path = prefix ? `${prefix}/${node.name}` : node.name;
+      if (node.type === "folder") {
+        const open = expanded[path];
+        return (
+          <div key={path}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, padding:`4px ${8+depth*14}px`, cursor:"pointer", fontSize:12, color:T.textSub }}
+              onMouseEnter={e => e.currentTarget.style.background=T.surface2}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              onClick={() => setExpanded(p => ({...p, [path]:!p[path]}))}>
+              <Ico n={open?"chevD":"chevR"} s={9} c={T.textMuted}/>
+              <Ico n="folder" s={11} c={T.accentWarm}/>
+              <span>{node.name}</span>
+            </div>
+            {open && renderTree(node.children, path, depth+1)}
+          </div>
+        );
+      }
+      return (
+        <div key={path} style={{ display:"flex", alignItems:"center", gap:6, padding:`4px ${8+depth*14+14}px`, cursor:"pointer", fontSize:12,
+          background:selectedFile?.name===node.name ? T.glow : "transparent", color:selectedFile?.name===node.name ? T.accent : T.textSub }}
+          onMouseEnter={e => { if(selectedFile?.name!==node.name) e.currentTarget.style.background=T.surface2; }}
+          onMouseLeave={e => { if(selectedFile?.name!==node.name) e.currentTarget.style.background="transparent"; }}
+          onClick={() => setSelectedFile(node)}>
+          <Ico n="file" s={10} c={node.added ? T.success : node.changed ? T.warn : T.textMuted}/>
+          <span style={{ flex:1, color:node.added ? T.success : node.changed ? T.warn : undefined }}>{node.name}</span>
+          {node.added && <span style={{ fontSize:8, color:T.success, fontWeight:800 }}>A</span>}
+          {node.changed && !node.added && <span style={{ fontSize:8, color:T.warn, fontWeight:800 }}>M</span>}
+        </div>
+      );
+    });
+
+  return (
+    <div style={{ display:"flex", height:"100%", overflow:"hidden" }} className="fade-in">
+      <div style={{ width:220, borderRight:`1px solid ${T.border}`, background:T.surface, display:"flex", flexDirection:"column", flexShrink:0 }}>
+        <div style={{ padding:"10px 12px", borderBottom:`1px solid ${T.border}` }}>
+          <div style={{ fontSize:11, fontWeight:700, marginBottom:6 }}>reach-app</div>
+          <select className="inp" style={{ fontSize:11, height:28 }} value={branch} onChange={e => { setBranch(e.target.value); setSelectedFile(null); }}>
+            {branches.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        <div style={{ flex:1, overflowY:"auto", padding:"4px 0" }}>
+          {renderTree(repoTree)}
+        </div>
+      </div>
+
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {selectedFile ? (
+          <>
+            <div style={{ padding:"8px 18px", borderBottom:`1px solid ${T.border}`, background:T.surface, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+              <code style={{ fontSize:12, flex:1 }}>{selectedFile.name}</code>
+              <span style={{ fontSize:10, color:T.textMuted }}>{selectedFile.lines} lines · read-only</span>
+              <button className="btn-ico" onClick={() => setSelectedFile(null)}><Ico n="x" s={10}/></button>
+            </div>
+            <div style={{ flex:1, overflowY:"auto", background:T.bg, fontFamily:"'DM Mono',monospace", fontSize:12.5, lineHeight:1.75 }}>
+              {(FILE_PREVIEW[selectedFile.name] || []).map((line,i) => (
+                <div key={i} style={{ display:"flex", background:line.add ? T.success+"12" : "transparent", paddingRight:24 }}>
+                  <span style={{ width:40, color:T.textMuted, flexShrink:0, textAlign:"right", paddingRight:14, userSelect:"none", fontSize:10, opacity:.6 }}>{line.n}</span>
+                  <span style={{ color:line.add ? T.success : T.textSub }}>{line.add ? "+ " : "  "}{line.c}</span>
+                </div>
+              ))}
+              {!(FILE_PREVIEW[selectedFile.name]) && (
+                <div style={{ padding:32, color:T.textMuted, fontSize:12 }}>Preview not available for this file.</div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+            <div className="brg fw-7" style={{ fontSize:20, marginBottom:4 }}>Code</div>
+            <div style={{ fontSize:11, color:T.textSub, marginBottom:20 }}>Read-only · Synced from GitHub · {branch}</div>
+            <div style={{ marginBottom:8, fontSize:10, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.12em", color:T.textMuted }}>Recent Commits</div>
+            <div className="card" style={{ padding:0 }}>
+              {commits.map((c,i) => (
+                <div key={i} style={{ display:"flex", gap:12, alignItems:"center", padding:"12px 16px", borderBottom:i<commits.length-1?`1px solid ${T.border}`:"none" }}>
+                  <Ico n="git" s={14} c={T.accent}/>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:12, fontWeight:600 }}>{c.msg}</div>
+                    <div style={{ fontSize:10, color:T.textMuted, marginTop:2 }}>{USERS[c.author]?.name} · {c.ts}{c.issue && <span style={{ color:T.accent, fontWeight:700, marginLeft:8 }}>{c.issue}</span>}</div>
+                  </div>
+                  <code style={{ fontSize:10, color:T.textMuted, background:T.surface3, padding:"2px 7px", borderRadius:4 }}>{c.sha}</code>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -5187,7 +6354,7 @@ const Settings = ({ T, theme, setTheme }) => {
             <div className="brg fw-7" style={{ fontSize: 20, marginBottom: 24 }}>Integrations</div>
             {[
               { n: "GitHub",              icon: "git",    d: "Repo connection for IDE, PRs, branch awareness.",    connected: true  },
-              { n: "Claude / OpenRouter", icon: "zap",    d: "AI chat in IDE. Seeded with PRD + active issue.",    connected: true  },
+              { n: "Claude Code + Qwen FIM", icon: "zap",    d: "AI chat in IDE. Seeded with PRD + active issue.",    connected: true  },
               { n: "Daily.co",            icon: "video",  d: "Video standup rooms. Requires Daily API key.",       connected: false },
               { n: "Google SSO",          icon: "globe",  d: "One-click sign-in for all workspace members.",       connected: false },
               { n: "SAML / Okta",        icon: "shield", d: "Enterprise SSO. Business+ plan.",                   connected: false },
@@ -5497,7 +6664,7 @@ const SearchModal = ({ T, onClose, setIssue }) => {
 /* ══ ROOT ═══════════════════════════════════════════════════ */
 export default function Reach() {
   const [page, setPage] = useState("marketing");
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const [route, setRoute] = useState("dashboard");
   const [issue, setIssue] = useState(null);
   const [search, setSearch] = useState(false);
@@ -5530,18 +6697,22 @@ export default function Reach() {
   const PAGES = {
     "dashboard":    <Dashboard T={T} setRoute={setRoute} setIssue={setIssue} />,
     "issues":       <Issues T={T} setIssue={setIssue} />,
-    "inbox":        <Dashboard T={T} setRoute={setRoute} setIssue={setIssue} />,
-    "drafts":       <Docs T={T} />,
-    "members":      <Settings T={T} theme={theme} setTheme={setTheme} />,
+    "inbox":        <Inbox T={T} setRoute={setRoute} setIssue={setIssue} />,
+    "drafts":       <Drafts T={T} />,
+    "members":      <Members T={T} />,
+    "projects":     <Projects T={T} setIssue={setIssue} />,
     "sprint-board": <SprintBoard T={T} setIssue={setIssue} />,
     "backlog":      <Backlog T={T} setIssue={setIssue} />,
-    "views":         <Views T={T} setIssue={setIssue} />,
+    "views":        <Views T={T} setIssue={setIssue} />,
     "ide":          <IDE T={T} setIssue={setIssue} />,
+    "code":         <Code T={T} setIssue={setIssue} />,
     "prs":          <PRs T={T} setIssue={setIssue} />,
     "docs":         <Docs T={T} />,
     "chat":         <Chat T={T} setIssue={setIssue} />,
     "standups":     <Standups T={T} setIssue={setIssue} />,
     "analytics":    <Analytics T={T} setIssue={setIssue} />,
+    "dev-charts":   <DevCharts T={T} />,
+    "reports":      <Reports T={T} />,
     "crm":          <CRM T={T} setIssue={setIssue} />,
     "time":         <Time T={T} setIssue={setIssue} />,
     "settings":     <Settings T={T} theme={theme} setTheme={setTheme} />,
