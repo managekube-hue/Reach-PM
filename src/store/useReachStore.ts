@@ -4,6 +4,11 @@ import { supabase } from '../lib/supabase';
 import { getTenantRuntime } from '../services/TenantRuntimeWorker';
 import type { CommChannel, CommMessage, CommNotification, CommMeeting, EmailThread } from '../types';
 
+// Spec-aligned type aliases
+export type Channel = CommChannel;
+export type Notification = CommNotification;
+export type Meeting = CommMeeting;
+
 // ==========================================
 // STATE TYPES
 // ==========================================
@@ -22,17 +27,17 @@ interface ReachState {
   channels: Record<string, any>;
   members: Record<string, any>;
 
-  // ── CommCollab v3 ───────────────────────────────────────────────
-  // C-02: workspaceId (workspace_id) separate from tenantId for spec compat
+  // ── CommCollab slices (spec-aligned) ──────────────────────────
   workspaceId: string | null;
+  tenant: { id: string } | null;
   user: any | null;
-  // Chat slice (v3Channels is the array form; existing channels stays as Record)
-  v3Channels: CommChannel[];
+  // Chat slice
+  channels: CommChannel[];
   activeChannelId: string | null;
   unreadCounts: Record<string, number>;
   activeThread: string | null;
   // Notification slice
-  v3Notifications: CommNotification[];
+  notifications: CommNotification[];
   unreadNotifCount: number;
   // Meeting slice
   activeMeeting: CommMeeting | null;
@@ -41,7 +46,7 @@ interface ReachState {
   // Actions
   setWorkspaceId: (id: string | null) => void;
   setUser: (user: any) => void;
-  setV3Channels: (channels: CommChannel[]) => void;
+  setChannels: (channels: CommChannel[]) => void;
   setActiveChannel: (id: string | null) => void;
   setUnreadCount: (channelId: string, count: number) => void;
   incrementUnread: (channelId: string) => void;
@@ -79,21 +84,22 @@ export const useReachStore = create<ReachState>((set, get) => ({
   channels: {},
   members: {},
 
-  // ── CommCollab v3 initial state ────────────────────────────────
+  // ── CommCollab initial state (spec-aligned) ────────────────────
   workspaceId: null,
+  tenant: null,
   user: null,
-  v3Channels: [],
+  channels: [],
   activeChannelId: null,
   unreadCounts: {},
   activeThread: null,
-  v3Notifications: [],
+  notifications: [],
   unreadNotifCount: 0,
   activeMeeting: null,
   emailThreads: [],
 
   setWorkspaceId: (id) => set(produce((s: ReachState) => { s.workspaceId = id; })),
   setUser: (u) => set(produce((s: ReachState) => { s.user = u; })),
-  setV3Channels: (chs) => set(produce((s: ReachState) => { s.v3Channels = chs; })),
+  setChannels: (chs) => set(produce((s: ReachState) => { s.channels = chs; })),
   setActiveChannel: (id) => set(produce((s: ReachState) => {
     s.activeChannelId = id;
     s.activeThread = null;
@@ -108,15 +114,16 @@ export const useReachStore = create<ReachState>((set, get) => ({
     s.activeThread = msgId;
   })),
   addNotification: (n) => set(produce((s: ReachState) => {
-    s.v3Notifications.unshift(n as any);
-    if (!n.read) s.unreadNotifCount++;
+    const notif = { ...n, read: !!(n as any).read || !!(n as any).read_at } as any;
+    s.notifications.unshift(notif);
+    if (!notif.read) s.unreadNotifCount++;
   })),
   markNotificationRead: (id) => set(produce((s: ReachState) => {
-    const n = s.v3Notifications.find((x: any) => x.id === id);
+    const n = s.notifications.find((x: any) => x.id === id);
     if (n && !(n as any).read) { (n as any).read = true; s.unreadNotifCount--; }
   })),
   markAllNotifsRead: () => set(produce((s: ReachState) => {
-    s.v3Notifications.forEach((n: any) => { n.read = true; });
+    s.notifications.forEach((n: any) => { n.read = true; });
     s.unreadNotifCount = 0;
   })),
   setActiveMeeting: (m) => set(produce((s: ReachState) => { s.activeMeeting = m as any; })),
@@ -127,13 +134,14 @@ export const useReachStore = create<ReachState>((set, get) => ({
     // Note: Important to set tenantId first so UI can transition away from "Loading Workspace..."
     set({ tenantId, userId, role: role as any });
 
-    // Load current user profile and set workspaceId (C-02)
+    // Load current user profile; set tenant + workspaceId
     if (userId && supabase) {
       supabase.from('profiles').select('*').eq('id', userId).single()
         .then(({ data }) => {
           if (data) {
             set(produce((s: ReachState) => {
               s.user = data;
+              s.tenant = { id: tenantId };
               s.workspaceId = data.default_workspace_id ?? tenantId;
             }));
           }
@@ -142,16 +150,14 @@ export const useReachStore = create<ReachState>((set, get) => ({
     
     try {
       // 1. Load initial state via Supabase strictly bounded by RLS
-      const [issuesRes, membersRes, channelsRes] = await Promise.all([
+      const [issuesRes, membersRes] = await Promise.all([
         supabase!.from('issues').select('*'),
         supabase!.from('profiles').select('*'),
-        supabase!.from('channels').select('*')
       ]);
 
       set(produce((state: ReachState) => {
         if (issuesRes.data) issuesRes.data.forEach(i => { state.issues[i.id] = i; });
         if (membersRes.data) membersRes.data.forEach(m => { state.members[m.id] = m; });
-        if (channelsRes.data) channelsRes.data.forEach(c => { state.channels[c.id] = c; });
       }));
     } catch (e) {
       console.warn("Could not load initial database state for tenant", e);
@@ -165,17 +171,6 @@ export const useReachStore = create<ReachState>((set, get) => ({
           else state.issues[(payload.new as any).id] = payload.new;
         }));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-        // Chat messages are handled by TenantRuntimeWorker locally for speed,
-        // but we receive remote peer messages here.
-        const newMsg = payload.new as any;
-        getTenantRuntime(tenantId).saveMessage(
-          newMsg.channel_id,
-          newMsg.sender_id,
-          newMsg.body,
-          newMsg.id
-        );
-      })
       .subscribe();
 
     // 3. Keep online status updated
@@ -184,9 +179,6 @@ export const useReachStore = create<ReachState>((set, get) => ({
       get().processSyncQueue();
     });
     window.addEventListener('offline', () => set({ isOnline: false }));
-
-    // Init local IDB
-    getTenantRuntime(tenantId);
   },
 
   addIssue: async (issueParams: any) => {
@@ -239,23 +231,15 @@ export const useReachStore = create<ReachState>((set, get) => ({
   },
 
   sendMessage: async (channelId: string, body: string) => {
-    const { tenantId, userId } = get();
-    if (!tenantId || !userId) return;
+    const { user } = get();
+    if (!channelId || !user?.id || !body.trim()) return;
 
-    // Save to IDB instantly (event-sourced)
-    const runtime = getTenantRuntime(tenantId);
-    const msg = await runtime.saveMessage(channelId, userId, body);
-
-    // Network Update
     if (get().isOnline) {
-      const { error } = await supabase.from('chat_messages').insert({
-        id: msg.id,
-        tenant_id: tenantId,
+      await supabase.from('messages').insert({
         channel_id: channelId,
-        sender_id: userId,
-        body: msg.content
+        body: body.trim(),
+        is_system: false,
       });
-      if (error) await runtime.queueMutation('insert_chat', msg);
     } else {
       set(produce((state: ReachState) => { state.syncQueueLength++; }));
     }

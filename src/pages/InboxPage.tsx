@@ -45,7 +45,7 @@ export default function InboxPage() {
       // Internal or external link
       if (n.link.startsWith('/')) navigate(n.link)
       else window.open(n.link, '_blank', 'noopener,noreferrer')
-    } else if (n.channel_id) {
+    } else if (n.payload?.conversation_id) {
       navigate('/chat')
     }
   }

@@ -4,7 +4,13 @@ import { useState, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { useMessageSearch } from '@/hooks/useMessageSearch'
 import { useReachStore } from '@/store/useReachStore'
-import { formatDistanceToNow } from 'date-fns'
+function timeAgo(ts: string): string {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
 
 export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
@@ -29,7 +35,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   }, [])
 
   function jumpTo(msg: any) {
-    setActiveChannel(msg.channel_id)
+    setActiveChannel(msg.conversation_id)
     onClose()
     setTimeout(() => {
       document.getElementById(`msg-${msg.id}`)?.scrollIntoView({
@@ -79,9 +85,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   #{msg.channel?.name}
                 </span>
                 <span className="text-xs text-zinc-500">
-                  {formatDistanceToNow(new Date(msg.created_at), {
-                    addSuffix: true,
-                  })}
+                  {timeAgo(msg.created_at)}
                 </span>
               </div>
               <p className="text-xs text-zinc-300 font-medium">

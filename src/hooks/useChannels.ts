@@ -1,65 +1,45 @@
 // hooks/useChannels.ts
-// C-02: workspace_id instead of tenant_id
-// C-12: workspaceId from store instead of tenant?.id
 import { useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useReachStore } from '@/store/useReachStore'
-import type { CommChannel } from '@/types'
 
 export function useChannels() {
-  const { workspaceId, v3Channels, setV3Channels } = useReachStore()
+  const { tenant, channels, setChannels } = useReachStore()
   const supabase = createBrowserClient()
 
   useEffect(() => {
-    if (!workspaceId) return
-
-    supabase
-      .from('channels')
-      .select('*')
-      .eq('workspace_id', workspaceId)
-      .eq('is_dm', false)
-      .eq('is_archived', false)
-      .order('name')
-      .then(({ data }) => setV3Channels(data ?? []))
+    if (!tenant?.id) return
+    supabase.from('channels').select('*')
+      .eq('tenant_id', tenant.id).eq('is_dm', false)
+      .eq('is_archived', false).order('name')
+      .then(({ data }) => setChannels(data ?? []))
 
     const sub = supabase
-      .channel(`channels:${workspaceId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'channels',
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const ch = payload.new as CommChannel
-            if (!ch.is_dm && !ch.is_archived)
-              setV3Channels([...useReachStore.getState().v3Channels, ch])
-          }
-          if (payload.eventType === 'UPDATE') {
-            setV3Channels(
-              useReachStore
-                .getState()
-                .v3Channels.map((c) =>
-                  c.id === payload.new.id ? { ...c, ...payload.new } : c
-                )
-            )
-          }
-          if (payload.eventType === 'DELETE') {
-            setV3Channels(
-              useReachStore
-                .getState()
-                .v3Channels.filter((c) => c.id !== (payload.old as any).id)
-            )
-          }
+      .channel(`channels:${tenant.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'channels',
+        filter: `tenant_id=eq.${tenant.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const ch = payload.new as any
+          if (!ch.is_dm && !ch.is_archived)
+            setChannels([...useReachStore.getState().channels, ch])
         }
-      )
-      .subscribe()
+        if (payload.eventType === 'UPDATE') {
+          setChannels(useReachStore.getState().channels.map(c =>
+            c.id === payload.new.id ? { ...c, ...payload.new } : c
+          ))
+        }
+        if (payload.eventType === 'DELETE') {
+          setChannels(useReachStore.getState().channels.filter(c =>
+            c.id !== (payload.old as any).id
+          ))
+        }
+      }).subscribe()
 
     return () => supabase.removeChannel(sub)
-  }, [workspaceId])
+  }, [tenant?.id])
 
-  return v3Channels
+  return channels
 }
+

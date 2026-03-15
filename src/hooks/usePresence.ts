@@ -20,7 +20,7 @@ export function usePresence() {
           user_id: user.id,
           workspace_id: workspaceId,
           status: 'online',
-          last_seen: new Date().toISOString(),
+          last_seen_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,workspace_id' }
       )
@@ -48,7 +48,7 @@ export function usePresence() {
       .select('user_id')
       .eq('workspace_id', workspaceId)
       .eq('status', 'online')
-      .gte('last_seen', since)
+      .gte('last_seen_at', since)
       .then(({ data }) => {
         setOnlineUsers(new Set(data?.map((p: any) => p.user_id) ?? []))
       })

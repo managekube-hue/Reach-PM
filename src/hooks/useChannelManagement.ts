@@ -1,35 +1,37 @@
 // hooks/useChannelManagement.ts
-// Spec Part 16 — addMember, removeMember, archive, rename
+// Channel management via comm_conversations + comm_conversation_members
 import { createBrowserClient } from '@/lib/supabase'
+import { useReachStore } from '@/store/useReachStore'
 
 export function useChannelManagement(channelId: string) {
   const supabase = createBrowserClient()
+  const { user, workspaceId } = useReachStore()
 
   async function addMember(userId: string) {
-    const { data } = await supabase.from('channels')
-      .select('members').eq('id', channelId).single()
-    const members = [...new Set([...(data?.members ?? []), userId])]
-    await supabase.from('channels').update({ members }).eq('id', channelId)
+    if (!workspaceId) return
+    await supabase.from('comm_conversation_members').upsert(
+      { conversation_id: channelId, user_id: userId, workspace_id: workspaceId, role: 'member' },
+      { onConflict: 'conversation_id,user_id' }
+    )
   }
 
   async function removeMember(userId: string) {
-    const { data } = await supabase.from('channels')
-      .select('members').eq('id', channelId).single()
-    const members = (data?.members ?? []).filter((id: string) => id !== userId)
-    await supabase.from('channels').update({ members }).eq('id', channelId)
-  }
-
-  async function archive() {
-    await supabase.from('channels')
-      .update({ is_archived: true }).eq('id', channelId)
+    await supabase
+      .from('comm_conversation_members')
+      .delete()
+      .eq('conversation_id', channelId)
+      .eq('user_id', userId)
   }
 
   async function rename(newName: string) {
     const slug = newName.toLowerCase()
       .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    await supabase.from('channels')
-      .update({ name: slug }).eq('id', channelId)
+    await supabase
+      .from('comm_conversations')
+      .update({ name: newName, slug })
+      .eq('id', channelId)
   }
 
-  return { addMember, removeMember, archive, rename }
+  return { addMember, removeMember, rename }
 }
+

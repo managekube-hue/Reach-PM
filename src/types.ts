@@ -50,60 +50,54 @@ export type SignalData = {
   candidate?: RTCIceCandidateInit;
 };
 
-// ── CommCollab v3 types ──────────────────────────────────────────
+// ── CommCollab v3 types ─────────────────────────────────────────
+// Maps directly to the real Supabase tables: comm_conversations,
+// comm_messages, comm_notifications, comm_presence
+
+export type CommConversationKind = 'channel' | 'dm' | 'issue' | 'meeting';
+export type CommMessageKind = 'message' | 'system' | 'command' | 'event';
 
 export interface CommChannel {
   id: string;
   workspace_id: string;
-  project_id?: string | null;
+  kind: CommConversationKind;
   name: string;
-  description?: string | null;
-  is_dm: boolean;
+  slug?: string | null;
+  topic?: string;
   is_private: boolean;
-  is_archived: boolean;
-  members: string[];
-  created_by?: string | null;
-  pinned_count: number;
+  issue_key?: string | null;
+  direct_key?: string | null;
+  metadata?: Record<string, any>;
+  created_by: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface CommMessage {
   id: string;
-  workspace_id: string;
-  channel_id: string;
-  author_id?: string | null;
-  author?: { id: string; display_name: string; avatar_url?: string; color?: string } | null;
+  conversation_id: string;
+  workspace_id?: string | null;
+  sender_user_id: string;
+  sender?: { id: string; display_name: string; avatar_url?: string; color?: string } | null;
+  kind: CommMessageKind;
   body: string;
-  is_system: boolean;
-  issue_id?: string | null;
-  issue?: any | null;
-  thread_of?: string | null;
-  thread_count: number;
-  last_reply_at?: string | null;
-  edited: boolean;
-  edited_at?: string | null;
-  reactions: Record<string, string[]>;
-  mentions: string[];
+  parent_message_id?: string | null;
+  issue_key?: string | null;
+  mentions: any[];
   attachments: Array<{ url: string; name: string; type: string; size: number; thumbnail_url?: string }>;
-  link_preview?: { url: string; title: string; description: string; image?: string; domain: string } | null;
-  deleted: boolean;
-  deleted_at?: string | null;
+  command_name?: string | null;
+  command_payload?: Record<string, any>;
   created_at: string;
+  edited_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface CommNotification {
   id: string;
-  workspace_id?: string | null;
+  workspace_id: string;
   user_id: string;
-  type: string;
-  title: string;
-  body?: string | null;
-  link?: string | null;
-  issue_id?: string | null;
-  message_id?: string | null;
-  channel_id?: string | null;
-  actor_id?: string | null;
-  read: boolean;
+  kind: string;
+  payload: Record<string, any>;
   read_at?: string | null;
   created_at: string;
 }

@@ -5,6 +5,8 @@ import ReachApp from './App';
 import MeetingPage from './pages/MeetingPage';
 import InboxPage from './pages/InboxPage';
 import StandupsPage from './pages/StandupsPage';
+import AuthPage from './pages/AuthPage';
+import OnboardingPage from './pages/OnboardingPage';
 import { ChatLayout } from './components/chat/ChatLayout';
 import { StoreInitializer } from './components/StoreInitializer';
 import { createBrowserClient } from './lib/supabase';
@@ -26,7 +28,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!checked) return null;
-  if (!authed) return <Navigate to="/" replace />;
+  if (!authed) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -54,6 +56,8 @@ export default function RootRouter() {
             <StandupsPage />
           </AuthGuard>
         } />
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/meeting/:roomCode" element={<MeetingPage />} />
       </Routes>
     </BrowserRouter>

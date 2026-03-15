@@ -24,7 +24,7 @@ export default function AuthPage() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/app');
+        navigate('/chat');
       } else {
         // Sign Up Flow
         // 1. Create the Auth User
@@ -94,7 +94,7 @@ export default function AuthPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: 12, color: '#8080A0', marginBottom: 6 }}>Password</label>
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '10px 14px', background: '#141418', border: '1px solid #2A2A38', borderRadius: 6, color: '#fff', outline: 'none' }} />
+            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" style={{ width: '100%', padding: '10px 14px', background: '#141418', border: '1px solid #2A2A38', borderRadius: 6, color: '#fff', outline: 'none' }} />
           </div>
 
           <button type="submit" disabled={loading} style={{ marginTop: 8, background: '#47BFFF', color: '#07070A', border: 'none', padding: '12px', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>

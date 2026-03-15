@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useReachStore } from '@/store/useReachStore'
-import { formatDistanceToNow } from 'date-fns'
+function timeAgo(ts: string): string {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
 import { Send, RefreshCw } from 'lucide-react'
 
 export function EmailThreadPanel({ issueId }: { issueId: string }) {
@@ -80,7 +86,7 @@ export function EmailThreadPanel({ issueId }: { issueId: string }) {
               </div>
               <p className="text-[10px] text-zinc-600 flex-shrink-0">
                 {email.provider_received_at
-                  ? formatDistanceToNow(new Date(email.provider_received_at), { addSuffix: true })
+                  ? timeAgo(email.provider_received_at)
                   : ''}
               </p>
             </div>

@@ -4,7 +4,6 @@ import { useRef, useEffect, useState } from 'react'
 import { useChat } from '@/hooks/useChat'
 import { useReachStore } from '@/store/useReachStore'
 import { MessageBubble } from './MessageBubble'
-import { InlineIssueCard } from './InlineIssueCard'
 import { MessageInput } from './MessageInput'
 import { PinnedMessagesBar } from './PinnedMessagesBar'
 import { StartMeetingButton } from '@/components/video/StartMeetingButton'
@@ -16,25 +15,13 @@ export function MessagePanel({ channelId }: { channelId: string }) {
     loading,
     sending,
     send,
-    dropIssue,
     editMessage,
     deleteMessage,
-    addReaction,
     pinMessage,
   } = useChat(channelId)
   const { setActiveThread } = useReachStore()
   const bottomRef = useRef<HTMLDivElement>(null)
   const [showPinned, setShowPinned] = useState(false)
-
-  // Listen for drag-drop issue events
-  useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      if (e.detail.channelId === channelId) dropIssue(e.detail.issueId)
-    }
-    window.addEventListener('reach:drop-issue', handler as EventListener)
-    return () =>
-      window.removeEventListener('reach:drop-issue', handler as EventListener)
-  }, [channelId, dropIssue])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -67,19 +54,16 @@ export function MessagePanel({ channelId }: { channelId: string }) {
           <p className="text-center text-zinc-500 text-sm py-8">Loading...</p>
         )}
         {messages.map((msg) =>
-          msg.is_system && msg.issue_id ? (
-            <InlineIssueCard
-              key={msg.id}
-              message={msg}
-              onReact={(emoji) => addReaction(msg.id, emoji)}
-            />
+          msg.kind === 'system' ? (
+            <div key={msg.id} className="text-xs text-zinc-500 italic py-1 px-2">
+              {msg.body}
+            </div>
           ) : (
             <MessageBubble
               key={msg.id}
               message={msg}
               onEdit={editMessage}
               onDelete={deleteMessage}
-              onReact={(emoji) => addReaction(msg.id, emoji)}
               onPin={() => pinMessage(msg.id)}
               onThread={() => setActiveThread(msg.id)}
             />

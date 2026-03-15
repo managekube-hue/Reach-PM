@@ -11,11 +11,11 @@ export function PinnedMessagesBar({ channelId }: { channelId: string }) {
   useEffect(() => {
     const fetchPinned = () =>
       supabase
-        .from('pinned_messages')
+        .from('comm_pinned_messages')
         .select(
-          `*, message:messages(id,body,author:profiles!messages_author_id_fkey(display_name))`
+          `*, message:comm_messages(id,body,sender:profiles!comm_messages_sender_user_id_fkey(display_name))`
         )
-        .eq('channel_id', channelId)
+        .eq('conversation_id', channelId)
         .order('created_at', { ascending: false })
         .then(({ data }) => setPinned(data ?? []))
 
@@ -28,8 +28,8 @@ export function PinnedMessagesBar({ channelId }: { channelId: string }) {
         {
           event: '*',
           schema: 'public',
-          table: 'pinned_messages',
-          filter: `channel_id=eq.${channelId}`,
+          table: 'comm_pinned_messages',
+          filter: `conversation_id=eq.${channelId}`,
         },
         fetchPinned
       )
@@ -39,7 +39,7 @@ export function PinnedMessagesBar({ channelId }: { channelId: string }) {
   }, [channelId])
 
   async function unpin(pinnedId: string) {
-    await supabase.from('pinned_messages').delete().eq('id', pinnedId)
+    await supabase.from('comm_pinned_messages').delete().eq('id', pinnedId)
   }
 
   if (pinned.length === 0) return null
@@ -51,7 +51,7 @@ export function PinnedMessagesBar({ channelId }: { channelId: string }) {
           <Pin size={11} className="text-yellow-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <span className="text-xs text-zinc-400 font-medium mr-1">
-              {p.message?.author?.display_name}:
+              {p.message?.sender?.display_name}:
             </span>
             <span className="text-xs text-zinc-300 truncate">
               {p.message?.body}

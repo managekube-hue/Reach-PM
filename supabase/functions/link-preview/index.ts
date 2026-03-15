@@ -15,6 +15,23 @@ serve(async (req) => {
     const { url } = await req.json()
     if (!url) return new Response(JSON.stringify(null), { headers: { ...CORS, "Content-Type": "application/json" } })
 
+    // Validate URL — reject non-http(s) and private/loopback hosts (SSRF prevention)
+    let parsed: URL
+    try { parsed = new URL(url) } catch {
+      return new Response(JSON.stringify(null), { headers: { ...CORS, "Content-Type": "application/json" } })
+    }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return new Response(JSON.stringify(null), { headers: { ...CORS, "Content-Type": "application/json" } })
+    }
+    const host = parsed.hostname.toLowerCase()
+    const isPrivate =
+      host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1" ||
+      host.startsWith("10.") || host.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+    if (isPrivate) {
+      return new Response(JSON.stringify(null), { headers: { ...CORS, "Content-Type": "application/json" } })
+    }
+
     // Fetch page HTML with a timeout
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ReachBot/1.0)" },

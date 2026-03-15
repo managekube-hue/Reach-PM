@@ -4,6 +4,49 @@ import { useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useReachStore } from '@/store/useReachStore'
 
+async function compressImage(
+  file: File,
+  maxDimension: number,
+  maxBytes: number
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      const canvas = document.createElement('canvas')
+      let w = img.width
+      let h = img.height
+      if (w > maxDimension || h > maxDimension) {
+        const ratio = Math.min(maxDimension / w, maxDimension / h)
+        w = Math.round(w * ratio)
+        h = Math.round(h * ratio)
+      }
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const doBlob = (quality: number) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('toBlob failed')); return }
+            if (blob.size > maxBytes && quality > 0.2) {
+              doBlob(quality - 0.1)
+            } else {
+              resolve(new File([blob], file.name, { type: blob.type }))
+            }
+          },
+          outputType,
+          quality
+        )
+      }
+      doBlob(0.85)
+    }
+    img.onerror = reject
+    img.src = objectUrl
+  })
+}
+
 interface UploadedFile {
   url: string
   name: string
@@ -34,13 +77,14 @@ export function useFileUpload() {
         const file = files[i]
         let thumbnail_url: string | undefined
 
-        // Generate thumbnail for images without compression dependency
+        // Generate compressed thumbnail for images (200px, 50KB max)
         if (file.type.startsWith('image/')) {
           try {
-            const thumbPath = `${workspaceId}/thumbs/${Date.now()}-thumb-${file.name}`
+            const thumbFile = await compressImage(file, 200, 50 * 1024)
+            const thumbPath = `${workspaceId}/thumbs/${Date.now()}-thumb-${thumbFile.name}`
             await supabase.storage
               .from('attachments')
-              .upload(thumbPath, file, { contentType: file.type, upsert: false })
+              .upload(thumbPath, thumbFile, { contentType: thumbFile.type, upsert: false })
             const { data: thumbData } = await supabase.storage
               .from('attachments')
               .createSignedUrl(thumbPath, 86400)
@@ -50,10 +94,15 @@ export function useFileUpload() {
           }
         }
 
-        const path = `${workspaceId}/${Date.now()}-${file.name}`
+        // Compress main image (1920px, 2MB max); non-images uploaded as-is
+        const uploadFile = file.type.startsWith('image/')
+          ? await compressImage(file, 1920, 2 * 1024 * 1024).catch(() => file)
+          : file
+
+        const path = `${workspaceId}/${Date.now()}-${uploadFile.name}`
         const { error } = await supabase.storage
           .from('attachments')
-          .upload(path, file, { contentType: file.type, upsert: false })
+          .upload(path, uploadFile, { contentType: uploadFile.type, upsert: false })
 
         if (!error) {
           const { data } = await supabase.storage
@@ -63,8 +112,8 @@ export function useFileUpload() {
             results.push({
               url: data.signedUrl,
               name: file.name,
-              type: file.type,
-              size: file.size,
+              type: uploadFile.type,
+              size: uploadFile.size,
               ...(thumbnail_url ? { thumbnail_url } : {}),
             })
           }

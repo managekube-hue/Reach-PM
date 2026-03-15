@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from './lib/supabase';
+import { ChatLayout } from './components/chat/ChatLayout';
+import InboxPage from './pages/InboxPage';
+import StandupsPage from './pages/StandupsPage';
+import { StoreInitializer } from './components/StoreInitializer';
 
 /*
  ██████╗ ███████╗ █████╗  ██████╗██╗  ██╗
@@ -1655,7 +1660,41 @@ const Marketing = ({ T, gotoAuth, theme, setTheme }) => {
 /* ══ AUTH ══════════════════════════════════════════════════ */
 const AuthPage = ({ T, mode, setPage }) => {
   const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
   const isSignup = mode === "signup";
+
+  const handleSubmit = async () => {
+    if (!form.email || !form.password) return;
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      if (!supabase) throw new Error("Supabase not configured — check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY");
+      if (isSignup) {
+        const { data, error } = await supabase.auth.signUp({ email: form.email, password: form.password });
+        if (error) throw error;
+        const userId = data.user?.id;
+        if (userId) {
+          const slug = (form.name || 'workspace').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+          await supabase.rpc('register_tenant_admin', {
+            p_user_id: userId,
+            p_tenant_name: form.name || 'My Workspace',
+            p_slug: slug,
+            p_display_name: form.name || form.email,
+          });
+        }
+        setPage("onboarding");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (error) throw error;
+        setPage("app");
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace" }}>
@@ -1708,8 +1747,13 @@ const AuthPage = ({ T, mode, setPage }) => {
             </div>
             <input className="inp" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
           </div>
-          <button className="btn btn-p w-full" style={{ justifyContent: "center", padding: 11 }} onClick={() => setPage("app")}>
-            {isSignup ? "Create account →" : "Sign in →"}
+          {authError && (
+            <div style={{ padding: '10px 14px', background: 'rgba(242,107,107,0.12)', border: '1px solid #F26B6B', borderRadius: 6, marginBottom: 14, fontSize: 12, color: '#F26B6B' }}>
+              {authError}
+            </div>
+          )}
+          <button className="btn btn-p w-full" style={{ justifyContent: "center", padding: 11, opacity: authLoading ? 0.6 : 1 }} onClick={handleSubmit} disabled={authLoading}>
+            {authLoading ? 'Please wait…' : isSignup ? "Create account →" : "Sign in →"}
           </button>
         </div>
 
@@ -6708,6 +6752,14 @@ export default function Reach() {
 
   const T = THEMES[theme];
 
+  // Auto-detect existing session — skip marketing if already logged in
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setPage("app");
+    });
+  }, []);
+
   // Inject fonts + CSS
   useEffect(() => {
     injectFonts();
@@ -6733,7 +6785,7 @@ export default function Reach() {
   const PAGES = {
     "dashboard":    <Dashboard T={T} setRoute={setRoute} setIssue={setIssue} />,
     "issues":       <Issues T={T} setIssue={setIssue} />,
-    "inbox":        <Inbox T={T} setRoute={setRoute} setIssue={setIssue} />,
+    "inbox":        <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><InboxPage /></div>,
     "drafts":       <Drafts T={T} />,
     "members":      <Members T={T} />,
     "projects":     <Projects T={T} setIssue={setIssue} />,
@@ -6744,8 +6796,8 @@ export default function Reach() {
     "code":         <Code T={T} setIssue={setIssue} />,
     "prs":          <PRs T={T} setIssue={setIssue} />,
     "docs":         <Docs T={T} />,
-    "chat":         <Chat T={T} setIssue={setIssue} />,
-    "standups":     <Standups T={T} setIssue={setIssue} />,
+    "chat":         <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><ChatLayout /></div>,
+    "standups":     <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><StandupsPage /></div>,
     "analytics":    <Analytics T={T} setIssue={setIssue} />,
     "dev-charts":   <DevCharts T={T} />,
     "reports":      <Reports T={T} />,
