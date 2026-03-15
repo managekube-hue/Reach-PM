@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 /*
  ██████╗ ███████╗ █████╗  ██████╗██╗  ██╗
@@ -936,7 +937,7 @@ const Topbar = ({ T, route, theme, setTheme, onSearch, onIssue }) => {
 };
 
 /* ─── SIDEBAR ─────────────────────────────────────────────── */
-const Sidebar = ({ T, route, nav, slim }) => {
+const Sidebar = ({ T, route, nav, slim, onChatNav, onInboxNav, onStandupsNav }) => {
   const [open, setOpen] = useState({
     home: true, pm: true, methods: false, workspace: false,
     tasks: true, eng: true, comms: true, crm: false,
@@ -1092,12 +1093,46 @@ const Sidebar = ({ T, route, nav, slim }) => {
         {/* ═══ COMMUNICATION & ACTIVITY ═══ */}
         <Sec label="Communication & Activity" k="comms" color={T.accentWarm} />
         {open.comms && <div style={{ padding: "2px 6px" }}>
-          <NavItem item={{ id: "chat",         icon: "chat",    label: "Chat", badge: 14 }} depth={1} />
-          <NavItem item={{ id: "inbox",        icon: "mail",    label: "Email" }} depth={1} />
-          <NavItem item={{ id: "standups",     icon: "video",   label: "Video Standups", badge: 1 }} depth={1} />
-          <NavItem item={{ id: "standups",     icon: "calendar",label: "Meetings & Calls" }} depth={1} />
+          <div className={`nav-item${route === "chat" ? " active" : ""}`}
+            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
+            onClick={() => onChatNav ? onChatNav() : nav("chat")}
+            title={slim ? "Chat" : undefined}>
+            <Ico n="chat" s={13} />
+            {!slim && <span className="trunc flex-1">Chat</span>}
+            {!slim && <span className="badge">14</span>}
+            {slim && <div style={{ position: "absolute", top: 3, right: 3, width: 5, height: 5, borderRadius: "50%", background: T.danger }} />}
+          </div>
+          <div className={`nav-item${route === "inbox" ? " active" : ""}`}
+            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
+            onClick={() => onInboxNav ? onInboxNav() : nav("inbox")}
+            title={slim ? "Email" : undefined}>
+            <Ico n="mail" s={13} />
+            {!slim && <span className="trunc flex-1">Email</span>}
+          </div>
+          <div className={`nav-item${route === "standups" ? " active" : ""}`}
+            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
+            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
+            title={slim ? "Video Standups" : undefined}>
+            <Ico n="video" s={13} />
+            {!slim && <span className="trunc flex-1">Video Standups</span>}
+            {!slim && <span className="badge">1</span>}
+            {slim && <div style={{ position: "absolute", top: 3, right: 3, width: 5, height: 5, borderRadius: "50%", background: T.danger }} />}
+          </div>
+          <div className={`nav-item${route === "standups" ? " active" : ""}`}
+            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
+            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
+            title={slim ? "Meetings & Calls" : undefined}>
+            <Ico n="calendar" s={13} />
+            {!slim && <span className="trunc flex-1">Meetings & Calls</span>}
+          </div>
           <NavItem item={{ id: "analytics",    icon: "history", label: "Logs & History" }} depth={1} />
-          <NavItem item={{ id: "standups",     icon: "phone",   label: "Calls" }} depth={1} />
+          <div className={`nav-item${route === "standups" ? " active" : ""}`}
+            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
+            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
+            title={slim ? "Calls" : undefined}>
+            <Ico n="phone" s={13} />
+            {!slim && <span className="trunc flex-1">Calls</span>}
+          </div>
           <NavItem item={{ id: "settings",     icon: "userPlus",label: "Invite" }} depth={1} />
         </div>}
 
@@ -6663,6 +6698,7 @@ const SearchModal = ({ T, onClose, setIssue }) => {
 
 /* ══ ROOT ═══════════════════════════════════════════════════ */
 export default function Reach() {
+  const navigate = useNavigate();
   const [page, setPage] = useState("marketing");
   const [theme, setTheme] = useState("light");
   const [route, setRoute] = useState("dashboard");
@@ -6725,7 +6761,7 @@ export default function Reach() {
   return (
     <div className="app" style={{ background: T.bg, color: T.text, fontFamily: "'DM Mono', monospace" }}>
       <div className="app-body">
-        <Sidebar T={T} route={route} nav={setRoute} />
+        <Sidebar T={T} route={route} nav={setRoute} onChatNav={() => navigate('/chat')} onInboxNav={() => navigate('/inbox')} onStandupsNav={() => navigate('/standups')} />
         <div className="main">
           <Topbar T={T} route={route} theme={theme} setTheme={setTheme} onSearch={() => setSearch(true)} onIssue={setIssue} />
           <div className="content" style={{ background: T.bg }}>

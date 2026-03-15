@@ -1,11 +1,13 @@
 // components/video/VideoRoom.tsx
 // Spec Part 10.2 — full mesh P2P video room
 // Includes MeetingIssueOverlay (spec Part 12.3)
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWebRTC } from '@/hooks/useWebRTC'
-import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react'
+import { Video, VideoOff, Mic, MicOff, PhoneOff, ExternalLink } from 'lucide-react'
 import { RecordingControls } from './RecordingControls'
 import { MeetingIssueOverlay } from './MeetingIssueOverlay'
+import { useReachStore } from '@/store/useReachStore'
+import { createBrowserClient } from '@/lib/supabase'
 
 interface Props {
   roomCode: string
@@ -26,6 +28,36 @@ export function VideoRoom({ roomCode, meetingId, onLeave }: Props) {
     toggleCam,
     toggleMic,
   } = useWebRTC(roomCode)
+  const { user } = useReachStore()
+  const [zoomLoading, setZoomLoading] = useState(false)
+  const supabase = createBrowserClient()
+
+  async function startZoomFallback() {
+    if (!user?.zoom_connected) {
+      window.location.href = '/settings'
+      return
+    }
+    setZoomLoading(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token ?? ''
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zoom-create-meeting`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: 'Meeting', room_code: roomCode }),
+        }
+      )
+      const data = await res.json()
+      if (data?.join_url) window.open(data.join_url, '_blank', 'noopener,noreferrer')
+    } finally {
+      setZoomLoading(false)
+    }
+  }
 
   useEffect(() => {
     let unsub: (() => void) | undefined
@@ -43,14 +75,32 @@ export function VideoRoom({ roomCode, meetingId, onLeave }: Props) {
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center bg-zinc-900">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={onLeave}
-            className="px-4 py-2 bg-zinc-700 rounded text-white text-sm"
-          >
-            Go back
-          </button>
+        <div className="text-center max-w-sm">
+          <p className="text-red-400 mb-2">{error}</p>
+          <p className="text-zinc-500 text-sm mb-4">
+            Browser WebRTC failed. You can use Zoom as a fallback.
+          </p>
+          <div className="flex flex-col gap-2 items-center">
+            <button
+              onClick={startZoomFallback}
+              disabled={zoomLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500
+                rounded text-white text-sm transition-colors disabled:opacity-50"
+            >
+              <ExternalLink size={14} />
+              {zoomLoading
+                ? 'Launching...'
+                : user?.zoom_connected
+                ? 'Start Zoom Meeting'
+                : 'Connect Zoom'}
+            </button>
+            <button
+              onClick={onLeave}
+              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-white text-sm transition-colors"
+            >
+              Go back
+            </button>
+          </div>
         </div>
       </div>
     )

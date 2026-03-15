@@ -1,9 +1,11 @@
 // hooks/useNotifications.ts
 // Spec 5.6 — loads 50 recent notifications, subscribes to INSERT
 // C-06B: column is now `user_id` (renamed from recipient_id), `read` (renamed from is_read)
+// Pass 3: plays notification sounds + dismiss/dismissAll aliases
 import { useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useReachStore } from '@/store/useReachStore'
+import { playNotificationSound } from '@/lib/sounds'
 
 export function useNotifications() {
   const {
@@ -45,7 +47,9 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          addNotification(payload.new as any)
+          const notif = payload.new as any
+          addNotification(notif)
+          playNotificationSound(notif.type ?? 'message')
         }
       )
       .subscribe()
@@ -79,5 +83,8 @@ export function useNotifications() {
     unreadCount: unreadNotifCount,
     markRead,
     markAllRead,
+    // Pass 3 aliases used by NotificationBell
+    dismiss: markRead,
+    dismissAll: markAllRead,
   }
 }

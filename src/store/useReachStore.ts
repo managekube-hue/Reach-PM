@@ -145,7 +145,7 @@ export const useReachStore = create<ReachState>((set, get) => ({
       const [issuesRes, membersRes, channelsRes] = await Promise.all([
         supabase!.from('issues').select('*'),
         supabase!.from('profiles').select('*'),
-        supabase!.from('chat_channels').select('*')
+        supabase!.from('channels').select('*')
       ]);
 
       set(produce((state: ReachState) => {
@@ -165,7 +165,7 @@ export const useReachStore = create<ReachState>((set, get) => ({
           else state.issues[(payload.new as any).id] = payload.new;
         }));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, payload => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
         // Chat messages are handled by TenantRuntimeWorker locally for speed,
         // but we receive remote peer messages here.
         const newMsg = payload.new as any;
