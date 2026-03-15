@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { produce } from 'immer';
 import { supabase } from '../lib/supabase';
 import { getTenantRuntime } from '../services/TenantRuntimeWorker';
+import type { CommChannel, CommMessage, CommNotification, CommMeeting, EmailThread } from '../types';
 
 // ==========================================
 // STATE TYPES
@@ -20,7 +21,38 @@ interface ReachState {
   sprints: Record<string, any>;
   channels: Record<string, any>;
   members: Record<string, any>;
-  
+
+  // ── CommCollab v3 ───────────────────────────────────────────────
+  // C-02: workspaceId (workspace_id) separate from tenantId for spec compat
+  workspaceId: string | null;
+  user: any | null;
+  // Chat slice (v3Channels is the array form; existing channels stays as Record)
+  v3Channels: CommChannel[];
+  activeChannelId: string | null;
+  unreadCounts: Record<string, number>;
+  activeThread: string | null;
+  // Notification slice
+  v3Notifications: CommNotification[];
+  unreadNotifCount: number;
+  // Meeting slice
+  activeMeeting: CommMeeting | null;
+  // Email slice
+  emailThreads: EmailThread[];
+  // Actions
+  setWorkspaceId: (id: string | null) => void;
+  setUser: (user: any) => void;
+  setV3Channels: (channels: CommChannel[]) => void;
+  setActiveChannel: (id: string | null) => void;
+  setUnreadCount: (channelId: string, count: number) => void;
+  incrementUnread: (channelId: string) => void;
+  setActiveThread: (msgId: string | null) => void;
+  addNotification: (n: CommNotification) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotifsRead: () => void;
+  setActiveMeeting: (m: CommMeeting | null) => void;
+  setEmailThreads: (threads: EmailThread[]) => void;
+  // ───────────────────────────────────────────────────────────────
+
   // Actions
   initStore: (tenantId: string, userId: string, role: string) => Promise<void>;
   addIssue: (issue: any) => Promise<void>;
@@ -47,16 +79,73 @@ export const useReachStore = create<ReachState>((set, get) => ({
   channels: {},
   members: {},
 
+  // ── CommCollab v3 initial state ────────────────────────────────
+  workspaceId: null,
+  user: null,
+  v3Channels: [],
+  activeChannelId: null,
+  unreadCounts: {},
+  activeThread: null,
+  v3Notifications: [],
+  unreadNotifCount: 0,
+  activeMeeting: null,
+  emailThreads: [],
+
+  setWorkspaceId: (id) => set(produce((s: ReachState) => { s.workspaceId = id; })),
+  setUser: (u) => set(produce((s: ReachState) => { s.user = u; })),
+  setV3Channels: (chs) => set(produce((s: ReachState) => { s.v3Channels = chs; })),
+  setActiveChannel: (id) => set(produce((s: ReachState) => {
+    s.activeChannelId = id;
+    s.activeThread = null;
+  })),
+  setUnreadCount: (channelId, count) => set(produce((s: ReachState) => {
+    s.unreadCounts[channelId] = count;
+  })),
+  incrementUnread: (channelId) => set(produce((s: ReachState) => {
+    s.unreadCounts[channelId] = (s.unreadCounts[channelId] || 0) + 1;
+  })),
+  setActiveThread: (msgId) => set(produce((s: ReachState) => {
+    s.activeThread = msgId;
+  })),
+  addNotification: (n) => set(produce((s: ReachState) => {
+    s.v3Notifications.unshift(n as any);
+    if (!n.read) s.unreadNotifCount++;
+  })),
+  markNotificationRead: (id) => set(produce((s: ReachState) => {
+    const n = s.v3Notifications.find((x: any) => x.id === id);
+    if (n && !(n as any).read) { (n as any).read = true; s.unreadNotifCount--; }
+  })),
+  markAllNotifsRead: () => set(produce((s: ReachState) => {
+    s.v3Notifications.forEach((n: any) => { n.read = true; });
+    s.unreadNotifCount = 0;
+  })),
+  setActiveMeeting: (m) => set(produce((s: ReachState) => { s.activeMeeting = m as any; })),
+  setEmailThreads: (threads) => set(produce((s: ReachState) => { s.emailThreads = threads as any; })),
+  // ──────────────────────────────────────────────────────────────
+
   initStore: async (tenantId, userId, role) => {
     // Note: Important to set tenantId first so UI can transition away from "Loading Workspace..."
     set({ tenantId, userId, role: role as any });
+
+    // Load current user profile and set workspaceId (C-02)
+    if (userId && supabase) {
+      supabase.from('profiles').select('*').eq('id', userId).single()
+        .then(({ data }) => {
+          if (data) {
+            set(produce((s: ReachState) => {
+              s.user = data;
+              s.workspaceId = data.default_workspace_id ?? tenantId;
+            }));
+          }
+        });
+    }
     
     try {
       // 1. Load initial state via Supabase strictly bounded by RLS
       const [issuesRes, membersRes, channelsRes] = await Promise.all([
-        supabase.from('issues').select('*'),
-        supabase.from('profiles').select('*'),
-        supabase.from('chat_channels').select('*')
+        supabase!.from('issues').select('*'),
+        supabase!.from('profiles').select('*'),
+        supabase!.from('chat_channels').select('*')
       ]);
 
       set(produce((state: ReachState) => {
