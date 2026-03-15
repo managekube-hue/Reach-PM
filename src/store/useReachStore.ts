@@ -4,11 +4,6 @@ import { supabase } from '../lib/supabase';
 import { getTenantRuntime } from '../services/TenantRuntimeWorker';
 import type { CommChannel, CommMessage, CommNotification, CommMeeting, EmailThread } from '../types';
 
-// Spec-aligned type aliases
-export type Channel = CommChannel;
-export type Notification = CommNotification;
-export type Meeting = CommMeeting;
-
 // ==========================================
 // STATE TYPES
 // ==========================================
@@ -27,17 +22,17 @@ interface ReachState {
   channels: Record<string, any>;
   members: Record<string, any>;
 
-  // ── CommCollab slices (spec-aligned) ──────────────────────────
+  // ── CommCollab v3 ───────────────────────────────────────────────
+  // C-02: workspaceId (workspace_id) separate from tenantId for spec compat
   workspaceId: string | null;
-  tenant: { id: string } | null;
   user: any | null;
-  // Chat slice
-  channels: CommChannel[];
+  // Chat slice (v3Channels is the array form; existing channels stays as Record)
+  v3Channels: CommChannel[];
   activeChannelId: string | null;
   unreadCounts: Record<string, number>;
   activeThread: string | null;
   // Notification slice
-  notifications: CommNotification[];
+  v3Notifications: CommNotification[];
   unreadNotifCount: number;
   // Meeting slice
   activeMeeting: CommMeeting | null;
@@ -46,7 +41,7 @@ interface ReachState {
   // Actions
   setWorkspaceId: (id: string | null) => void;
   setUser: (user: any) => void;
-  setChannels: (channels: CommChannel[]) => void;
+  setV3Channels: (channels: CommChannel[]) => void;
   setActiveChannel: (id: string | null) => void;
   setUnreadCount: (channelId: string, count: number) => void;
   incrementUnread: (channelId: string) => void;
@@ -84,22 +79,21 @@ export const useReachStore = create<ReachState>((set, get) => ({
   channels: {},
   members: {},
 
-  // ── CommCollab initial state (spec-aligned) ────────────────────
+  // ── CommCollab v3 initial state ────────────────────────────────
   workspaceId: null,
-  tenant: null,
   user: null,
-  channels: [],
+  v3Channels: [],
   activeChannelId: null,
   unreadCounts: {},
   activeThread: null,
-  notifications: [],
+  v3Notifications: [],
   unreadNotifCount: 0,
   activeMeeting: null,
   emailThreads: [],
 
   setWorkspaceId: (id) => set(produce((s: ReachState) => { s.workspaceId = id; })),
   setUser: (u) => set(produce((s: ReachState) => { s.user = u; })),
-  setChannels: (chs) => set(produce((s: ReachState) => { s.channels = chs; })),
+  setV3Channels: (chs) => set(produce((s: ReachState) => { s.v3Channels = chs; })),
   setActiveChannel: (id) => set(produce((s: ReachState) => {
     s.activeChannelId = id;
     s.activeThread = null;
@@ -114,16 +108,17 @@ export const useReachStore = create<ReachState>((set, get) => ({
     s.activeThread = msgId;
   })),
   addNotification: (n) => set(produce((s: ReachState) => {
-    const notif = { ...n, read: !!(n as any).read || !!(n as any).read_at } as any;
-    s.notifications.unshift(notif);
+    // Normalize read_at → read for UI compatibility
+    const notif = { ...n, read: !!(n as any).read_at } as any;
+    s.v3Notifications.unshift(notif);
     if (!notif.read) s.unreadNotifCount++;
   })),
   markNotificationRead: (id) => set(produce((s: ReachState) => {
-    const n = s.notifications.find((x: any) => x.id === id);
+    const n = s.v3Notifications.find((x: any) => x.id === id);
     if (n && !(n as any).read) { (n as any).read = true; s.unreadNotifCount--; }
   })),
   markAllNotifsRead: () => set(produce((s: ReachState) => {
-    s.notifications.forEach((n: any) => { n.read = true; });
+    s.v3Notifications.forEach((n: any) => { n.read = true; });
     s.unreadNotifCount = 0;
   })),
   setActiveMeeting: (m) => set(produce((s: ReachState) => { s.activeMeeting = m as any; })),
@@ -134,14 +129,13 @@ export const useReachStore = create<ReachState>((set, get) => ({
     // Note: Important to set tenantId first so UI can transition away from "Loading Workspace..."
     set({ tenantId, userId, role: role as any });
 
-    // Load current user profile; set tenant + workspaceId
+    // Load current user profile and set workspaceId (C-02)
     if (userId && supabase) {
       supabase.from('profiles').select('*').eq('id', userId).single()
         .then(({ data }) => {
           if (data) {
             set(produce((s: ReachState) => {
               s.user = data;
-              s.tenant = { id: tenantId };
               s.workspaceId = data.default_workspace_id ?? tenantId;
             }));
           }
@@ -231,14 +225,14 @@ export const useReachStore = create<ReachState>((set, get) => ({
   },
 
   sendMessage: async (channelId: string, body: string) => {
-    const { user } = get();
-    if (!channelId || !user?.id || !body.trim()) return;
+    const { workspaceId, user } = get();
+    if (!workspaceId || !user?.id) return;
 
+    // Network Update via comm_send_message RPC (secure, server-side)
     if (get().isOnline) {
-      await supabase.from('messages').insert({
-        channel_id: channelId,
-        body: body.trim(),
-        is_system: false,
+      await supabase.rpc('comm_send_message', {
+        p_conversation_id: channelId,
+        p_body: body,
       });
     } else {
       set(produce((state: ReachState) => { state.syncQueueLength++; }));
