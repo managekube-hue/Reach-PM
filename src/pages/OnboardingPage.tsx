@@ -40,7 +40,7 @@ export default function OnboardingPage({ session }: any) {
     // Here we would securely save the PAT to the `encrypted_secrets` table
     setTimeout(() => {
       setLoading(false);
-      navigate('/chat');
+      navigate('/app');
     }, 800);
   };
 

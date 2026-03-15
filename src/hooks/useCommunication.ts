@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { ChatMessage, Channel } from '../types';
-// WebRTC is now handled by VideoRoom + useWebRTC (Supabase Realtime signaling).
-// useCommunication retains legacy comm_conversations/comm_messages support.
+import { useWebRTC } from './useWebRTC';
 
 export function useCommunication(workspaceId: string, userId: string, userName: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -13,10 +12,14 @@ export function useCommunication(workspaceId: string, userId: string, userName: 
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isVideoActive, setIsVideoActive] = useState(false);
 
-  // WebRTC streams now managed by VideoRoom component directly
-  const localStream: MediaStream | null = null;
-  const remoteStreams: Map<string, MediaStream> = new Map();
-  const participants: any[] = [];
+  const { localStream, remoteStreams, participants } = useWebRTC(
+    socket, 
+    userId, 
+    userName, 
+    currentChannel?.id || '', 
+    workspaceId,
+    isVideoActive
+  );
 
   const loadCommConversations = async (workspaceUuid: string) => {
     if (!supabase || !userId) return;

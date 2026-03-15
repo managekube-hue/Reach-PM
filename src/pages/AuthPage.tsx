@@ -24,7 +24,7 @@ export default function AuthPage() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/chat');
+        navigate('/app');
       } else {
         // Sign Up Flow
         // 1. Create the Auth User

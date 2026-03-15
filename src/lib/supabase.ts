@@ -11,9 +11,3 @@ if (!hasSupabaseConfig) {
 }
 
 export const supabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null;
-
-// CommCollab v3: spec imports createBrowserClient from @/lib/supabase.
-// Returns the existing singleton — no @supabase/ssr needed. (C-08)
-export function createBrowserClient() {
-  return supabase!;
-}

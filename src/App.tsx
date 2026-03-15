@@ -1,10 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from './lib/supabase';
-import { ChatLayout } from './components/chat/ChatLayout';
-import InboxPage from './pages/InboxPage';
-import StandupsPage from './pages/StandupsPage';
-import { StoreInitializer } from './components/StoreInitializer';
 
 /*
  ██████╗ ███████╗ █████╗  ██████╗██╗  ██╗
@@ -942,7 +936,7 @@ const Topbar = ({ T, route, theme, setTheme, onSearch, onIssue }) => {
 };
 
 /* ─── SIDEBAR ─────────────────────────────────────────────── */
-const Sidebar = ({ T, route, nav, slim, onChatNav, onInboxNav, onStandupsNav }) => {
+const Sidebar = ({ T, route, nav, slim }) => {
   const [open, setOpen] = useState({
     home: true, pm: true, methods: false, workspace: false,
     tasks: true, eng: true, comms: true, crm: false,
@@ -1098,46 +1092,12 @@ const Sidebar = ({ T, route, nav, slim, onChatNav, onInboxNav, onStandupsNav }) 
         {/* ═══ COMMUNICATION & ACTIVITY ═══ */}
         <Sec label="Communication & Activity" k="comms" color={T.accentWarm} />
         {open.comms && <div style={{ padding: "2px 6px" }}>
-          <div className={`nav-item${route === "chat" ? " active" : ""}`}
-            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
-            onClick={() => onChatNav ? onChatNav() : nav("chat")}
-            title={slim ? "Chat" : undefined}>
-            <Ico n="chat" s={13} />
-            {!slim && <span className="trunc flex-1">Chat</span>}
-            {!slim && <span className="badge">14</span>}
-            {slim && <div style={{ position: "absolute", top: 3, right: 3, width: 5, height: 5, borderRadius: "50%", background: T.danger }} />}
-          </div>
-          <div className={`nav-item${route === "inbox" ? " active" : ""}`}
-            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
-            onClick={() => onInboxNav ? onInboxNav() : nav("inbox")}
-            title={slim ? "Email" : undefined}>
-            <Ico n="mail" s={13} />
-            {!slim && <span className="trunc flex-1">Email</span>}
-          </div>
-          <div className={`nav-item${route === "standups" ? " active" : ""}`}
-            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
-            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
-            title={slim ? "Video Standups" : undefined}>
-            <Ico n="video" s={13} />
-            {!slim && <span className="trunc flex-1">Video Standups</span>}
-            {!slim && <span className="badge">1</span>}
-            {slim && <div style={{ position: "absolute", top: 3, right: 3, width: 5, height: 5, borderRadius: "50%", background: T.danger }} />}
-          </div>
-          <div className={`nav-item${route === "standups" ? " active" : ""}`}
-            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
-            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
-            title={slim ? "Meetings & Calls" : undefined}>
-            <Ico n="calendar" s={13} />
-            {!slim && <span className="trunc flex-1">Meetings & Calls</span>}
-          </div>
+          <NavItem item={{ id: "chat",         icon: "chat",    label: "Chat", badge: 14 }} depth={1} />
+          <NavItem item={{ id: "inbox",        icon: "mail",    label: "Email" }} depth={1} />
+          <NavItem item={{ id: "standups",     icon: "video",   label: "Video Standups", badge: 1 }} depth={1} />
+          <NavItem item={{ id: "standups",     icon: "calendar",label: "Meetings & Calls" }} depth={1} />
           <NavItem item={{ id: "analytics",    icon: "history", label: "Logs & History" }} depth={1} />
-          <div className={`nav-item${route === "standups" ? " active" : ""}`}
-            style={{ paddingLeft: slim ? 14 : 8 + 1 * 11 }}
-            onClick={() => onStandupsNav ? onStandupsNav() : nav("standups")}
-            title={slim ? "Calls" : undefined}>
-            <Ico n="phone" s={13} />
-            {!slim && <span className="trunc flex-1">Calls</span>}
-          </div>
+          <NavItem item={{ id: "standups",     icon: "phone",   label: "Calls" }} depth={1} />
           <NavItem item={{ id: "settings",     icon: "userPlus",label: "Invite" }} depth={1} />
         </div>}
 
@@ -1660,41 +1620,7 @@ const Marketing = ({ T, gotoAuth, theme, setTheme }) => {
 /* ══ AUTH ══════════════════════════════════════════════════ */
 const AuthPage = ({ T, mode, setPage }) => {
   const [form, setForm] = useState({ email: "", password: "", name: "" });
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
   const isSignup = mode === "signup";
-
-  const handleSubmit = async () => {
-    if (!form.email || !form.password) return;
-    setAuthLoading(true);
-    setAuthError("");
-    try {
-      if (!supabase) throw new Error("Supabase not configured — check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY");
-      if (isSignup) {
-        const { data, error } = await supabase.auth.signUp({ email: form.email, password: form.password });
-        if (error) throw error;
-        const userId = data.user?.id;
-        if (userId) {
-          const slug = (form.name || 'workspace').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
-          await supabase.rpc('register_tenant_admin', {
-            p_user_id: userId,
-            p_tenant_name: form.name || 'My Workspace',
-            p_slug: slug,
-            p_display_name: form.name || form.email,
-          });
-        }
-        setPage("onboarding");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
-        if (error) throw error;
-        setPage("app");
-      }
-    } catch (err: any) {
-      setAuthError(err.message || 'Authentication failed');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace" }}>
@@ -1747,13 +1673,8 @@ const AuthPage = ({ T, mode, setPage }) => {
             </div>
             <input className="inp" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
           </div>
-          {authError && (
-            <div style={{ padding: '10px 14px', background: 'rgba(242,107,107,0.12)', border: '1px solid #F26B6B', borderRadius: 6, marginBottom: 14, fontSize: 12, color: '#F26B6B' }}>
-              {authError}
-            </div>
-          )}
-          <button className="btn btn-p w-full" style={{ justifyContent: "center", padding: 11, opacity: authLoading ? 0.6 : 1 }} onClick={handleSubmit} disabled={authLoading}>
-            {authLoading ? 'Please wait…' : isSignup ? "Create account →" : "Sign in →"}
+          <button className="btn btn-p w-full" style={{ justifyContent: "center", padding: 11 }} onClick={() => setPage("app")}>
+            {isSignup ? "Create account →" : "Sign in →"}
           </button>
         </div>
 
@@ -6742,7 +6663,6 @@ const SearchModal = ({ T, onClose, setIssue }) => {
 
 /* ══ ROOT ═══════════════════════════════════════════════════ */
 export default function Reach() {
-  const navigate = useNavigate();
   const [page, setPage] = useState("marketing");
   const [theme, setTheme] = useState("light");
   const [route, setRoute] = useState("dashboard");
@@ -6751,14 +6671,6 @@ export default function Reach() {
   const [onboarded, setOnboarded] = useState(false);
 
   const T = THEMES[theme];
-
-  // Auto-detect existing session — skip marketing if already logged in
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setPage("app");
-    });
-  }, []);
 
   // Inject fonts + CSS
   useEffect(() => {
@@ -6785,7 +6697,7 @@ export default function Reach() {
   const PAGES = {
     "dashboard":    <Dashboard T={T} setRoute={setRoute} setIssue={setIssue} />,
     "issues":       <Issues T={T} setIssue={setIssue} />,
-    "inbox":        <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><InboxPage /></div>,
+    "inbox":        <Inbox T={T} setRoute={setRoute} setIssue={setIssue} />,
     "drafts":       <Drafts T={T} />,
     "members":      <Members T={T} />,
     "projects":     <Projects T={T} setIssue={setIssue} />,
@@ -6796,8 +6708,8 @@ export default function Reach() {
     "code":         <Code T={T} setIssue={setIssue} />,
     "prs":          <PRs T={T} setIssue={setIssue} />,
     "docs":         <Docs T={T} />,
-    "chat":         <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><ChatLayout /></div>,
-    "standups":     <div style={{position:"fixed",inset:0,zIndex:10,overflow:"hidden"}}><StoreInitializer /><StandupsPage /></div>,
+    "chat":         <Chat T={T} setIssue={setIssue} />,
+    "standups":     <Standups T={T} setIssue={setIssue} />,
     "analytics":    <Analytics T={T} setIssue={setIssue} />,
     "dev-charts":   <DevCharts T={T} />,
     "reports":      <Reports T={T} />,
@@ -6813,7 +6725,7 @@ export default function Reach() {
   return (
     <div className="app" style={{ background: T.bg, color: T.text, fontFamily: "'DM Mono', monospace" }}>
       <div className="app-body">
-        <Sidebar T={T} route={route} nav={setRoute} onChatNav={() => navigate('/chat')} onInboxNav={() => navigate('/inbox')} onStandupsNav={() => navigate('/standups')} />
+        <Sidebar T={T} route={route} nav={setRoute} />
         <div className="main">
           <Topbar T={T} route={route} theme={theme} setTheme={setTheme} onSearch={() => setSearch(true)} onIssue={setIssue} />
           <div className="content" style={{ background: T.bg }}>

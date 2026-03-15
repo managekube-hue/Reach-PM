@@ -1,190 +1,172 @@
-// hooks/useWebRTC.ts
-// Spec Part 10.1 — full mesh P2P via Supabase Realtime signaling
-// Replaces WebSocket-based signaling from v2.0
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { createPeerConnection } from '@/lib/webrtc'
-import { sendSignal, subscribeToSignals } from '@/lib/signal'
-import { useReachStore } from '@/store/useReachStore'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { User, SignalData } from '../types';
 
-interface Peer {
-  userId: string
-  displayName: string
-  stream: MediaStream | null
-  pc: RTCPeerConnection
-}
+export function useWebRTC(
+  socket: WebSocket | null,
+  localUserId: string,
+  localUserName: string,
+  roomId: string,
+  workspaceId: string,
+  enabled: boolean = false
+) {
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [participants, setParticipants] = useState<User[]>([]);
+  
+  const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const localStreamRef = useRef<MediaStream | null>(null);
 
-export function useWebRTC(roomCode: string | null) {
-  const { user } = useReachStore()
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-  const [peers, setPeers] = useState<Record<string, Peer>>({})
-  const [joined, setJoined] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [camEnabled, setCamEnabled] = useState(true)
-  const [micEnabled, setMicEnabled] = useState(true)
-  const peersRef = useRef<Record<string, Peer>>({})
-  const localStreamRef = useRef<MediaStream | null>(null)
+  const configuration: RTCConfiguration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+  };
 
-  // ── Join the room ──────────────────────────────────────────────────
-  const join = useCallback(async () => {
-    if (!roomCode || !user?.id) return
-    let stream: MediaStream
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, frameRate: 30 },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      })
-    } catch {
-      setError('Camera/mic access denied. Please allow access and try again.')
-      return
-    }
-    localStreamRef.current = stream
-    setLocalStream(stream)
+  const createPeerConnection = useCallback((targetId: string, isInitiator: boolean) => {
+    if (peerConnections.current.has(targetId)) return peerConnections.current.get(targetId)!;
 
-    const unsub = subscribeToSignals(roomCode, handleSignal)
-    await sendSignal(roomCode, user.id, 'join', {
-      display_name: user.display_name ?? user.email,
-    })
-    setJoined(true)
-    return unsub
-  }, [roomCode, user?.id])
+    const pc = new RTCPeerConnection(configuration);
 
-  // ── Handle incoming signals ──────────────────────────────────────
-  async function handleSignal(signal: any) {
-    if (signal.from_user === user?.id) return
-    if (signal.to_user && signal.to_user !== user?.id) return
-    const fromId = signal.from_user
-
-    switch (signal.type) {
-      case 'join': {
-        const pc = await createPeerConnection()
-        setupPC(pc, fromId)
-        localStreamRef.current?.getTracks().forEach((t) =>
-          pc.addTrack(t, localStreamRef.current!)
-        )
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        await sendSignal(roomCode!, user!.id, 'offer', { sdp: offer }, fromId)
-        addPeer(fromId, signal.payload.display_name, pc)
-        break
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socket) {
+        socket.send(JSON.stringify({
+          type: 'signal',
+          payload: {
+            targetId,
+            senderId: localUserId,
+            signal: { type: 'candidate', candidate: event.candidate }
+          }
+        }));
       }
-      case 'offer': {
-        let pc = peersRef.current[fromId]?.pc
-        if (!pc) {
-          pc = await createPeerConnection()
-          setupPC(pc, fromId)
-          localStreamRef.current?.getTracks().forEach((t) =>
-            pc!.addTrack(t, localStreamRef.current!)
-          )
-          addPeer(fromId, 'Participant', pc)
+    };
+
+    pc.ontrack = (event) => {
+      setRemoteStreams((prev) => {
+        const next = new Map(prev);
+        next.set(targetId, event.streams[0]);
+        return next;
+      });
+    };
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    if (isInitiator) {
+      pc.createOffer().then((offer) => {
+        pc.setLocalDescription(offer);
+        socket?.send(JSON.stringify({
+          type: 'signal',
+          payload: {
+            targetId,
+            senderId: localUserId,
+            signal: { type: 'offer', sdp: offer.sdp }
+          }
+        }));
+      });
+    }
+
+    peerConnections.current.set(targetId, pc);
+    return pc;
+  }, [socket, localUserId]);
+
+  useEffect(() => {
+    if (!enabled) {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        setLocalStream(null);
+        localStreamRef.current = null;
+      }
+      return;
+    }
+
+    async function setupLocalMedia() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setLocalStream(stream);
+        localStreamRef.current = stream;
+      } catch (err) {
+        console.error('Error accessing media devices:', err);
+      }
+    }
+    setupLocalMedia();
+
+    return () => {
+      localStreamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = async (event: MessageEvent) => {
+      const { type, payload } = JSON.parse(event.data);
+
+      switch (type) {
+        case 'room-state':
+          setParticipants(payload.users);
+          // Initiate connections to existing users
+          payload.users.forEach((user: User) => {
+            if (user.id !== localUserId) {
+              createPeerConnection(user.id, true);
+            }
+          });
+          break;
+
+        case 'user-joined':
+          setParticipants((prev) => [...prev, { id: payload.userId, name: payload.userName, roomId, workspaceId }]);
+          // New user joined, they will initiate connections to us
+          break;
+
+        case 'user-left':
+          setParticipants((prev) => prev.filter(u => u.id !== payload.userId));
+          setRemoteStreams((prev) => {
+            const next = new Map(prev);
+            next.delete(payload.userId);
+            return next;
+          });
+          if (peerConnections.current.has(payload.userId)) {
+            peerConnections.current.get(payload.userId)?.close();
+            peerConnections.current.delete(payload.userId);
+          }
+          break;
+
+        case 'signal': {
+          const { senderId, signal } = payload;
+          let pc = peerConnections.current.get(senderId);
+          
+          if (!pc) {
+            pc = createPeerConnection(senderId, false);
+          }
+
+          if (signal.type === 'offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.send(JSON.stringify({
+              type: 'signal',
+              payload: {
+                targetId: senderId,
+                senderId: localUserId,
+                signal: { type: 'answer', sdp: answer.sdp }
+              }
+            }));
+          } else if (signal.type === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+          } else if (signal.type === 'candidate') {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          }
+          break;
         }
-        await pc.setRemoteDescription(
-          new RTCSessionDescription(signal.payload.sdp)
-        )
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        await sendSignal(roomCode!, user!.id, 'answer', { sdp: answer }, fromId)
-        break
       }
-      case 'answer': {
-        const pc = peersRef.current[fromId]?.pc
-        if (pc)
-          await pc.setRemoteDescription(
-            new RTCSessionDescription(signal.payload.sdp)
-          )
-        break
-      }
-      case 'ice-candidate': {
-        const pc = peersRef.current[fromId]?.pc
-        if (pc && signal.payload.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.payload.candidate))
-        }
-        break
-      }
-      case 'leave': {
-        cleanupPeer(fromId)
-        break
-      }
-    }
-  }
+    };
 
-  // ── PC event handlers ────────────────────────────────────────────
-  function setupPC(pc: RTCPeerConnection, peerId: string) {
-    pc.onicecandidate = async (e) => {
-      if (e.candidate) {
-        await sendSignal(
-          roomCode!,
-          user!.id,
-          'ice-candidate',
-          { candidate: e.candidate },
-          peerId
-        )
-      }
-    }
-    pc.ontrack = (e) => {
-      const stream = e.streams[0]
-      setPeers((prev) => ({ ...prev, [peerId]: { ...prev[peerId], stream } }))
-      peersRef.current[peerId] = { ...peersRef.current[peerId], stream }
-    }
-    pc.onconnectionstatechange = () => {
-      if (
-        pc.connectionState === 'failed' ||
-        pc.connectionState === 'disconnected'
-      ) {
-        cleanupPeer(peerId)
-      }
-    }
-  }
+    socket.addEventListener('message', handleMessage);
+    return () => socket.removeEventListener('message', handleMessage);
+  }, [socket, localUserId, roomId, createPeerConnection]);
 
-  function addPeer(userId: string, displayName: string, pc: RTCPeerConnection) {
-    const peer: Peer = { userId, displayName, stream: null, pc }
-    peersRef.current[userId] = peer
-    setPeers((prev) => ({ ...prev, [userId]: peer }))
-  }
-
-  function cleanupPeer(userId: string) {
-    peersRef.current[userId]?.pc.close()
-    const updated = { ...peersRef.current }
-    delete updated[userId]
-    peersRef.current = updated
-    setPeers({ ...updated })
-  }
-
-  // ── Leave room ───────────────────────────────────────────────────
-  const leave = useCallback(async () => {
-    if (roomCode && user?.id) await sendSignal(roomCode, user.id, 'leave', {})
-    localStreamRef.current?.getTracks().forEach((t) => t.stop())
-    Object.values(peersRef.current).forEach((p) => p.pc.close())
-    peersRef.current = {}
-    setPeers({})
-    setLocalStream(null)
-    setJoined(false)
-  }, [roomCode, user?.id])
-
-  // ── Media toggles ────────────────────────────────────────────────
-  const toggleCam = useCallback(() => {
-    localStreamRef.current?.getVideoTracks().forEach((t) => {
-      t.enabled = !t.enabled
-    })
-    setCamEnabled((prev) => !prev)
-  }, [])
-
-  const toggleMic = useCallback(() => {
-    localStreamRef.current?.getAudioTracks().forEach((t) => {
-      t.enabled = !t.enabled
-    })
-    setMicEnabled((prev) => !prev)
-  }, [])
-
-  return {
-    localStream,
-    peers: Object.values(peers),
-    joined,
-    error,
-    camEnabled,
-    micEnabled,
-    join,
-    leave,
-    toggleCam,
-    toggleMic,
-  }
+  return { localStream, remoteStreams, participants };
 }
